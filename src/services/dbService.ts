@@ -41,14 +41,88 @@ const initLocalStorageIfNeeded = () => {
 };
 initLocalStorageIfNeeded();
 
+// --- DYNAMIC IMAGE COMPRESSION HELPER (PREVENTS MOBILE OUT-OF-MEMORY ERRORS) ---
+export const compressImage = (file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.75): Promise<File> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      resolve(file);
+      return;
+    }
+
+    const img = new Image();
+    // Memory Optimization: Using objectURL instead of FileReader Base64 string prevents RAM spikes
+    const url = URL.createObjectURL(file);
+    img.src = url;
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      // Fit dimensions within max limits while maintaining ratio
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name.substring(0, file.name.lastIndexOf('.')) + '_compressed.jpg', {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file); // Fallback: return original file
+    };
+  });
+};
+
 // --- IMAGE UPLOAD HELPER ---
 export const uploadImage = async (file: File, path: string = 'assets'): Promise<string> => {
   const { isFirebase, storage } = getServices();
   
+  // Compress image to ~1024px to prevent Out of Memory on mobile and speed up uploading
+  let processedFile = file;
+  try {
+    processedFile = await compressImage(file);
+  } catch (err) {
+    console.error('Image compression failed, using original file:', err);
+  }
+
   if (isFirebase && storage) {
     try {
-      const storageRef = ref(storage, `${path}/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
+      const storageRef = ref(storage, `${path}/${Date.now()}_${processedFile.name}`);
+      const snapshot = await uploadBytes(storageRef, processedFile);
       const url = await getDownloadURL(snapshot.ref);
       return url;
     } catch (e) {
@@ -63,7 +137,7 @@ export const uploadImage = async (file: File, path: string = 'assets'): Promise<
       resolve(reader.result as string);
     };
     reader.onerror = reject;
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(processedFile);
   });
 };
 
