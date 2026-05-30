@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle } from 'lucide-react';
-import { Asset, DepartmentLocationConfig } from '../utils/mockData';
+import { Asset, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 import { uploadImage } from '../services/dbService';
 import confetti from 'canvas-confetti';
 
@@ -11,6 +11,7 @@ interface Module3AddAssetProps {
   clearPrefilledAssetId: () => void;
   setCurrentTab: (tab: string) => void;
   departments: DepartmentLocationConfig[];
+  currentUser: UserAccount | null;
 }
 
 export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
@@ -19,7 +20,8 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
   prefilledAssetId,
   clearPrefilledAssetId,
   setCurrentTab,
-  departments
+  departments,
+  currentUser
 }) => {
   // Form states
   const [assetId, setAssetId] = useState('');
@@ -50,7 +52,17 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
   // Prefill department and location from system configuration if available
   useEffect(() => {
-    if (departments.length > 0 && !isCustomInput) {
+    if (currentUser?.role === 'user') {
+      setIsCustomInput(false);
+      setDepartment(currentUser.department);
+      
+      const foundDept = departments.find(d => d.name === currentUser.department);
+      if (foundDept && foundDept.locations.length > 0) {
+        if (!location || !foundDept.locations.includes(location)) {
+          setLocation(foundDept.locations[0]);
+        }
+      }
+    } else if (departments.length > 0 && !isCustomInput) {
       if (!department) {
         setDepartment(departments[0].name);
         if (departments[0].locations.length > 0) {
@@ -58,7 +70,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         }
       }
     }
-  }, [departments, isCustomInput, department]);
+  }, [departments, isCustomInput, department, currentUser, location]);
 
   const handleDepartmentSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const deptName = e.target.value;
@@ -301,26 +313,28 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         {/* Row 4: Location, Dept, Responsible */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', marginTop: '0.25rem' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--text-muted)' }}>📍 ฝ่ายจัดวางพัสดุและห้องติดตั้ง</span>
-          <button 
-            type="button" 
-            className="btn btn-ghost btn-xs"
-            onClick={() => {
-              const nextVal = !isCustomInput;
-              setIsCustomInput(nextVal);
-              if (nextVal) {
-                setDepartment('');
-                setLocation('');
-              } else {
-                if (departments.length > 0) {
-                  setDepartment(departments[0].name);
-                  setLocation(departments[0].locations[0] || '');
+          {currentUser?.role !== 'user' && (
+            <button 
+              type="button" 
+              className="btn btn-ghost btn-xs"
+              onClick={() => {
+                const nextVal = !isCustomInput;
+                setIsCustomInput(nextVal);
+                if (nextVal) {
+                  setDepartment('');
+                  setLocation('');
+                } else {
+                  if (departments.length > 0) {
+                    setDepartment(departments[0].name);
+                    setLocation(departments[0].locations[0] || '');
+                  }
                 }
-              }
-            }}
-            style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem', border: '1px solid var(--border)', background: 'var(--bg-secondary)', height: 'auto', outline: 'none' }}
-          >
-            {isCustomInput ? '🏢 ใช้รายการระบบ' : '✍️ พิมพ์กรอกข้อมูลเอง'}
-          </button>
+              }}
+              style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem', border: '1px solid var(--border)', background: 'var(--bg-secondary)', height: 'auto', outline: 'none' }}
+            >
+              {isCustomInput ? '🏢 ใช้รายการระบบ' : '✍️ พิมพ์กรอกข้อมูลเอง'}
+            </button>
+          )}
         </div>
 
         <div className="grid-cols-3">
@@ -353,11 +367,12 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
           ) : (
             <>
               <div className="form-group">
-                <label className="form-label">🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน</label>
+                <label className="form-label">🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน {currentUser?.role === 'user' && '(ล็อคสิทธิ์ตามหน่วยงานของคุณ)'}</label>
                 <select 
                   className="form-select"
                   value={department}
                   onChange={handleDepartmentSelectChange}
+                  disabled={currentUser?.role === 'user'}
                   required
                 >
                   {departments.length === 0 ? (

@@ -12,7 +12,7 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS } from '../utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS, INITIAL_USERS } from '../utils/mockData';
 
 // Helper to check if we are using Firebase
 const getServices = () => {
@@ -31,6 +31,9 @@ const initLocalStorageIfNeeded = () => {
   }
   if (!localStorage.getItem('assetwatch_audits')) {
     localStorage.setItem('assetwatch_audits', JSON.stringify(INITIAL_AUDITS));
+  }
+  if (!localStorage.getItem('assetwatch_users')) {
+    localStorage.setItem('assetwatch_users', JSON.stringify(INITIAL_USERS));
   }
   if (!localStorage.getItem('assetwatch_repairs')) {
     localStorage.setItem('assetwatch_repairs', JSON.stringify(INITIAL_REPAIRS));
@@ -612,16 +615,18 @@ export const exportBackupData = async (): Promise<string> => {
   const surveys = await getSurveys();
   const rounds = await getSurveyRounds();
   const departments = await getDepartments();
+  const users = await getUsers();
 
   const backupObj = {
-    version: '1.0.0',
+    version: '1.1.0',
     exportedAt: new Date().toISOString(),
     assets,
     audits,
     repairs,
     surveys,
     rounds,
-    departments
+    departments,
+    users
   };
 
   return JSON.stringify(backupObj, null, 2);
@@ -666,6 +671,11 @@ export const importBackupData = async (jsonString: string): Promise<{ success: b
           await setDoc(doc(db, 'departments', dept.id), dept);
         }
       }
+      if (backupObj.users) {
+        for (const user of backupObj.users) {
+          await setDoc(doc(db, 'users', user.id), user);
+        }
+      }
     }
 
     // Always keep LocalStorage in sync or write to LocalStorage if offline
@@ -675,9 +685,81 @@ export const importBackupData = async (jsonString: string): Promise<{ success: b
     localStorage.setItem('assetwatch_surveys', JSON.stringify(backupObj.surveys || []));
     localStorage.setItem('assetwatch_survey_rounds', JSON.stringify(backupObj.rounds || []));
     localStorage.setItem('assetwatch_departments', JSON.stringify(backupObj.departments || INITIAL_DEPARTMENTS));
+    if (backupObj.users) {
+      localStorage.setItem('assetwatch_users', JSON.stringify(backupObj.users));
+    }
 
     return { success: true, message: `นำเข้าข้อมูลครุภัณฑ์สำเร็จทั้งหมด ${backupObj.assets.length} รายการ` };
   } catch (e: any) {
     return { success: false, message: `การนำเข้าข้อมูลล้มเหลว: ${e.message}` };
   }
+};
+
+// --- USER ACCESS & AUTHORIZATION SERVICES ---
+export const getUsers = async (): Promise<UserAccount[]> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const q = query(collection(db, 'users'));
+      const snapshot = await getDocs(q);
+      const list: UserAccount[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as UserAccount);
+      });
+      return list;
+    } catch (e) {
+      console.error('Firebase getUsers failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const users: UserAccount[] = JSON.parse(localStorage.getItem('assetwatch_users') || '[]');
+  return users.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+};
+
+export const addOrUpdateUser = async (user: UserAccount): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'users', user.id);
+      await setDoc(docRef, user);
+      return;
+    } catch (e) {
+      console.error('Firebase addOrUpdateUser failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const users: UserAccount[] = JSON.parse(localStorage.getItem('assetwatch_users') || '[]');
+  const index = users.findIndex(u => u.id === user.id);
+  if (index !== -1) {
+    users[index] = user;
+  } else {
+    users.push(user);
+  }
+  localStorage.setItem('assetwatch_users', JSON.stringify(users));
+};
+
+export const deleteUser = async (id: string): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'users', id);
+      await deleteDoc(docRef);
+      return;
+    } catch (e) {
+      console.error('Firebase deleteUser failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const users: UserAccount[] = JSON.parse(localStorage.getItem('assetwatch_users') || '[]');
+  const filtered = users.filter(u => u.id !== id);
+  localStorage.setItem('assetwatch_users', JSON.stringify(filtered));
 };

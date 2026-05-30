@@ -22,7 +22,10 @@ import {
   getDepartments,
   addDepartment,
   updateDepartment,
-  deleteDepartment
+  deleteDepartment,
+  getUsers,
+  addOrUpdateUser,
+  deleteUser
 } from './services/dbService';
 
 // Module Components
@@ -35,9 +38,10 @@ import { Module5_Repair } from './modules/Module5_Repair';
 import { Module6_AuditTrail } from './modules/Module6_AuditTrail';
 import { Module7_Settings } from './modules/Module7_Settings';
 import { Module8_Departments } from './modules/Module8_Departments';
+import { Module9_AccessControl } from './modules/Module9_AccessControl';
 
-import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig } from './utils/mockData';
-import { X, Camera, AlertCircle } from 'lucide-react';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS } from './utils/mockData';
+import { X, Camera, AlertCircle, Lock } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
 function App() {
@@ -63,6 +67,23 @@ function App() {
   const [rounds, setRounds] = useState<SurveyRound[]>([]);
   const [activeRound, setActiveRound] = useState<SurveyRound | null>(null);
   const [departments, setDepartments] = useState<DepartmentLocationConfig[]>([]);
+  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    const saved = localStorage.getItem('assetwatch_session');
+    if (saved) {
+      try {
+        return JSON.parse(saved) as UserAccount;
+      } catch (e) {
+        console.error('Failed to parse active user session:', e);
+      }
+    }
+    return null;
+  });
+
+  // Login form state
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // Prefilled Asset ID used for onboarding scanned unregistered barcodes
   const [prefilledAssetId, setPrefilledAssetId] = useState<string | null>(null);
@@ -94,10 +115,15 @@ function App() {
       const allSurveys = await getSurveys();
       const allRounds = await getSurveyRounds();
       const allDepts = await getDepartments();
+      const allUsers = await getUsers();
 
       setAssets(allAssets);
       setAudits(allAudits);
       setRepairs(allRepairs);
+      setSurveys(allSurveys);
+      setRounds(allRounds);
+      setDepartments(allDepts);
+      setUsers(allUsers);
       setSurveys(allSurveys);
       setRounds(allRounds);
       setDepartments(allDepts);
@@ -124,6 +150,83 @@ function App() {
     localStorage.removeItem('assetwatch_demo_bypass');
     setIsSetupWizardNeeded(true);
     setCurrentTab('dashboard');
+  };
+
+  // --- USER ACCESS & ROLE HANDLERS ---
+  const handleCreateUser = async (user: UserAccount) => {
+    await addOrUpdateUser(user);
+    await fetchAllData();
+  };
+
+  const handleUpdateUser = async (id: string, updates: Partial<UserAccount>) => {
+    const userToUpdate = users.find(u => u.id === id);
+    if (userToUpdate) {
+      const updatedUser = { ...userToUpdate, ...updates };
+      await addOrUpdateUser(updatedUser);
+      await fetchAllData();
+      
+      // If the updated user is the active user, sync session
+      if (currentUser && currentUser.id === id) {
+        setCurrentUser(updatedUser);
+        localStorage.setItem('assetwatch_session', JSON.stringify(updatedUser));
+      }
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    await deleteUser(id);
+    await fetchAllData();
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('assetwatch_session');
+    setCurrentTab('dashboard');
+  };
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+
+    const foundUser = users.find(u => u.username.toLowerCase() === loginUsername.trim().toLowerCase());
+    if (!foundUser) {
+      setLoginError('ไม่พบชื่อผู้ใช้งานนี้ในระบบ');
+      return;
+    }
+
+    if (foundUser.password !== loginPassword) {
+      setLoginError('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง');
+      return;
+    }
+
+    if (foundUser.isBlocked) {
+      setLoginError('🚫 บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ');
+      return;
+    }
+
+    // Success
+    setCurrentUser(foundUser);
+    localStorage.setItem('assetwatch_session', JSON.stringify(foundUser));
+    localStorage.setItem('assetwatch_operator', foundUser.name);
+    setLoginUsername('');
+    setLoginPassword('');
+  };
+
+  const handleQuickLogin = (demoUsername: string) => {
+    setLoginError(null);
+    const foundUser = users.find(u => u.username === demoUsername);
+    if (foundUser) {
+      if (foundUser.isBlocked) {
+        setLoginError('🚫 บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ');
+        return;
+      }
+      
+      setCurrentUser(foundUser);
+      localStorage.setItem('assetwatch_session', JSON.stringify(foundUser));
+      localStorage.setItem('assetwatch_operator', foundUser.name);
+      setLoginUsername('');
+      setLoginPassword('');
+    }
   };
 
   // --- DATABASE TRIGGER WRAPPERS ---
@@ -290,7 +393,7 @@ function App() {
 
     setSavingEdit(true);
     try {
-      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
+      const operatorName = currentUser?.name || 'แอดมินพัสดุ';
       let finalUrl = editImagePreview || '';
 
       if (editImageFile) {
@@ -370,100 +473,333 @@ function App() {
   return (
     <div className="app-container">
       {/* Responsive Elegant Shell */}
-      <Sidebar 
-        currentTab={currentTab} 
-        setCurrentTab={setCurrentTab} 
-        theme={theme}
-        setTheme={setTheme}
-        isFirebaseConfigured={services.isConfigured}
-      />
+      {/* Login Screen Visual Overlay */}
+      {!currentUser ? (
+        <div className="login-overlay-container" data-theme={theme}>
+          <div className="login-glass-card glass-panel animate-scale-up">
+            
+            <div className="login-logo-header">
+              <div className="logo-symbol" style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Lock size={26} color="#ffffff" className="logo-lock-icon" />
+              </div>
+              <h2>AssetWatch Login</h2>
+              <p>ระบบควบคุมการเข้าถึงควบคุมสิทธิ์ทรัพย์สินทางราชการ</p>
+            </div>
 
-      {/* Main Content Area */}
-      <main className="main-content">
-        {currentTab === 'dashboard' && (
-          <Dashboard 
-            assets={assets} 
-            repairs={repairs} 
-            surveys={surveys}
-            setCurrentTab={setCurrentTab}
+            <form onSubmit={handleLoginSubmit} className="login-form-fields">
+              
+              <div className="form-group">
+                <label className="form-label">👤 ชื่อผู้ใช้งาน (Username)</label>
+                <input 
+                  type="text" 
+                  className="form-input monospace-input" 
+                  placeholder="ป้อนชื่อผู้ใช้ภาษาอังกฤษ..."
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginTop: '0.85rem' }}>
+                <label className="form-label">🔑 รหัสผ่าน (Password)</label>
+                <input 
+                  type="password" 
+                  className="form-input" 
+                  placeholder="ป้อนรหัสผ่าน..."
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              {loginError && (
+                <div className="alert alert-danger animate-shake" style={{ marginTop: '1rem', padding: '0.75rem', fontSize: '0.85rem' }}>
+                  <AlertCircle size={16} /> <span>{loginError}</span>
+                </div>
+              )}
+
+              <button type="submit" className="btn btn-primary w-full" style={{ marginTop: '1.25rem', height: '42px', fontSize: '0.95rem' }}>
+                🚀 ลงชื่อเข้าใช้งานระบบ
+              </button>
+
+            </form>
+
+            {/* Quick Demo Accounts Selector */}
+            <div className="quick-demo-accounts">
+              <span className="demo-title">⚡ ปุ่มล็อคอินบัญชีทดสอบระดับสิทธิ์ (Demo Bypass)</span>
+              <div className="demo-badges-grid">
+                <button className="demo-badge badge-admin" onClick={() => handleQuickLogin('admin')}>
+                  👑 แอดมินสูงสุด (Admin)
+                </button>
+                <button className="demo-badge badge-it" onClick={() => handleQuickLogin('it_user')}>
+                  💻 แผนก IT (User)
+                </button>
+                <button className="demo-badge badge-general" onClick={() => handleQuickLogin('admin_general')}>
+                  💼 บริหารทั่วไป (User)
+                </button>
+                <button className="demo-badge badge-blocked" onClick={() => handleQuickLogin('blocked')}>
+                  🚫 บัญชีโดนแบน (Blocked)
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <style>{`
+            .login-overlay-container {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              width: 100vw;
+              background-color: var(--bg-primary);
+              background-image: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.04) 0%, transparent 40%),
+                                radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.04) 0%, transparent 40%);
+              padding: 1.5rem;
+            }
+
+            .login-glass-card {
+              max-width: 440px;
+              width: 100%;
+              padding: 2.5rem 2rem;
+              display: flex;
+              flex-direction: column;
+              box-shadow: var(--glass-shadow);
+              border: 1px solid var(--border);
+            }
+
+            .login-logo-header {
+              text-align: center;
+              margin-bottom: 1.75rem;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 0.5rem;
+            }
+
+            .login-logo-header h2 {
+              font-size: 1.5rem;
+              font-weight: 800;
+              background: linear-gradient(120deg, var(--primary), var(--info));
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              margin: 0.25rem 0 0 0;
+            }
+
+            .login-logo-header p {
+              font-size: 0.8rem;
+              color: var(--text-muted);
+              line-height: 1.35;
+            }
+
+            .logo-lock-icon {
+              animation: lock-float 3s infinite alternate ease-in-out;
+            }
+
+            @keyframes lock-float {
+              0% { transform: translateY(0); }
+              100% { transform: translateY(-4px); }
+            }
+
+            .monospace-input {
+              font-family: monospace;
+              font-weight: 600;
+            }
+
+            .w-full {
+              width: 100%;
+            }
+
+            .quick-demo-accounts {
+              margin-top: 1.75rem;
+              border-top: 1px dashed var(--border);
+              padding-top: 1.25rem;
+              display: flex;
+              flex-direction: column;
+              gap: 0.75rem;
+            }
+
+            .demo-title {
+              font-size: 0.75rem;
+              font-weight: 650;
+              color: var(--text-muted);
+              text-align: center;
+            }
+
+            .demo-badges-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 0.5rem;
+            }
+
+            .demo-badge {
+              padding: 0.5rem 0.25rem;
+              font-size: 0.725rem;
+              font-weight: 650;
+              border-radius: var(--radius-sm);
+              border: 1px solid var(--border);
+              background-color: var(--bg-secondary);
+              color: var(--text-secondary);
+              cursor: pointer;
+              transition: all var(--transition-fast);
+              text-align: center;
+              height: auto;
+            }
+
+            .demo-badge:hover {
+              transform: scale(1.02);
+            }
+
+            .badge-admin:hover {
+              border-color: #6366f1;
+              color: #6366f1;
+              background-color: rgba(99, 102, 241, 0.05);
+            }
+
+            .badge-it:hover {
+              border-color: var(--primary);
+              color: var(--primary);
+              background-color: rgba(59, 130, 246, 0.05);
+            }
+
+            .badge-general:hover {
+              border-color: var(--cyan);
+              color: var(--cyan);
+              background-color: rgba(6, 182, 212, 0.05);
+            }
+
+            .badge-blocked:hover {
+              border-color: var(--danger);
+              color: var(--danger);
+              background-color: rgba(239, 68, 68, 0.05);
+            }
+
+            @keyframes shake {
+              0%, 100% { transform: translateX(0); }
+              20%, 60% { transform: translateX(-4px); }
+              40%, 80% { transform: translateX(4px); }
+            }
+
+            .animate-shake {
+              animation: shake 0.3s ease-in-out;
+            }
+          `}</style>
+        </div>
+      ) : (
+        <>
+          <Sidebar 
+            currentTab={currentTab} 
+            setCurrentTab={setCurrentTab} 
+            theme={theme}
+            setTheme={setTheme}
+            isFirebaseConfigured={services.isConfigured}
+            currentUser={currentUser}
+            onLogout={handleLogout}
           />
-        )}
-        {currentTab === 'module1' && (
-          <Module1_Database 
-            assets={assets}
-            audits={audits}
-            repairs={repairs}
-            surveys={surveys}
-            onAssetEdit={handleStartEditAsset}
-          />
-        )}
-        {currentTab === 'module2' && (
-          <Module2_ScanSurvey 
-            assets={assets}
-            surveys={surveys}
-            rounds={rounds}
-            activeRound={activeRound}
-            onAddSurvey={handleAddSurvey}
-            onUpdateAssetStatus={handleUpdateAssetStatus}
-            onLogAudit={handleLogAudit}
-            onRedirectToAdd={handleRedirectToRegister}
-            onCreateSurveyRound={handleCreateSurveyRound}
-            onCloseActiveRound={handleCloseActiveRound}
-          />
-        )}
-        {currentTab === 'module3' && (
-          <Module3_AddAsset 
-            onAddAsset={handleAddNewAsset}
-            onLogAudit={handleLogAudit}
-            prefilledAssetId={prefilledAssetId}
-            clearPrefilledAssetId={() => setPrefilledAssetId(null)}
-            setCurrentTab={setCurrentTab}
-            departments={departments}
-          />
-        )}
-        {currentTab === 'module4' && (
-          <Module4_Dispose 
-            assets={assets}
-            onUpdateAssetStatus={handleUpdateAssetStatus}
-            onLogAudit={handleLogAudit}
-          />
-        )}
-        {currentTab === 'module5_transfer' && (
-          <Module5_Transfer 
-            assets={assets}
-            onUpdateAssetTransfer={handleUpdateAssetTransfer}
-            onLogAudit={handleLogAudit}
-            departments={departments}
-          />
-        )}
-        {currentTab === 'module5_repair' && (
-          <Module5_Repair 
-            assets={assets}
-            repairs={repairs}
-            onAddRepair={handleAddRepair}
-            onUpdateRepair={handleUpdateRepair}
-            onUpdateAssetStatus={handleUpdateAssetStatus}
-            onLogAudit={handleLogAudit}
-          />
-        )}
-        {currentTab === 'module6' && (
-          <Module6_AuditTrail audits={audits} />
-        )}
-        {currentTab === 'module7' && (
-          <Module7_Settings 
-            onClearConfig={handleClearConfig}
-            onImportSuccess={fetchAllData}
-          />
-        )}
-        {currentTab === 'module8' && (
-          <Module8_Departments 
-            departments={departments}
-            onAddDept={handleCreateDepartment}
-            onUpdateDept={handleUpdateDepartment}
-            onDeleteDept={handleDeleteDepartment}
-          />
-        )}
-      </main>
+
+          {/* Main Content Area */}
+          <main className="main-content">
+            {currentTab === 'dashboard' && (
+              <Dashboard 
+                assets={assets} 
+                repairs={repairs} 
+                surveys={surveys}
+                setCurrentTab={setCurrentTab}
+              />
+            )}
+            {currentTab === 'module1' && (
+              <Module1_Database 
+                assets={assets}
+                audits={audits}
+                repairs={repairs}
+                surveys={surveys}
+                onAssetEdit={handleStartEditAsset}
+                currentUser={currentUser}
+              />
+            )}
+            {currentTab === 'module2' && (
+              <Module2_ScanSurvey 
+                assets={assets}
+                surveys={surveys}
+                rounds={rounds}
+                activeRound={activeRound}
+                onAddSurvey={handleAddSurvey}
+                onUpdateAssetStatus={handleUpdateAssetStatus}
+                onLogAudit={handleLogAudit}
+                onRedirectToAdd={handleRedirectToRegister}
+                onCreateSurveyRound={handleCreateSurveyRound}
+                onCloseActiveRound={handleCloseActiveRound}
+              />
+            )}
+            {currentTab === 'module3' && (
+              <Module3_AddAsset 
+                onAddAsset={handleAddNewAsset}
+                onLogAudit={handleLogAudit}
+                prefilledAssetId={prefilledAssetId}
+                clearPrefilledAssetId={() => setPrefilledAssetId(null)}
+                setCurrentTab={setCurrentTab}
+                departments={departments}
+                currentUser={currentUser}
+              />
+            )}
+            {currentTab === 'module4' && (
+              <Module4_Dispose 
+                assets={assets}
+                onUpdateAssetStatus={handleUpdateAssetStatus}
+                onLogAudit={handleLogAudit}
+                currentUser={currentUser}
+              />
+            )}
+            {currentTab === 'module5_transfer' && (
+              <Module5_Transfer 
+                assets={assets}
+                onUpdateAssetTransfer={handleUpdateAssetTransfer}
+                onLogAudit={handleLogAudit}
+                departments={departments}
+                currentUser={currentUser}
+              />
+            )}
+            {currentTab === 'module5_repair' && (
+              <Module5_Repair 
+                assets={assets}
+                repairs={repairs}
+                onAddRepair={handleAddRepair}
+                onUpdateRepair={handleUpdateRepair}
+                onUpdateAssetStatus={handleUpdateAssetStatus}
+                onLogAudit={handleLogAudit}
+                currentUser={currentUser}
+              />
+            )}
+            {currentTab === 'module6' && (
+              <Module6_AuditTrail audits={audits} />
+            )}
+            {currentTab === 'module7' && (
+              <Module7_Settings 
+                onClearConfig={handleClearConfig}
+                onImportSuccess={fetchAllData}
+              />
+            )}
+            {currentTab === 'module8' && currentUser?.role === 'admin' && (
+              <Module8_Departments 
+                departments={departments}
+                onAddDept={handleCreateDepartment}
+                onUpdateDept={handleUpdateDepartment}
+                onDeleteDept={handleDeleteDepartment}
+              />
+            )}
+            {currentTab === 'module9' && currentUser?.role === 'admin' && (
+              <Module9_AccessControl 
+                departments={departments}
+                users={users}
+                onAddUser={handleCreateUser}
+                onUpdateUser={handleUpdateUser}
+                onDeleteUser={handleDeleteUser}
+                currentUser={currentUser}
+              />
+            )}
+          </main>
+        </>
+      )}
 
       {/* OVERLAY DIALOG MODAL: Edit Asset details (Module 6) */}
       {editingAsset && (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert } from 'lucide-react';
-import { Asset, AuditTrail, SurveyRecord, RepairCase } from '../utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
 
 interface Module1DatabaseProps {
@@ -9,6 +9,7 @@ interface Module1DatabaseProps {
   repairs: RepairCase[];
   surveys: SurveyRecord[];
   onAssetEdit: (asset: Asset) => void;
+  currentUser: UserAccount | null;
 }
 
 export const Module1_Database: React.FC<Module1DatabaseProps> = ({
@@ -16,7 +17,8 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   audits,
   repairs,
   surveys,
-  onAssetEdit
+  onAssetEdit,
+  currentUser
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -48,6 +50,12 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     'ขอป้ายรหัสใหม่': 'badge-info',
     'รอโอน': 'badge-primary',
     'อื่นๆ': 'badge-muted'
+  };
+
+  const isAllowedToEdit = (asset: Asset) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true;
+    return asset.department === currentUser.department;
   };
 
   return (
@@ -158,10 +166,18 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                 }}>
                   <Eye size={12} /> รายละเอียด
                 </button>
-                <button className="btn btn-primary btn-xs" onClick={(e) => {
-                  e.stopPropagation();
-                  onAssetEdit(asset);
-                }}>
+                <button 
+                  className="btn btn-primary btn-xs" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isAllowedToEdit(asset)) {
+                      onAssetEdit(asset);
+                    }
+                  }}
+                  disabled={!isAllowedToEdit(asset)}
+                  style={!isAllowedToEdit(asset) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  title={!isAllowedToEdit(asset) ? "สงวนสิทธิ์แก้ไขเฉพาะผู้ดูแล หรือฝ่ายที่ครอบครองพัสดุนี้" : "แก้ไขรายละเอียดครุภัณฑ์"}
+                >
                   <Edit3 size={12} /> แก้ไข
                 </button>
               </div>
@@ -198,7 +214,17 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                       <button className="btn btn-secondary btn-xs" onClick={() => setSelectedAsset(asset)}>
                         <Eye size={12} />
                       </button>
-                      <button className="btn btn-primary btn-xs" onClick={() => onAssetEdit(asset)}>
+                      <button 
+                        className="btn btn-primary btn-xs" 
+                        onClick={() => {
+                          if (isAllowedToEdit(asset)) {
+                            onAssetEdit(asset);
+                          }
+                        }}
+                        disabled={!isAllowedToEdit(asset)}
+                        style={!isAllowedToEdit(asset) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                        title={!isAllowedToEdit(asset) ? "สงวนสิทธิ์แก้ไขเฉพาะผู้ดูแล หรือฝ่ายที่ครอบครองพัสดุนี้" : "แก้ไขครุภัณฑ์"}
+                      >
                         <Edit3 size={12} />
                       </button>
                     </div>
@@ -216,8 +242,12 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           asset={selectedAsset}
           onClose={() => setSelectedAsset(null)}
           onEditClick={(asset) => {
-            setSelectedAsset(null);
-            onAssetEdit(asset);
+            if (isAllowedToEdit(asset)) {
+              setSelectedAsset(null);
+              onAssetEdit(asset);
+            } else {
+              alert('สงวนสิทธิ์การแก้ไขเฉพาะผู้ดูแลระบบ หรือฝ่ายที่ดูแลครุภัณฑ์ชิ้นนี้เท่านั้น');
+            }
           }}
           audits={audits}
           repairs={repairs}

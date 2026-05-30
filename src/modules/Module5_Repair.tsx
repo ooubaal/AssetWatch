@@ -14,7 +14,7 @@ import {
   ArrowRight,
   RefreshCw
 } from 'lucide-react';
-import { Asset, RepairCase } from '../utils/mockData';
+import { Asset, RepairCase, UserAccount } from '../utils/mockData';
 import { uploadImage } from '../services/dbService';
 import confetti from 'canvas-confetti';
 
@@ -25,6 +25,7 @@ interface Module5RepairProps {
   onUpdateRepair: (id: string, updates: Partial<RepairCase>) => Promise<void>;
   onUpdateAssetStatus: (id: string, status: Asset['status']) => Promise<void>;
   onLogAudit: (trail: { assetId: string; assetName: string; action: any; operator: string; details: string }) => Promise<void>;
+  currentUser: UserAccount | null;
 }
 
 export const Module5_Repair: React.FC<Module5RepairProps> = ({
@@ -33,7 +34,8 @@ export const Module5_Repair: React.FC<Module5RepairProps> = ({
   onAddRepair,
   onUpdateRepair,
   onUpdateAssetStatus,
-  onLogAudit
+  onLogAudit,
+  currentUser
 }) => {
   const [activeTab, setActiveTab] = useState<'board' | 'open_case'>('board');
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,11 +65,26 @@ export const Module5_Repair: React.FC<Module5RepairProps> = ({
   const [submittingReceive, setSubmittingReceive] = useState(false);
 
   // Search active assets for open case selection
-  const supportAssets = assets.filter(a => a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ');
+  const supportAssets = assets.filter(a => {
+    const isSupportable = a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
+    if (currentUser?.role === 'user') {
+      return isSupportable && a.department === currentUser.department;
+    }
+    return isSupportable;
+  });
   const filteredAssets = supportAssets.filter(a => 
     a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     a.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Filter repairs depending on role
+  const myRepairs = repairs.filter(c => {
+    if (currentUser?.role === 'user') {
+      const asset = assets.find(a => a.id === c.assetId);
+      return asset ? asset.department === currentUser.department : false;
+    }
+    return true;
+  });
 
   const handleSymptomImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -269,7 +286,7 @@ export const Module5_Repair: React.FC<Module5RepairProps> = ({
           className={`repair-tab-btn ${activeTab === 'board' ? 'repair-tab-active' : ''}`}
           onClick={() => setActiveTab('board')}
         >
-          🗂️ กระดานติดตามเคสซ่อมแซม ({repairs.length})
+          🗂️ กระดานติดตามเคสซ่อมแซม ({myRepairs.length})
         </button>
         <button 
           className={`repair-tab-btn ${activeTab === 'open_case' ? 'repair-tab-active' : ''}`}
@@ -282,7 +299,7 @@ export const Module5_Repair: React.FC<Module5RepairProps> = ({
       {/* WORKFLOW VIEW 1: Cases Table/Board */}
       {activeTab === 'board' && (
         <div className="repairs-board-panel">
-          {repairs.length === 0 ? (
+          {myRepairs.length === 0 ? (
             <div className="empty-repairs-board glass-panel">
               <CheckCircle2 size={48} color="var(--success)" />
               <h3>ปัจจุบันไม่มีข้อมูลการแจ้งซ่อมในระบบ</h3>
@@ -302,7 +319,7 @@ export const Module5_Repair: React.FC<Module5RepairProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {repairs.map((item) => (
+                  {myRepairs.map((item) => (
                     <tr key={item.id}>
                       <td><code style={{ fontSize: '0.8rem' }}>{item.id}</code></td>
                       <td>

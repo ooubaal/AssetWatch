@@ -13,8 +13,10 @@ import {
   Moon,
   Menu,
   X,
-  Building
+  Building,
+  Lock
 } from 'lucide-react';
+import { UserAccount } from '../utils/mockData';
 
 interface SidebarProps {
   currentTab: string;
@@ -22,6 +24,8 @@ interface SidebarProps {
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
   isFirebaseConfigured: boolean;
+  currentUser: UserAccount | null;
+  onLogout: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -29,7 +33,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCurrentTab, 
   theme, 
   setTheme,
-  isFirebaseConfigured
+  isFirebaseConfigured,
+  currentUser,
+  onLogout
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -42,9 +48,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'module5_transfer', label: 'โอนย้ายครุภัณฑ์', icon: Move },
     { id: 'module5_repair', label: 'ประวัติการส่งซ่อม', icon: Wrench },
     { id: 'module6', label: 'ประวัติกิจกรรม (Audit)', icon: History },
-    { id: 'module8', label: 'ตั้งค่าหน่วยงาน & ห้อง', icon: Building },
-    { id: 'module7', label: 'ตั้งค่า & คู่มือการใช้งาน', icon: Settings },
   ];
+
+  if (currentUser?.role === 'admin') {
+    menuItems.push(
+      { id: 'module8', label: 'ตั้งค่าหน่วยงาน & ห้อง', icon: Building },
+      { id: 'module9', label: 'สิทธิ์การเข้าถึง (RBAC)', icon: Lock }
+    );
+  }
+
+  menuItems.push(
+    { id: 'module7', label: 'ตั้งค่า & คู่มือการใช้งาน', icon: Settings }
+  );
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -89,6 +104,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </div>
 
+        {/* User Profile Card */}
+        {currentUser && (
+          <div className="sidebar-user-profile glass-panel">
+            <div className="user-profile-avatar" style={{
+              background: currentUser.role === 'admin' 
+                ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
+                : 'linear-gradient(135deg, #3b82f6, #06b6d4)'
+            }}>
+              {currentUser.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="user-profile-info">
+              <span className="profile-name">{currentUser.name}</span>
+              <div className="profile-badges">
+                <span className={`profile-role-badge ${currentUser.role === 'admin' ? 'badge-admin' : 'badge-user'}`}>
+                  {currentUser.role === 'admin' ? 'แอดมิน' : 'พัสดุฝ่าย'}
+                </span>
+                {currentUser.role === 'user' && currentUser.department && (
+                  <span className="profile-dept-badge" title={currentUser.department}>
+                    {currentUser.department.replace('ฝ่าย', '').replace('กลุ่มงาน', '').slice(0, 8)}..
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Navigation Menu */}
         <nav className="sidebar-nav">
           <ul>
@@ -128,8 +169,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </>
             )}
           </button>
+          
+          {currentUser && (
+            <button className="theme-switch btn-logout-footer" onClick={onLogout} style={{ marginTop: '0.4rem', borderColor: 'rgba(239, 68, 68, 0.25)', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.03)' }}>
+              🚪 ออกจากระบบ (Logout)
+            </button>
+          )}
+
           <div className="footer-copyright">
-            v1.0.0 © ooubaal / AssetWatch
+            v1.1.0 © ooubaal / AssetWatch
           </div>
         </div>
       </aside>
@@ -509,6 +557,87 @@ export const Sidebar: React.FC<SidebarProps> = ({
           body {
             padding-top: 60px; /* Offset for top bar */
           }
+        }
+
+        /* Profile Card premium CSS styling */
+        .sidebar-user-profile {
+          margin: 0.75rem 1.25rem 0.25rem 1.25rem;
+          padding: 0.65rem;
+          background-color: var(--bg-primary);
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          gap: 0.65rem;
+        }
+
+        .user-profile-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          font-weight: 700;
+          font-size: 0.8rem;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+          flex-shrink: 0;
+          font-family: monospace;
+        }
+
+        .user-profile-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.15rem;
+          overflow: hidden;
+        }
+
+        .profile-name {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .profile-badges {
+          display: flex;
+          gap: 0.25rem;
+          align-items: center;
+        }
+
+        .profile-role-badge {
+          font-size: 0.58rem;
+          font-weight: 650;
+          padding: 0.02rem 0.3rem;
+          border-radius: var(--radius-sm);
+        }
+
+        .badge-admin {
+          background-color: rgba(99, 102, 241, 0.12);
+          color: #6366f1;
+        }
+
+        .badge-user {
+          background-color: rgba(6, 182, 212, 0.12);
+          color: var(--cyan);
+        }
+
+        .profile-dept-badge {
+          font-size: 0.55rem;
+          font-weight: 500;
+          background-color: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          color: var(--text-muted);
+          padding: 0.02rem 0.25rem;
+          border-radius: var(--radius-sm);
+        }
+
+        .btn-logout-footer:hover {
+          background-color: rgba(239, 68, 68, 0.08) !important;
+          border-color: var(--danger) !important;
         }
       `}</style>
     </>

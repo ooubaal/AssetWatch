@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { Trash2, AlertTriangle, FileText, CheckCircle2, Search, ArrowRight } from 'lucide-react';
-import { Asset } from '../utils/mockData';
+import { Asset, UserAccount } from '../utils/mockData';
 import confetti from 'canvas-confetti';
 
 interface Module4DisposeProps {
   assets: Asset[];
   onUpdateAssetStatus: (id: string, status: Asset['status']) => Promise<void>;
   onLogAudit: (trail: { assetId: string; assetName: string; action: any; operator: string; details: string }) => Promise<void>;
+  currentUser: UserAccount | null;
 }
 
 export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
   assets,
   onUpdateAssetStatus,
-  onLogAudit
+  onLogAudit,
+  currentUser
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -25,7 +27,13 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
   const [success, setSuccess] = useState(false);
 
   // Search assets (only display assets that are NOT already disposed)
-  const activeAssets = assets.filter(a => a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ');
+  const activeAssets = assets.filter(a => {
+    const isNotDisposed = a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
+    if (currentUser?.role === 'user') {
+      return isNotDisposed && a.department === currentUser.department;
+    }
+    return isNotDisposed;
+  });
   const filteredAssets = activeAssets.filter(a => 
     a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     a.id.toLowerCase().includes(searchTerm.toLowerCase())

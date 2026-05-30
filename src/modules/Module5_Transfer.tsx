@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Move, Search, ArrowRight, CheckCircle2, AlertCircle, Building } from 'lucide-react';
-import { Asset, DepartmentLocationConfig } from '../utils/mockData';
+import { Asset, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 import confetti from 'canvas-confetti';
 
 interface Module5TransferProps {
@@ -8,13 +8,15 @@ interface Module5TransferProps {
   onUpdateAssetTransfer: (id: string, transferData: { location: string; department: string; responsiblePerson: string }) => Promise<void>;
   onLogAudit: (trail: { assetId: string; assetName: string; action: any; operator: string; details: string; changes?: any }) => Promise<void>;
   departments: DepartmentLocationConfig[];
+  currentUser: UserAccount | null;
 }
 
 export const Module5_Transfer: React.FC<Module5TransferProps> = ({
   assets,
   onUpdateAssetTransfer,
   onLogAudit,
-  departments
+  departments,
+  currentUser
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -30,7 +32,13 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
   const [success, setSuccess] = useState(false);
 
   // Search active assets (only active/usable ones can be transferred)
-  const transferrableAssets = assets.filter(a => a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ');
+  const transferrableAssets = assets.filter(a => {
+    const isTransferrable = a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
+    if (currentUser?.role === 'user') {
+      return isTransferrable && a.department === currentUser.department;
+    }
+    return isTransferrable;
+  });
   const filteredAssets = transferrableAssets.filter(a => 
     a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     a.id.toLowerCase().includes(searchTerm.toLowerCase())

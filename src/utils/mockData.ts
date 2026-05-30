@@ -212,3 +212,58 @@ export const INITIAL_DEPARTMENTS: DepartmentLocationConfig[] = [
     locations: ["ห้องธุรการ ชั้น 2", "ห้องเก็บเอกสาร ชั้น 2"]
   }
 ];
+
+export interface UserAccount {
+  id: string;
+  username: string;
+  password?: string;
+  name: string;
+  role: 'admin' | 'user';
+  department: string; // empty string for admin, or specific department name for user
+  isBlocked: boolean;
+  createdAt: string;
+}
+
+export const INITIAL_USERS: UserAccount[] = [
+  {
+    id: "user-admin",
+    username: "admin",
+    password: "admin",
+    name: "แอดมินสูงสุด",
+    role: "admin",
+    department: "",
+    isBlocked: false,
+    createdAt: "2026-01-01T00:00:00.000Z"
+  },
+  {
+    id: "user-it",
+    username: "it_user",
+    password: "123",
+    name: "เจ้าหน้าที่ไอที",
+    role: "user",
+    department: "ฝ่ายเทคโนโลยีสารสนเทศ",
+    isBlocked: false,
+    createdAt: "2026-02-15T00:00:00.000Z"
+  },
+  {
+    id: "user-general",
+    username: "admin_general",
+    password: "123",
+    name: "เจ้าหน้าที่บริหารทั่วไป",
+    role: "user",
+    department: "ฝ่ายบริหารทั่วไป",
+    isBlocked: false,
+    createdAt: "2026-03-01T00:00:00.000Z"
+  },
+  {
+    id: "user-blocked",
+    username: "blocked",
+    password: "123",
+    name: "ผู้ใช้ที่ถูกระงับสิทธิ์",
+    role: "user",
+    department: "ฝ่ายธุรการและสารบรรณ",
+    isBlocked: true,
+    createdAt: "2026-04-10T00:00:00.000Z"
+  }
+];
+
