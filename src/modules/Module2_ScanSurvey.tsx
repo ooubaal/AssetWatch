@@ -78,6 +78,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [closeOperator, setCloseOperator] = useState(operator);
   const [printingRound, setPrintingRound] = useState<SurveyRound | null>(null);
   const [roundHistoryTab, setRoundHistoryTab] = useState<'active' | 'history'>('active');
+  const [selectedRoundDept, setSelectedRoundDept] = useState('all');
 
   // Extract unique departments for dropdown
   const uniqueDepts = Array.from(new Set(assets.map(a => a.department).filter(Boolean)));
@@ -566,142 +567,169 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
             </div>
           </div>
           
-          <div className="tab-pill-group" style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '0.2rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-            <button 
-              type="button" 
-              className={`btn btn-xs ${roundHistoryTab === 'active' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setRoundHistoryTab('active')}
-              style={{ padding: '0.35rem 0.75rem', borderRadius: 'calc(var(--radius-sm) - 2px)' }}
-            >
-              🎯 รอบปัจจุบัน
-            </button>
-            <button 
-              type="button" 
-              className={`btn btn-xs ${roundHistoryTab === 'history' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setRoundHistoryTab('history')}
-              style={{ padding: '0.35rem 0.75rem', borderRadius: 'calc(var(--radius-sm) - 2px)' }}
-            >
-              📜 ประวัติรอบที่ปิดแล้ว ({rounds.filter(r => r.status === 'closed').length})
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {/* Department Dropdown Filter inside Rounds Manager */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-secondary)', padding: '0.25rem 0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.725rem', fontWeight: 750, color: 'var(--text-muted)' }}>🏢 หน่วยงาน:</span>
+              <select 
+                className="form-select select-survey-target" 
+                value={selectedRoundDept} 
+                onChange={(e) => setSelectedRoundDept(e.target.value)}
+                style={{ padding: '0.15rem 1.5rem 0.15rem 0.35rem', fontSize: '0.75rem', border: 'none', background: 'transparent', width: 'auto', fontWeight: 'bold', color: 'var(--primary)', height: 'auto', outline: 'none', boxShadow: 'none' }}
+              >
+                <option value="all">ทุกหน่วยงาน</option>
+                {uniqueDepts.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="tab-pill-group" style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '0.2rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <button 
+                type="button" 
+                className={`btn btn-xs ${roundHistoryTab === 'active' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setRoundHistoryTab('active')}
+                style={{ padding: '0.35rem 0.75rem', borderRadius: 'calc(var(--radius-sm) - 2px)' }}
+              >
+                🎯 รอบปัจจุบัน
+              </button>
+              <button 
+                type="button" 
+                className={`btn btn-xs ${roundHistoryTab === 'history' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setRoundHistoryTab('history')}
+                style={{ padding: '0.35rem 0.75rem', borderRadius: 'calc(var(--radius-sm) - 2px)' }}
+              >
+                📜 ประวัติรอบที่ปิดแล้ว ({rounds.filter(r => r.status === 'closed').length})
+              </button>
+            </div>
           </div>
         </div>
 
         {roundHistoryTab === 'active' ? (
           <div>
-            {activeRound ? (
-              <div className="active-round-dashboard" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: '300px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <span className="badge badge-success" style={{ animation: 'pulse 1.5s infinite alternate' }}>✓ กำลังดำเนินการ (Active)</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>เริ่มรอบเมื่อ: {new Date(activeRound.dateCreated).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} น.</span>
-                  </div>
-                  
-                  <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.75rem' }}>{activeRound.name}</h4>
-                  
-                  <div className="stats-mini-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                    <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ครุภัณฑ์ทั้งหมด</span>
-                      <div style={{ fontSize: '1.35rem', fontWeight: 900 }}>{assets.length} รายการ</div>
+            {activeRound ? (() => {
+              const activeRoundAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
+              const activeRoundSurveys = surveys.filter(s => {
+                if (s.roundId !== activeRound.id) return false;
+                if (selectedRoundDept === 'all') return true;
+                const asset = assets.find(a => a.id === s.assetId);
+                return asset?.department === selectedRoundDept;
+              });
+              
+              const totalCount = activeRoundAssets.length;
+              const surveyedCount = activeRoundSurveys.length;
+              const rate = totalCount > 0 ? Math.round((surveyedCount / totalCount) * 100) : 0;
+              
+              return (
+                <div className="active-round-dashboard" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '300px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <span className="badge badge-success" style={{ animation: 'pulse 1.5s infinite alternate' }}>✓ กำลังดำเนินการ (Active)</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>เริ่มรอบเมื่อ: {new Date(activeRound.dateCreated).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} น.</span>
                     </div>
-                    <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>สแกนตรวจนับแล้ว</span>
-                      <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--success)' }}>
-                        {surveys.filter(s => s.roundId === activeRound.id).length} รายการ
+                    
+                    <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.75rem' }}>{activeRound.name}</h4>
+                    
+                    <div className="stats-mini-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                      <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ครุภัณฑ์ทั้งหมด {selectedRoundDept !== 'all' ? `(${selectedRoundDept})` : ''}</span>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 900 }}>{totalCount} รายการ</div>
                       </div>
-                    </div>
-                    <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>อัตราความก้าวหน้า</span>
-                      <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--primary)' }}>
-                        {assets.length > 0 ? Math.round((surveys.filter(s => s.roundId === activeRound.id).length / assets.length) * 100) : 0}%
+                      <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>สแกนตรวจนับแล้ว</span>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--success)' }}>{surveyedCount} รายการ</div>
                       </div>
-                    </div>
-                  </div>
-
-                  {!showCloseConfirm ? (
-                    <button 
-                      type="button" 
-                      className="btn btn-danger"
-                      onClick={() => {
-                        setShowCloseConfirm(true);
-                        setCloseOperator(operator);
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
-                    >
-                      <Lock size={15} /> 🔒 ปิดรอบการสำรวจและบันทึกประวัติ
-                    </button>
-                  ) : (
-                    <div className="close-confirm-card" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1.5px solid var(--danger)', padding: '1rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <AlertTriangle color="var(--danger)" size={18} />
-                        <h5 style={{ fontWeight: 800, color: 'var(--danger)' }}>ยืนยันการปิดรอบการสำรวจพัสดุประจำปี?</h5>
-                      </div>
-                      
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        การปิดรอบจะทำการ **แช่แข็งสถิติ** (อัตราความก้าวหน้า และจำนวนสถานะ) เก็บเข้าสารบบประวัติของรอบนี้ และ **รีเซ็ตเช็คลิสต์ตรวจนับ** ของครุภัณฑ์ทุกชิ้นกลับเป็น "ค้างตรวจนับ" เพื่อเริ่มปีงบประมาณรอบใหม่
-                      </p>
-
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" style={{ color: 'var(--text-primary)' }}>👤 ลงลายมือชื่อแอดมินผู้ปิดรอบ / ตรวจสอบความถูกต้อง</label>
-                        <input 
-                          type="text" 
-                          className="form-input" 
-                          placeholder="พิมพ์ชื่อของคุณเพื่อยืนยัน..." 
-                          value={closeOperator}
-                          onChange={(e) => setCloseOperator(e.target.value)}
-                          required
-                          style={{ border: '1.5px solid var(--danger)' }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCloseConfirm(false)}>
-                          ยกเลิก
-                        </button>
-                        <button 
-                          type="button" 
-                          className="btn btn-danger btn-sm" 
-                          disabled={!closeOperator.trim()}
-                          onClick={async () => {
-                            if (!closeOperator.trim()) return;
-                            await onCloseActiveRound(closeOperator);
-                            setShowCloseConfirm(false);
-                            confetti({
-                              particleCount: 150,
-                              spread: 80,
-                              origin: { y: 0.6 }
-                            });
-                          }}
-                        >
-                          ยืนยันการปิดรอบและรีเซ็ตระบบ
-                        </button>
+                      <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>อัตราความก้าวหน้า</span>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--primary)' }}>{rate}%</div>
                       </div>
                     </div>
-                  )}
-                </div>
 
-                <div className="active-round-status-box" style={{ flex: 0.8, minWidth: '250px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
-                  <h4 style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-                    <TrendingUp size={16} color="var(--primary)" /> สถิติสถานะเรียลไทม์ (Active Breakdown)
-                  </h4>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                    {Object.keys(statusColors).map(statusKey => {
-                      // Filter surveys in this active round that have this status
-                      const count = surveys.filter(s => s.roundId === activeRound.id && s.status === statusKey).length;
-                      return (
-                        <div key={statusKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <span className={`badge ${statusColors[statusKey]}`} style={{ width: '10px', height: '10px', padding: 0, borderRadius: '50%' }}></span>
-                            <span>{statusKey}</span>
-                          </span>
-                          <strong style={{ fontSize: '0.95rem' }}>{count} ชิ้น</strong>
+                    {!showCloseConfirm ? (
+                      <button 
+                        type="button" 
+                        className="btn btn-danger"
+                        onClick={() => {
+                          setShowCloseConfirm(true);
+                          setCloseOperator(operator);
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                      >
+                        <Lock size={15} /> 🔒 ปิดรอบการสำรวจและบันทึกประวัติ
+                      </button>
+                    ) : (
+                      <div className="close-confirm-card" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1.5px solid var(--danger)', padding: '1rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <AlertTriangle color="var(--danger)" size={18} />
+                          <h5 style={{ fontWeight: 800, color: 'var(--danger)' }}>ยืนยันการปิดรอบการสำรวจพัสดุประจำปี?</h5>
                         </div>
-                      );
-                    })}
+                        
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          การปิดรอบจะทำการ **แช่แข็งสถิติ** (อัตราความก้าวหน้า และจำนวนสถานะ) เก็บเข้าสารบบประวัติของรอบนี้ และ **รีเซ็ตเช็คลิสต์ตรวจนับ** ของครุภัณฑ์ทุกชิ้นกลับเป็น "ค้างตรวจนับ" เพื่อเริ่มปีงบประมาณรอบใหม่
+                        </p>
+
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label className="form-label" style={{ color: 'var(--text-primary)' }}>👤 ลงลายมือชื่อแอดมินผู้ปิดรอบ / ตรวจสอบความถูกต้อง</label>
+                          <input 
+                            type="text" 
+                            className="form-input" 
+                            placeholder="พิมพ์ชื่อของคุณเพื่อยืนยัน..." 
+                            value={closeOperator}
+                            onChange={(e) => setCloseOperator(e.target.value)}
+                            required
+                            style={{ border: '1.5px solid var(--danger)' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCloseConfirm(false)}>
+                            ยกเลิก
+                          </button>
+                          <button 
+                            type="button" 
+                            className="btn btn-danger btn-sm" 
+                            disabled={!closeOperator.trim()}
+                            onClick={async () => {
+                              if (!closeOperator.trim()) return;
+                              await onCloseActiveRound(closeOperator);
+                              setShowCloseConfirm(false);
+                              confetti({
+                                particleCount: 150,
+                                spread: 80,
+                                origin: { y: 0.6 }
+                              });
+                            }}
+                          >
+                            ยืนยันการปิดรอบและรีเซ็ตระบบ
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="active-round-status-box" style={{ flex: 0.8, minWidth: '250px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+                    <h4 style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+                      <TrendingUp size={16} color="var(--primary)" /> สถิติสถานะเรียลไทม์ (Active Breakdown)
+                    </h4>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      {Object.keys(statusColors).map(statusKey => {
+                        const count = activeRoundSurveys.filter(s => s.status === statusKey).length;
+                        return (
+                          <div key={statusKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span className={`badge ${statusColors[statusKey]}`} style={{ width: '10px', height: '10px', padding: 0, borderRadius: '50%' }}></span>
+                              <span>{statusKey}</span>
+                            </span>
+                            <strong style={{ fontSize: '0.95rem' }}>{count} ชิ้น</strong>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
+              );
+            })() : (
               <div className="no-active-round-box" style={{ textAlign: 'center', padding: '2.5rem 1.5rem', background: 'rgba(59, 130, 246, 0.02)', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                 <AlertTriangle size={36} color="var(--primary)" style={{ animation: 'bounce 1s infinite alternate' }} />
                 <h4 style={{ fontWeight: 800 }}>ยังไม่มีรอบการตรวจนับครุภัณฑ์ที่เปิดใช้งาน</h4>
@@ -760,42 +788,60 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {rounds.filter(r => r.status === 'closed').map(round => (
-                      <tr key={round.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 700 }}>{round.name}</td>
-                        <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>
-                          <div>เริ่ม: {new Date(round.dateCreated).toLocaleDateString('th-TH')}</div>
-                          <div>ปิด: {round.dateClosed ? new Date(round.dateClosed).toLocaleDateString('th-TH') : '-'}</div>
-                        </td>
-                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
-                          <span className="badge badge-success" style={{ fontWeight: 900 }}>
-                            {round.completionRate}%
-                          </span>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                            ({round.surveyedAssets}/{round.totalAssets})
-                          </div>
-                        </td>
-                        <td style={{ padding: '0.75rem 0.5rem' }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', fontSize: '0.7rem' }}>
-                            <span className="badge badge-success">ใช้งานได้: {round.statusBreakdown?.['ใช้งานได้'] || 0}</span>
-                            <span className="badge badge-danger">ชำรุด: {round.statusBreakdown?.['ชำรุด'] || 0}</span>
-                            <span className="badge badge-warning">รอจำหน่าย: {round.statusBreakdown?.['รอจำหน่าย'] || 0}</span>
-                            <span className="badge badge-info">ป้ายใหม่: {round.statusBreakdown?.['ขอป้ายรหัสใหม่'] || 0}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '0.75rem 0.5rem' }}>{round.operator}</td>
-                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
-                          <button 
-                            type="button" 
-                            className="btn btn-secondary btn-xs"
-                            onClick={() => setPrintingRound(round)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                          >
-                            <Printer size={12} /> พิมพ์รายงาน
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {rounds.filter(r => r.status === 'closed').map(round => {
+                      const roundAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
+                      const roundSurveys = surveys.filter(s => {
+                        if (s.roundId !== round.id) return false;
+                        if (selectedRoundDept === 'all') return true;
+                        const asset = assets.find(a => a.id === s.assetId);
+                        return asset?.department === selectedRoundDept;
+                      });
+
+                      const totalCount = roundAssets.length;
+                      const surveyedCount = roundSurveys.length;
+                      const rate = totalCount > 0 ? Math.round((surveyedCount / totalCount) * 100) : 0;
+
+                      const countBreakdown = (statusKey: string) => {
+                        return roundSurveys.filter(s => s.status === statusKey).length;
+                      };
+
+                      return (
+                        <tr key={round.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '0.75rem 0.5rem', fontWeight: 700 }}>{round.name}</td>
+                          <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>
+                            <div>เริ่ม: {new Date(round.dateCreated).toLocaleDateString('th-TH')}</div>
+                            <div>ปิด: {round.dateClosed ? new Date(round.dateClosed).toLocaleDateString('th-TH') : '-'}</div>
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
+                            <span className="badge badge-success" style={{ fontWeight: 900 }}>
+                              {rate}%
+                            </span>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                              ({surveyedCount}/{totalCount})
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', fontSize: '0.7rem' }}>
+                              <span className="badge badge-success">ใช้งานได้: {countBreakdown('ใช้งานได้')}</span>
+                              <span className="badge badge-danger">ชำรุด: {countBreakdown('ชำรุด')}</span>
+                              <span className="badge badge-warning">รอจำหน่าย: {countBreakdown('รอจำหน่าย')}</span>
+                              <span className="badge badge-info">ป้ายใหม่: {countBreakdown('ขอป้ายรหัสใหม่')}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>{round.operator}</td>
+                          <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
+                            <button 
+                              type="button" 
+                              className="btn btn-secondary btn-xs"
+                              onClick={() => setPrintingRound(round)}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                            >
+                              <Printer size={12} /> พิมพ์รายงาน
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -834,152 +880,189 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
           <div className="print-paper-a4 printable-a4-document" style={{ background: '#ffffff', color: '#000000', maxWidth: '800px', width: '100%', margin: '0 auto', padding: '2.5rem 3rem', minHeight: '11.28in', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', fontFamily: "'Sarabun', 'Noto Sans Thai', sans-serif", fontSize: '13px', lineHeight: '1.6', colorScheme: 'light', borderRadius: '4px' }}>
             
-            {/* Government Stylized Header */}
-            <div style={{ textAlign: 'center', position: 'relative', marginBottom: '2.5rem' }}>
-              <div style={{ fontSize: '28px', color: '#000000', marginBottom: '0.5rem' }}>🇹🇭</div>
-              <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#000000', margin: '0.2rem 0' }}>รายงานสรุปผลการตรวจนับครุภัณฑ์ประจำปี</h1>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#333333', margin: '0.2rem 0' }}>ชื่องาน: {printingRound.name}</h2>
-              <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.5rem' }}>
-                หน่วยงาน: คลังข้อมูลพัสดุและครุภัณฑ์กลางระบบ AssetWatch
-              </div>
-            </div>
-
-            <hr style={{ border: '0', borderTop: '2px double #333333', margin: '1rem 0 1.5rem 0' }} />
-
-            {/* Document Meta Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: '#f8f9fa', padding: '1rem', border: '1px solid #dddddd', borderRadius: '4px' }}>
-              <div>
-                <div><strong>📅 วันที่ตรวจสอบเริ่มรอบ:</strong> {new Date(printingRound.dateCreated).toLocaleDateString('th-TH')}</div>
-                <div><strong>📅 วันที่เสร็จสิ้นปิดรอบ:</strong> {printingRound.dateClosed ? new Date(printingRound.dateClosed).toLocaleDateString('th-TH') : '-'}</div>
-                <div><strong>👤 เจ้าหน้าที่แอดมินผู้ประมวลผล:</strong> {printingRound.operator}</div>
-              </div>
-              <div style={{ borderLeft: '1px solid #dddddd', paddingLeft: '1rem' }}>
-                <div><strong>📦 ครุภัณฑ์ทั้งหมดในคลังระบบ:</strong> {printingRound.totalAssets} รายการ</div>
-                <div><strong>✅ สแกนตรวจสอบความถูกต้องแล้ว:</strong> {printingRound.surveyedAssets} รายการ</div>
-                <div><strong>📊 อัตราความก้าวหน้าการสำรวจ:</strong> {printingRound.completionRate}%</div>
-              </div>
-            </div>
-
-            {/* Section 1: Summary Table */}
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, borderBottom: '1px solid #000000', paddingBottom: '0.25rem', marginBottom: '0.75rem', marginTop: '1.5rem' }}>
-              ๑. รายงานสรุปผลจำแนกตามสภาพครุภัณฑ์ที่สแกนพบ (Condition Breakdown Summary)
-            </h3>
-            
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem' }}>
-              <thead>
-                <tr style={{ background: '#f2f2f2', borderBottom: '1.5px solid #000000', borderTop: '1px solid #dddddd' }}>
-                  <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #dddddd' }}>ลำดับที่</th>
-                  <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #dddddd' }}>สภาพ/สถานะพัสดุ</th>
-                  <th style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>จำนวน (ชิ้น)</th>
-                  <th style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>ร้อยละ (%) ของผู้ตรวจรับ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.keys(printingRound.statusBreakdown || {}).map((statusKey, idx) => {
-                  const count = (printingRound.statusBreakdown as any)[statusKey] || 0;
-                  const percent = printingRound.surveyedAssets > 0 ? Math.round((count / printingRound.surveyedAssets) * 100) : 0;
-                  return (
-                    <tr key={statusKey} style={{ borderBottom: '1px solid #dddddd' }}>
-                      <td style={{ padding: '0.5rem', border: '1px solid #dddddd' }}>{idx + 1}</td>
-                      <td style={{ padding: '0.5rem', border: '1px solid #dddddd', fontWeight: 'bold' }}>{statusKey}</td>
-                      <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>{count}</td>
-                      <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>{percent}%</td>
-                    </tr>
-                  );
-                })}
-                <tr style={{ background: '#f8f9fa', borderTop: '1.5px solid #000000', borderBottom: '2px solid #000000', fontWeight: 'bold' }}>
-                  <td style={{ padding: '0.5rem', border: '1px solid #dddddd' }} colSpan={2}>รวมรายการครุภัณฑ์ที่ตรวจนับได้สำเร็จในรอบนี้</td>
-                  <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>{printingRound.surveyedAssets}</td>
-                  <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>100%</td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* Section 2: Surveyed List */}
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, borderBottom: '1px solid #000000', paddingBottom: '0.25rem', marginBottom: '0.75rem', marginTop: '1.5rem' }}>
-              ๒. รายละเอียดครุภัณฑ์ที่ได้รับการสแกนยืนยันตัวตนสำเร็จ (Surveyed Assets List)
-            </h3>
-            
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', fontSize: '12px' }}>
-              <thead>
-                <tr style={{ background: '#f2f2f2', borderBottom: '1.5px solid #000000', borderTop: '1px solid #dddddd' }}>
-                  <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>รหัสครุภัณฑ์</th>
-                  <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>ชื่อรายการครุภัณฑ์</th>
-                  <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>ฝ่าย/แผนก</th>
-                  <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>สถานที่</th>
-                  <th style={{ padding: '0.45rem', textAlign: 'center', border: '1px solid #dddddd' }}>สภาพที่พบ</th>
-                  <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>ผู้ตรวจ</th>
-                  <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>เวลาเช็ค</th>
-                </tr>
-              </thead>
-              <tbody>
-                {surveys.filter(s => s.roundId === printingRound.id).length === 0 ? (
-                  <tr>
-                    <td colSpan={7} style={{ padding: '1rem', textAlign: 'center', border: '1px solid #dddddd', color: '#666666' }}>ไม่มีรายการครุภัณฑ์ที่ตรวจนับในรอบนี้</td>
-                  </tr>
-                ) : (
-                  surveys.filter(s => s.roundId === printingRound.id).map(record => {
-                    const matchedAsset = assets.find(a => a.id === record.assetId);
-                    return (
-                      <tr key={record.id} style={{ borderBottom: '1px solid #dddddd' }}>
-                        <td style={{ padding: '0.45rem', border: '1px solid #dddddd', fontFamily: 'monospace', fontWeight: 'bold' }}>{record.assetId}</td>
-                        <td style={{ padding: '0.45rem', border: '1px solid #dddddd' }}>{matchedAsset?.name || 'ไม่มีชื่อรหัสพัสดุ'}</td>
-                        <td style={{ padding: '0.45rem', border: '1px solid #dddddd' }}>{matchedAsset?.department || '-'}</td>
-                        <td style={{ padding: '0.45rem', border: '1px solid #dddddd' }}>{matchedAsset?.location || '-'}</td>
-                        <td style={{ padding: '0.45rem', textAlign: 'center', border: '1px solid #dddddd', fontWeight: 'bold', color: record.status === 'ชำรุด' ? '#d9534f' : '#22bb33' }}>
-                          {record.status}
-                        </td>
-                        <td style={{ padding: '0.45rem', border: '1px solid #dddddd' }}>{record.operator}</td>
-                        <td style={{ padding: '0.45rem', border: '1px solid #dddddd', whiteSpace: 'nowrap' }}>
-                          {new Date(record.timestamp).toLocaleDateString('th-TH')}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-
-            {/* Section 3: Missed Assets List */}
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, borderBottom: '1px solid #000000', paddingBottom: '0.25rem', marginBottom: '0.75rem', marginTop: '1.5rem' }}>
-              ๓. สรุปรายการครุภัณฑ์ที่ขาดหาย / ค้างการแสกนตรวจสอบ (Missed / Unsurveyed Assets List)
-            </h3>
-
             {(() => {
-              const surveyedAssetIds = surveys.filter(s => s.roundId === printingRound.id).map(s => s.assetId);
-              const missedAssets = assets.filter(a => !surveyedAssetIds.includes(a.id) && a.status !== 'รอจำหน่าย');
+              // Recalculating round statistics dynamically for selectedRoundDept in print preview
+              const printAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
+              const printSurveys = surveys.filter(s => {
+                if (s.roundId !== printingRound.id) return false;
+                if (selectedRoundDept === 'all') return true;
+                const asset = assets.find(a => a.id === s.assetId);
+                return asset?.department === selectedRoundDept;
+              });
+
+              const printTotal = printAssets.length;
+              const printSurveyed = printSurveys.length;
+              const printRate = printTotal > 0 ? Math.round((printSurveyed / printTotal) * 100) : 0;
+
+              // Generate breakdown dynamically
+              const breakdown = {
+                'ใช้งานได้': 0,
+                'ชำรุด': 0,
+                'รอจำหน่าย': 0,
+                'ขอป้ายรหัสใหม่': 0,
+                'รอโอน': 0,
+                'อื่นๆ': 0
+              };
+              printSurveys.forEach(s => {
+                const key = s.status as keyof typeof breakdown;
+                if (key in breakdown) {
+                  breakdown[key]++;
+                } else {
+                  breakdown['อื่นๆ']++;
+                }
+              });
+
+              const surveyedAssetIds = printSurveys.map(s => s.assetId);
+              const printMissed = printAssets.filter(a => !surveyedAssetIds.includes(a.id) && a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ');
+
               return (
-                <div>
-                  <div style={{ marginBottom: '0.5rem' }}>ตรวจพบค้างสำรวจทั้งสิ้น <strong>{missedAssets.length}</strong> รายการ ดังนี้:</div>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', fontSize: '12px' }}>
+                <>
+                  {/* Government Stylized Header */}
+                  <div style={{ textAlign: 'center', position: 'relative', marginBottom: '2.5rem' }}>
+                    <div style={{ fontSize: '28px', color: '#000000', marginBottom: '0.5rem' }}>🇹🇭</div>
+                    <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#000000', margin: '0.2rem 0' }}>
+                      รายงานสรุปผลการตรวจนับครุภัณฑ์ประจำปี
+                      {selectedRoundDept !== 'all' ? ` (หน่วยงาน: ${selectedRoundDept})` : ''}
+                    </h1>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#333333', margin: '0.2rem 0' }}>ชื่องาน: {printingRound.name}</h2>
+                    <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.5rem' }}>
+                      หน่วยงาน: คลังข้อมูลพัสดุและครุภัณฑ์กลางระบบ AssetWatch
+                    </div>
+                  </div>
+
+                  <hr style={{ border: '0', borderTop: '2px double #333333', margin: '1rem 0 1.5rem 0' }} />
+
+                  {/* Document Meta Section */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: '#f8f9fa', padding: '1rem', border: '1px solid #dddddd', borderRadius: '4px' }}>
+                    <div>
+                      <div><strong>📅 วันที่ตรวจสอบเริ่มรอบ:</strong> {new Date(printingRound.dateCreated).toLocaleDateString('th-TH')}</div>
+                      <div><strong>📅 วันที่เสร็จสิ้นปิดรอบ:</strong> {printingRound.dateClosed ? new Date(printingRound.dateClosed).toLocaleDateString('th-TH') : '-'}</div>
+                      <div><strong>👤 เจ้าหน้าที่แอดมินผู้ประมวลผล:</strong> {printingRound.operator}</div>
+                    </div>
+                    <div style={{ borderLeft: '1px solid #dddddd', paddingLeft: '1rem' }}>
+                      <div><strong>📦 ครุภัณฑ์ทั้งหมด {selectedRoundDept !== 'all' ? `(${selectedRoundDept})` : 'ในคลังระบบ'}:</strong> {printTotal} รายการ</div>
+                      <div><strong>✅ สแกนตรวจสอบความถูกต้องแล้ว:</strong> {printSurveyed} รายการ</div>
+                      <div><strong>📊 อัตราความก้าวหน้าการสำรวจ:</strong> {printRate}%</div>
+                    </div>
+                  </div>
+
+                  {/* Section 1: Summary Table */}
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, borderBottom: '1px solid #000000', paddingBottom: '0.25rem', marginBottom: '0.75rem', marginTop: '1.5rem' }}>
+                    ๑. รายงานสรุปผลจำแนกตามสภาพครุภัณฑ์ที่สแกนพบ (Condition Breakdown Summary)
+                  </h3>
+                  
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem' }}>
                     <thead>
-                      <tr style={{ background: '#fff0f0', borderBottom: '1.5px solid #ffcccc', borderTop: '1px solid #ffcccc' }}>
-                        <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #ffcccc', color: '#c9302c' }}>รหัสครุภัณฑ์</th>
-                        <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #ffcccc', color: '#c9302c' }}>ชื่อรายการครุภัณฑ์</th>
-                        <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #ffcccc', color: '#c9302c' }}>ฝ่าย/แผนก</th>
-                        <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #ffcccc', color: '#c9302c' }}>สถานที่จัดเก็บตามระบบ</th>
-                        <th style={{ padding: '0.45rem', textAlign: 'center', border: '1px solid #ffcccc', color: '#c9302c' }}>ผู้รับผิดชอบ</th>
+                      <tr style={{ background: '#f2f2f2', borderBottom: '1.5px solid #000000', borderTop: '1px solid #dddddd' }}>
+                        <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #dddddd' }}>ลำดับที่</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #dddddd' }}>สภาพ/สถานะพัสดุ</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>จำนวน (ชิ้น)</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>ร้อยละ (%) ของผู้ตรวจรับ</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {missedAssets.length === 0 ? (
+                      {Object.keys(breakdown).map((statusKey, idx) => {
+                        const count = (breakdown as any)[statusKey] || 0;
+                        const percent = printSurveyed > 0 ? Math.round((count / printSurveyed) * 100) : 0;
+                        return (
+                          <tr key={statusKey} style={{ borderBottom: '1px solid #dddddd' }}>
+                            <td style={{ padding: '0.5rem', border: '1px solid #dddddd' }}>{idx + 1}</td>
+                            <td style={{ padding: '0.5rem', border: '1px solid #dddddd', fontWeight: 'bold' }}>{statusKey}</td>
+                            <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>{count}</td>
+                            <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>{percent}%</td>
+                          </tr>
+                        );
+                      })}
+                      <tr style={{ background: '#f8f9fa', borderTop: '1.5px solid #000000', borderBottom: '2px solid #000000', fontWeight: 'bold' }}>
+                        <td style={{ padding: '0.5rem', border: '1px solid #dddddd' }} colSpan={2}>รวมรายการครุภัณฑ์ที่ตรวจนับได้สำเร็จในรอบนี้</td>
+                        <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>{printSurveyed}</td>
+                        <td style={{ padding: '0.5rem', textAlign: 'right', border: '1px solid #dddddd' }}>100%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Section 2: Surveyed List */}
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, borderBottom: '1px solid #000000', paddingBottom: '0.25rem', marginBottom: '0.75rem', marginTop: '1.5rem' }}>
+                    ๒. รายละเอียดครุภัณฑ์ที่ได้รับการสแกนยืนยันตัวตนสำเร็จ (Surveyed Assets List)
+                  </h3>
+                  
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: '#f2f2f2', borderBottom: '1.5px solid #000000', borderTop: '1px solid #dddddd' }}>
+                        <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>รหัสครุภัณฑ์</th>
+                        <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>ชื่อรายการครุภัณฑ์</th>
+                        <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>ฝ่าย/แผนก</th>
+                        <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>สถานที่</th>
+                        <th style={{ padding: '0.45rem', textAlign: 'center', border: '1px solid #dddddd' }}>สภาพที่พบ</th>
+                        <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>ผู้ตรวจ</th>
+                        <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #dddddd' }}>เวลาเช็ค</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {printSurveys.length === 0 ? (
                         <tr>
-                          <td colSpan={5} style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ffcccc', color: '#22bb33', fontWeight: 'bold' }}>✓ ตรวจสอบครบสมบูรณ์ทุกรายการ ไม่มีครุภัณฑ์สูญหาย/ค้างตรวจสอบ</td>
+                          <td colSpan={7} style={{ padding: '1rem', textAlign: 'center', border: '1px solid #dddddd', color: '#666666' }}>ไม่มีรายการครุภัณฑ์ที่ตรวจนับในรอบนี้</td>
                         </tr>
                       ) : (
-                        missedAssets.map(asset => (
-                          <tr key={asset.id} style={{ borderBottom: '1px solid #ffcccc', background: '#fffafa' }}>
-                            <td style={{ padding: '0.45rem', border: '1px solid #ffcccc', fontFamily: 'monospace', fontWeight: 'bold', color: '#c9302c' }}>{asset.id}</td>
-                            <td style={{ padding: '0.45rem', border: '1px solid #ffcccc', color: '#333333' }}>{asset.name}</td>
-                            <td style={{ padding: '0.45rem', border: '1px solid #ffcccc' }}>{asset.department}</td>
-                            <td style={{ padding: '0.45rem', border: '1px solid #ffcccc' }}>{asset.location}</td>
-                            <td style={{ padding: '0.45rem', textAlign: 'center', border: '1px solid #ffcccc' }}>{asset.responsiblePerson}</td>
-                          </tr>
-                        ))
+                        printSurveys.map(record => {
+                          const matchedAsset = assets.find(a => a.id === record.assetId);
+                          return (
+                            <tr key={record.id} style={{ borderBottom: '1px solid #dddddd' }}>
+                              <td style={{ padding: '0.45rem', border: '1px solid #dddddd', fontFamily: 'monospace', fontWeight: 'bold' }}>{record.assetId}</td>
+                              <td style={{ padding: '0.45rem', border: '1px solid #dddddd' }}>{matchedAsset?.name || 'ไม่มีชื่อรหัสพัสดุ'}</td>
+                              <td style={{ padding: '0.45rem', border: '1px solid #dddddd' }}>{matchedAsset?.department || '-'}</td>
+                              <td style={{ padding: '0.45rem', border: '1px solid #dddddd' }}>{matchedAsset?.location || '-'}</td>
+                              <td style={{ padding: '0.45rem', textAlign: 'center', border: '1px solid #dddddd', fontWeight: 'bold', color: record.status === 'ชำรุด' ? '#d9534f' : '#22bb33' }}>
+                                {record.status}
+                              </td>
+                              <td style={{ padding: '0.45rem', border: '1px solid #dddddd' }}>{record.operator}</td>
+                              <td style={{ padding: '0.45rem', border: '1px solid #dddddd', whiteSpace: 'nowrap' }}>
+                                {new Date(record.timestamp).toLocaleDateString('th-TH')}
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
-                </div>
+
+                  {/* Section 3: Missed Assets List */}
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, borderBottom: '1px solid #000000', paddingBottom: '0.25rem', marginBottom: '0.75rem', marginTop: '1.5rem' }}>
+                    ๓. สรุปรายการครุภัณฑ์ที่ขาดหาย / ค้างการแสกนตรวจสอบ (Missed / Unsurveyed Assets List)
+                  </h3>
+
+                  <div>
+                    <div style={{ marginBottom: '0.5rem' }}>ตรวจพบค้างสำรวจทั้งสิ้น <strong>{printMissed.length}</strong> รายการ ดังนี้:</div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', fontSize: '12px' }}>
+                      <thead>
+                        <tr style={{ background: '#fff0f0', borderBottom: '1.5px solid #ffcccc', borderTop: '1px solid #ffcccc' }}>
+                          <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #ffcccc', color: '#c9302c' }}>รหัสครุภัณฑ์</th>
+                          <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #ffcccc', color: '#c9302c' }}>ชื่อรายการครุภัณฑ์</th>
+                          <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #ffcccc', color: '#c9302c' }}>ฝ่าย/แผนก</th>
+                          <th style={{ padding: '0.45rem', textAlign: 'left', border: '1px solid #ffcccc', color: '#c9302c' }}>สถานที่จัดเก็บตามระบบ</th>
+                          <th style={{ padding: '0.45rem', textAlign: 'center', border: '1px solid #ffcccc', color: '#c9302c' }}>ผู้รับผิดชอบ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {printMissed.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: '1rem', textAlign: 'center', border: '1px solid #ffcccc', color: '#22bb33', fontWeight: 'bold' }}>✓ ตรวจสอบครบสมบูรณ์ทุกรายการ ไม่มีครุภัณฑ์สูญหาย/ค้างตรวจสอบ</td>
+                          </tr>
+                        ) : (
+                          printMissed.map(asset => (
+                            <tr key={asset.id} style={{ borderBottom: '1px solid #ffcccc', background: '#fffafa' }}>
+                              <td style={{ padding: '0.45rem', border: '1px solid #ffcccc', fontFamily: 'monospace', fontWeight: 'bold', color: '#c9302c' }}>{asset.id}</td>
+                              <td style={{ padding: '0.45rem', border: '1px solid #ffcccc', color: '#333333' }}>{asset.name}</td>
+                              <td style={{ padding: '0.45rem', border: '1px solid #ffcccc' }}>{asset.department}</td>
+                              <td style={{ padding: '0.45rem', border: '1px solid #ffcccc' }}>{asset.location}</td>
+                              <td style={{ padding: '0.45rem', textAlign: 'center', border: '1px solid #ffcccc' }}>{asset.responsiblePerson}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               );
             })()}
 
