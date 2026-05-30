@@ -12,7 +12,7 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS } from '../utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS } from '../utils/mockData';
 
 // Helper to check if we are using Firebase
 const getServices = () => {
@@ -37,6 +37,9 @@ const initLocalStorageIfNeeded = () => {
   }
   if (!localStorage.getItem('assetwatch_surveys')) {
     localStorage.setItem('assetwatch_surveys', JSON.stringify([]));
+  }
+  if (!localStorage.getItem('assetwatch_departments')) {
+    localStorage.setItem('assetwatch_departments', JSON.stringify(INITIAL_DEPARTMENTS));
   }
   if (!localStorage.getItem('assetwatch_survey_rounds')) {
     const defaultActiveRound: SurveyRound = {
@@ -512,6 +515,95 @@ export const updateSurveyRound = async (id: string, updates: Partial<SurveyRound
   }
 };
 
+// --- DEPARTMENT & LOCATION CONFIG SERVICES ---
+export const getDepartments = async (): Promise<DepartmentLocationConfig[]> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const q = query(collection(db, 'departments'), orderBy('name', 'asc'));
+      const snapshot = await getDocs(q);
+      const list: DepartmentLocationConfig[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as DepartmentLocationConfig);
+      });
+      return list;
+    } catch (e) {
+      console.error('Firebase getDepartments failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const depts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
+  return depts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+};
+
+export const addDepartment = async (dept: DepartmentLocationConfig): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'departments', dept.id);
+      await setDoc(docRef, dept);
+      return;
+    } catch (e) {
+      console.error('Firebase addDepartment failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const depts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
+  depts.push(dept);
+  localStorage.setItem('assetwatch_departments', JSON.stringify(depts));
+};
+
+export const updateDepartment = async (id: string, updates: Partial<DepartmentLocationConfig>): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'departments', id);
+      await updateDoc(docRef, updates as any);
+      return;
+    } catch (e) {
+      console.error('Firebase updateDepartment failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const depts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
+  const index = depts.findIndex(d => d.id === id);
+  if (index !== -1) {
+    depts[index] = { ...depts[index], ...updates };
+    localStorage.setItem('assetwatch_departments', JSON.stringify(depts));
+  } else {
+    throw new Error('ไม่พบข้อมูลหน่วยงานที่ต้องการอัปเดต');
+  }
+};
+
+export const deleteDepartment = async (id: string): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'departments', id);
+      await deleteDoc(docRef);
+      return;
+    } catch (e) {
+      console.error('Firebase deleteDepartment failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const depts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
+  const filtered = depts.filter(d => d.id !== id);
+  localStorage.setItem('assetwatch_departments', JSON.stringify(filtered));
+};
+
 // --- BACKUP & RESTORE ALL DATA ---
 export const exportBackupData = async (): Promise<string> => {
   const assets = await getAssets();
@@ -519,6 +611,7 @@ export const exportBackupData = async (): Promise<string> => {
   const repairs = await getRepairs();
   const surveys = await getSurveys();
   const rounds = await getSurveyRounds();
+  const departments = await getDepartments();
 
   const backupObj = {
     version: '1.0.0',
@@ -527,7 +620,8 @@ export const exportBackupData = async (): Promise<string> => {
     audits,
     repairs,
     surveys,
-    rounds
+    rounds,
+    departments
   };
 
   return JSON.stringify(backupObj, null, 2);
@@ -567,6 +661,11 @@ export const importBackupData = async (jsonString: string): Promise<{ success: b
           await setDoc(doc(db, 'survey_rounds', round.id), round);
         }
       }
+      if (backupObj.departments) {
+        for (const dept of backupObj.departments) {
+          await setDoc(doc(db, 'departments', dept.id), dept);
+        }
+      }
     }
 
     // Always keep LocalStorage in sync or write to LocalStorage if offline
@@ -575,6 +674,7 @@ export const importBackupData = async (jsonString: string): Promise<{ success: b
     localStorage.setItem('assetwatch_repairs', JSON.stringify(backupObj.repairs || []));
     localStorage.setItem('assetwatch_surveys', JSON.stringify(backupObj.surveys || []));
     localStorage.setItem('assetwatch_survey_rounds', JSON.stringify(backupObj.rounds || []));
+    localStorage.setItem('assetwatch_departments', JSON.stringify(backupObj.departments || INITIAL_DEPARTMENTS));
 
     return { success: true, message: `นำเข้าข้อมูลครุภัณฑ์สำเร็จทั้งหมด ${backupObj.assets.length} รายการ` };
   } catch (e: any) {

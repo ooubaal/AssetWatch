@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { Move, Search, ArrowRight, CheckCircle2, AlertCircle, Building } from 'lucide-react';
-import { Asset } from '../utils/mockData';
+import { Asset, DepartmentLocationConfig } from '../utils/mockData';
 import confetti from 'canvas-confetti';
 
 interface Module5TransferProps {
   assets: Asset[];
   onUpdateAssetTransfer: (id: string, transferData: { location: string; department: string; responsiblePerson: string }) => Promise<void>;
   onLogAudit: (trail: { assetId: string; assetName: string; action: any; operator: string; details: string; changes?: any }) => Promise<void>;
+  departments: DepartmentLocationConfig[];
 }
 
 export const Module5_Transfer: React.FC<Module5TransferProps> = ({
   assets,
   onUpdateAssetTransfer,
-  onLogAudit
+  onLogAudit,
+  departments
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -22,6 +24,7 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
   const [newDepartment, setNewDepartment] = useState('');
   const [newResponsible, setNewResponsible] = useState('');
   const [transferDoc, setTransferDoc] = useState('');
+  const [isCustomInput, setIsCustomInput] = useState(false);
   
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -38,7 +41,27 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
     setNewLocation(asset.location);
     setNewDepartment(asset.department);
     setNewResponsible(asset.responsiblePerson);
+    
+    // Auto-detect if department is configured in system
+    const isDeptInConfig = departments.some(d => d.name === asset.department);
+    if (isDeptInConfig) {
+      setIsCustomInput(false);
+    } else {
+      setIsCustomInput(true);
+    }
+    
     setSuccess(false);
+  };
+
+  const handleDepartmentSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const deptName = e.target.value;
+    setNewDepartment(deptName);
+    const found = departments.find(d => d.name === deptName);
+    if (found && found.locations.length > 0) {
+      setNewLocation(found.locations[0]);
+    } else {
+      setNewLocation('');
+    }
   };
 
   const handleTransferSubmit = async (e: React.FormEvent) => {
@@ -224,39 +247,109 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
                 </div>
 
                 {/* Relocation input options */}
-                <div className="form-group">
-                  <label className="form-label">📍 ปลายทางสถานที่ติดตั้งแห่งใหม่</label>
-                  <input 
-                    type="text" 
-                    className="form-input"
-                    value={newLocation}
-                    onChange={(e) => setNewLocation(e.target.value)}
-                    required
-                  />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--text-muted)' }}>📍 ฝ่ายปลายทางและห้องติดตั้งใหม่</span>
+                  <button 
+                    type="button" 
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      const nextVal = !isCustomInput;
+                      setIsCustomInput(nextVal);
+                      if (nextVal) {
+                        setNewDepartment('');
+                        setNewLocation('');
+                      } else {
+                        if (departments.length > 0) {
+                          setNewDepartment(departments[0].name);
+                          setNewLocation(departments[0].locations[0] || '');
+                        }
+                      }
+                    }}
+                    style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem', border: '1px solid var(--border)', background: 'var(--bg-secondary)', height: 'auto', outline: 'none' }}
+                  >
+                    {isCustomInput ? '🏢 ใช้รายการระบบ' : '✍️ พิมพ์กรอกข้อมูลเอง'}
+                  </button>
                 </div>
 
                 <div className="form-row-double">
-                  <div className="form-group flex-1">
-                    <label className="form-label">🏢 ฝ่าย/หน่วยงานที่รับโอนดูแล</label>
-                    <input 
-                      type="text" 
-                      className="form-input"
-                      value={newDepartment}
-                      onChange={(e) => setNewDepartment(e.target.value)}
-                      required
-                    />
-                  </div>
+                  {isCustomInput ? (
+                    <>
+                      <div className="form-group flex-1">
+                        <label className="form-label">🏢 ฝ่าย/หน่วยงานที่รับโอนดูแล</label>
+                        <input 
+                          type="text" 
+                          className="form-input"
+                          placeholder="พิมพ์ฝ่าย/แผนกใหม่..."
+                          value={newDepartment}
+                          onChange={(e) => setNewDepartment(e.target.value)}
+                          required
+                        />
+                      </div>
 
-                  <div className="form-group flex-1">
-                    <label className="form-label">👤 ผู้ดูแล / เจ้าหน้าที่ผู้รับมอบกรรมสิทธิ์</label>
-                    <input 
-                      type="text" 
-                      className="form-input"
-                      value={newResponsible}
-                      onChange={(e) => setNewResponsible(e.target.value)}
-                      required
-                    />
-                  </div>
+                      <div className="form-group flex-1">
+                        <label className="form-label">📍 ปลายทางสถานที่ติดตั้งแห่งใหม่</label>
+                        <input 
+                          type="text" 
+                          className="form-input"
+                          placeholder="พิมพ์ห้องติดตั้งใหม่..."
+                          value={newLocation}
+                          onChange={(e) => setNewLocation(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="form-group flex-1">
+                        <label className="form-label">🏢 ฝ่าย/หน่วยงานที่รับโอนดูแล</label>
+                        <select 
+                          className="form-select"
+                          value={newDepartment}
+                          onChange={handleDepartmentSelectChange}
+                          required
+                        >
+                          {departments.length === 0 ? (
+                            <option value="">ไม่มีหน่วยงาน (โปรดกดพิมพ์กรอกเอง)</option>
+                          ) : (
+                            departments.map(dept => (
+                              <option key={dept.id} value={dept.name}>{dept.name}</option>
+                            ))
+                          )}
+                        </select>
+                      </div>
+
+                      <div className="form-group flex-1">
+                        <label className="form-label">📍 ปลายทางสถานที่ติดตั้งแห่งใหม่</label>
+                        <select 
+                          className="form-select"
+                          value={newLocation}
+                          onChange={(e) => setNewLocation(e.target.value)}
+                          required
+                        >
+                          {(() => {
+                            const currentDeptObj = departments.find(d => d.name === newDepartment);
+                            if (!currentDeptObj || currentDeptObj.locations.length === 0) {
+                              return <option value="">ไม่มีห้องระบุ (โปรดกดพิมพ์กรอกเอง)</option>;
+                            }
+                            return currentDeptObj.locations.map(loc => (
+                              <option key={loc} value={loc}>{loc}</option>
+                            ));
+                          })()}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">👤 ผู้ดูแล / เจ้าหน้าที่ผู้รับมอบกรรมสิทธิ์</label>
+                  <input 
+                    type="text" 
+                    className="form-input"
+                    value={newResponsible}
+                    onChange={(e) => setNewResponsible(e.target.value)}
+                    required
+                  />
                 </div>
 
                 <div className="form-actions">

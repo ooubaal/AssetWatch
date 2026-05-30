@@ -58,6 +58,12 @@ export interface SurveyRound {
   operator: string;
 }
 
+export interface DepartmentLocationConfig {
+  id: string;
+  name: string;
+  locations: string[];
+}
+
 export interface RepairCase {
   id: string;
   assetId: string;
@@ -188,3 +194,21 @@ export const INITIAL_REPAIRS: RepairCase[] = [
   }
 ];
 export const INITIAL_SURVEYS: SurveyRecord[] = [];
+
+export const INITIAL_DEPARTMENTS: DepartmentLocationConfig[] = [
+  {
+    id: "dept-1",
+    name: "ฝ่ายเทคโนโลยีสารสนเทศ",
+    locations: ["ห้องทำงานไอที ชั้น 3", "ห้องเซิร์ฟเวอร์ ชั้น 3", "ห้องเก็บของไอที ชั้น 3"]
+  },
+  {
+    id: "dept-2",
+    name: "ฝ่ายบริหารทั่วไป",
+    locations: ["ห้องประชุมใหญ่ ชั้น 4", "ห้องผู้อำนวยการ ชั้น 5", "ห้องธุรการ ชั้น 2", "ห้องเก็บของ ชั้น 1"]
+  },
+  {
+    id: "dept-3",
+    name: "ฝ่ายธุรการและสารบรรณ",
+    locations: ["ห้องธุรการ ชั้น 2", "ห้องเก็บเอกสาร ชั้น 2"]
+  }
+];

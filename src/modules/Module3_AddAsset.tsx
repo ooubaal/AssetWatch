@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle } from 'lucide-react';
-import { Asset } from '../utils/mockData';
+import { Asset, DepartmentLocationConfig } from '../utils/mockData';
 import { uploadImage } from '../services/dbService';
 import confetti from 'canvas-confetti';
 
@@ -10,6 +10,7 @@ interface Module3AddAssetProps {
   prefilledAssetId: string | null;
   clearPrefilledAssetId: () => void;
   setCurrentTab: (tab: string) => void;
+  departments: DepartmentLocationConfig[];
 }
 
 export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
@@ -17,7 +18,8 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
   onLogAudit,
   prefilledAssetId,
   clearPrefilledAssetId,
-  setCurrentTab
+  setCurrentTab,
+  departments
 }) => {
   // Form states
   const [assetId, setAssetId] = useState('');
@@ -29,6 +31,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
   const [responsiblePerson, setResponsiblePerson] = useState('');
   const [note, setNote] = useState('');
   const [status, setStatus] = useState<Asset['status']>('ใช้งานได้');
+  const [isCustomInput, setIsCustomInput] = useState(false);
   
   // Image Upload States
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -44,6 +47,29 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
       setAssetId(prefilledAssetId);
     }
   }, [prefilledAssetId]);
+
+  // Prefill department and location from system configuration if available
+  useEffect(() => {
+    if (departments.length > 0 && !isCustomInput) {
+      if (!department) {
+        setDepartment(departments[0].name);
+        if (departments[0].locations.length > 0) {
+          setLocation(departments[0].locations[0]);
+        }
+      }
+    }
+  }, [departments, isCustomInput, department]);
+
+  const handleDepartmentSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const deptName = e.target.value;
+    setDepartment(deptName);
+    const found = departments.find(d => d.name === deptName);
+    if (found && found.locations.length > 0) {
+      setLocation(found.locations[0]);
+    } else {
+      setLocation('');
+    }
+  };
 
   const handleGenerateId = () => {
     // Generate unique standard format ID: YYMM-XXX-XXXX
@@ -273,30 +299,98 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         </div>
 
         {/* Row 4: Location, Dept, Responsible */}
-        <div className="grid-cols-3">
-          <div className="form-group">
-            <label className="form-label">📍 สถานที่จัดเก็บ/ติดตั้งเริ่มต้น</label>
-            <input 
-              type="text" 
-              className="form-input"
-              placeholder="เช่น ห้องประชุมไอที ชั้น 3"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-            />
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', marginTop: '0.25rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--text-muted)' }}>📍 ฝ่ายจัดวางพัสดุและห้องติดตั้ง</span>
+          <button 
+            type="button" 
+            className="btn btn-ghost btn-xs"
+            onClick={() => {
+              const nextVal = !isCustomInput;
+              setIsCustomInput(nextVal);
+              if (nextVal) {
+                setDepartment('');
+                setLocation('');
+              } else {
+                if (departments.length > 0) {
+                  setDepartment(departments[0].name);
+                  setLocation(departments[0].locations[0] || '');
+                }
+              }
+            }}
+            style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem', border: '1px solid var(--border)', background: 'var(--bg-secondary)', height: 'auto', outline: 'none' }}
+          >
+            {isCustomInput ? '🏢 ใช้รายการระบบ' : '✍️ พิมพ์กรอกข้อมูลเอง'}
+          </button>
+        </div>
 
-          <div className="form-group">
-            <label className="form-label">🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน</label>
-            <input 
-              type="text" 
-              className="form-input"
-              placeholder="เช่น ฝ่ายธุรการ, ส่วนคอมพิวเตอร์"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              required
-            />
-          </div>
+        <div className="grid-cols-3">
+          {isCustomInput ? (
+            <>
+              <div className="form-group">
+                <label className="form-label">🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน</label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  placeholder="พิมพ์ฝ่าย/แผนกใหม่..."
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">📍 สถานที่จัดเก็บ/ติดตั้งเริ่มต้น</label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  placeholder="พิมพ์ห้องติดตั้งใหม่..."
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  required
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="form-group">
+                <label className="form-label">🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน</label>
+                <select 
+                  className="form-select"
+                  value={department}
+                  onChange={handleDepartmentSelectChange}
+                  required
+                >
+                  {departments.length === 0 ? (
+                    <option value="">ไม่มีหน่วยงาน (โปรดกดพิมพ์กรอกเอง)</option>
+                  ) : (
+                    departments.map(dept => (
+                      <option key={dept.id} value={dept.name}>{dept.name}</option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">📍 สถานที่จัดเก็บ/ติดตั้งเริ่มต้น</label>
+                <select 
+                  className="form-select"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  required
+                >
+                  {(() => {
+                    const currentDeptObj = departments.find(d => d.name === department);
+                    if (!currentDeptObj || currentDeptObj.locations.length === 0) {
+                      return <option value="">ไม่มีห้องระบุ (โปรดกดพิมพ์กรอกเอง)</option>;
+                    }
+                    return currentDeptObj.locations.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ));
+                  })()}
+                </select>
+              </div>
+            </>
+          )}
 
           <div className="form-group">
             <label className="form-label">👤 ผู้ดูแล / เจ้าหน้าที่ผู้รับผิดชอบ</label>

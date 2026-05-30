@@ -18,7 +18,11 @@ import {
   updateRepair,
   getSurveyRounds,
   addSurveyRound,
-  updateSurveyRound
+  updateSurveyRound,
+  getDepartments,
+  addDepartment,
+  updateDepartment,
+  deleteDepartment
 } from './services/dbService';
 
 // Module Components
@@ -30,8 +34,9 @@ import { Module5_Transfer } from './modules/Module5_Transfer';
 import { Module5_Repair } from './modules/Module5_Repair';
 import { Module6_AuditTrail } from './modules/Module6_AuditTrail';
 import { Module7_Settings } from './modules/Module7_Settings';
+import { Module8_Departments } from './modules/Module8_Departments';
 
-import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound } from './utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig } from './utils/mockData';
 import { X, Camera, AlertCircle } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
@@ -57,6 +62,7 @@ function App() {
   const [surveys, setSurveys] = useState<SurveyRecord[]>([]);
   const [rounds, setRounds] = useState<SurveyRound[]>([]);
   const [activeRound, setActiveRound] = useState<SurveyRound | null>(null);
+  const [departments, setDepartments] = useState<DepartmentLocationConfig[]>([]);
 
   // Prefilled Asset ID used for onboarding scanned unregistered barcodes
   const [prefilledAssetId, setPrefilledAssetId] = useState<string | null>(null);
@@ -87,12 +93,14 @@ function App() {
       const allRepairs = await getRepairs();
       const allSurveys = await getSurveys();
       const allRounds = await getSurveyRounds();
+      const allDepts = await getDepartments();
 
       setAssets(allAssets);
       setAudits(allAudits);
       setRepairs(allRepairs);
       setSurveys(allSurveys);
       setRounds(allRounds);
+      setDepartments(allDepts);
 
       const active = allRounds.find(r => r.status === 'active');
       setActiveRound(active || null);
@@ -225,6 +233,30 @@ function App() {
       details: `ปิดรอบการสำรวจประจำปีสำเร็จ อัตราการตรวจสอบ ${rate}% (ตรวจสอบแล้ว ${surveyedCount}/${totalAssetsCount} รายการ)`,
     });
 
+    await fetchAllData();
+  };
+
+  // --- MODULE 8: DEPARTMENT CONFIG HANDLERS ---
+  const handleCreateDepartment = async (name: string, locations: string[]) => {
+    const newDept: DepartmentLocationConfig = {
+      id: `dept-${Date.now()}`,
+      name: name.trim(),
+      locations: locations.map(l => l.trim()).filter(Boolean)
+    };
+    await addDepartment(newDept);
+    await fetchAllData();
+  };
+
+  const handleUpdateDepartment = async (id: string, name: string, locations: string[]) => {
+    await updateDepartment(id, {
+      name: name.trim(),
+      locations: locations.map(l => l.trim()).filter(Boolean)
+    });
+    await fetchAllData();
+  };
+
+  const handleDeleteDepartment = async (id: string) => {
+    await deleteDepartment(id);
     await fetchAllData();
   };
 
@@ -386,6 +418,7 @@ function App() {
             prefilledAssetId={prefilledAssetId}
             clearPrefilledAssetId={() => setPrefilledAssetId(null)}
             setCurrentTab={setCurrentTab}
+            departments={departments}
           />
         )}
         {currentTab === 'module4' && (
@@ -400,6 +433,7 @@ function App() {
             assets={assets}
             onUpdateAssetTransfer={handleUpdateAssetTransfer}
             onLogAudit={handleLogAudit}
+            departments={departments}
           />
         )}
         {currentTab === 'module5_repair' && (
@@ -419,6 +453,14 @@ function App() {
           <Module7_Settings 
             onClearConfig={handleClearConfig}
             onImportSuccess={fetchAllData}
+          />
+        )}
+        {currentTab === 'module8' && (
+          <Module8_Departments 
+            departments={departments}
+            onAddDept={handleCreateDepartment}
+            onUpdateDept={handleUpdateDepartment}
+            onDeleteDept={handleDeleteDepartment}
           />
         )}
       </main>

@@ -12,7 +12,8 @@ import {
   Sun, 
   Moon,
   Menu,
-  X
+  X,
+  Building
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'module5_transfer', label: 'โอนย้ายครุภัณฑ์', icon: Move },
     { id: 'module5_repair', label: 'ประวัติการส่งซ่อม', icon: Wrench },
     { id: 'module6', label: 'ประวัติกิจกรรม (Audit)', icon: History },
+    { id: 'module8', label: 'ตั้งค่าหน่วยงาน & ห้อง', icon: Building },
     { id: 'module7', label: 'ตั้งค่า & คู่มือการใช้งาน', icon: Settings },
   ];
 
