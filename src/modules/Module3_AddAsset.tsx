@@ -23,7 +23,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
   const [assetId, setAssetId] = useState('');
   const [name, setName] = useState('');
   const [receivedDate, setReceivedDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [source, setSource] = useState('เงินงบประมาณแผ่นดินปี ' + (new Date().getFullYear() + 543)); // Defaults to current Thai Buddhist year
+  const [source, setSource] = useState(''); // Represent Seller / Supplier / Donor
   const [location, setLocation] = useState('');
   const [department, setDepartment] = useState('');
   const [responsiblePerson, setResponsiblePerson] = useState('');
@@ -108,7 +108,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         assetName: newAsset.name,
         action: 'create',
         operator: operatorName,
-        details: `ขึ้นทะเบียนครุภัณฑ์รหัสใหม่ สัญญาสั่งซื้อ: ${newAsset.source} ตั้งที่: ${newAsset.location}`
+        details: `ขึ้นทะเบียนครุภัณฑ์รหัสใหม่ ผู้ขาย/ผู้บริจาค: ${newAsset.source} ตั้งที่: ${newAsset.location}`
       });
 
       // Show confetti for premium feeling!
@@ -260,11 +260,11 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
           </div>
 
           <div className="form-group flex-1">
-            <label className="form-label">🧾 แหล่งที่มาของงบประมาณ / เลขสัญญา</label>
+            <label className="form-label">🧾 ผู้จำหน่าย / ผู้ขาย / ผู้บริจาค</label>
             <input 
               type="text" 
               className="form-input"
-              placeholder="เช่น เงินงบประมาณแผ่นดินปี 2568, บริจาค"
+              placeholder="เช่น บริษัท เอ บี ซี จำกัด, บริจาคโดยสมาคม..."
               value={source}
               onChange={(e) => setSource(e.target.value)}
               required

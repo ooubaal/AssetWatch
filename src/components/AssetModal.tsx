@@ -213,7 +213,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                 <div className="detail-row">
                   <div className="detail-icon"><FileText size={18} /></div>
                   <div className="detail-content">
-                    <span className="detail-label">แหล่งที่มาของงบประมาณ</span>
+                    <span className="detail-label">ผู้จำหน่าย / ผู้จัดซื้อ / ผู้บริจาค</span>
                     <span className="detail-value">{asset.source || 'ไม่ระบุ'}</span>
                   </div>
                 </div>
