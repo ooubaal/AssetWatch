@@ -608,7 +608,10 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         {roundHistoryTab === 'active' ? (
           <div>
             {activeRound ? (() => {
-              const activeRoundAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
+              const activeRoundAssets = assets.filter(a => {
+                const isDeptMatch = selectedRoundDept === 'all' || a.department === selectedRoundDept;
+                return isDeptMatch && a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
+              });
               const activeRoundSurveys = surveys.filter(s => {
                 if (s.roundId !== activeRound.id) return false;
                 if (selectedRoundDept === 'all') return true;
@@ -789,7 +792,10 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                   </thead>
                   <tbody>
                     {rounds.filter(r => r.status === 'closed').map(round => {
-                      const roundAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
+                      const roundAssets = assets.filter(a => {
+                        const isDeptMatch = selectedRoundDept === 'all' || a.department === selectedRoundDept;
+                        return isDeptMatch && a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
+                      });
                       const roundSurveys = surveys.filter(s => {
                         if (s.roundId !== round.id) return false;
                         if (selectedRoundDept === 'all') return true;
@@ -882,7 +888,10 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
             
             {(() => {
               // Recalculating round statistics dynamically for selectedRoundDept in print preview
-              const printAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
+              const printAssets = assets.filter(a => {
+                const isDeptMatch = selectedRoundDept === 'all' || a.department === selectedRoundDept;
+                return isDeptMatch && a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
+              });
               const printSurveys = surveys.filter(s => {
                 if (s.roundId !== printingRound.id) return false;
                 if (selectedRoundDept === 'all') return true;

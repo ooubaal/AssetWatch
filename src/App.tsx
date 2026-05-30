@@ -154,12 +154,14 @@ function App() {
       return;
     }
 
+    const activeAssetsCount = assets.filter(a => a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ').length;
+
     const newRound: SurveyRound = {
       id: `round-${Date.now()}`,
       name: name.trim(),
       dateCreated: new Date().toISOString(),
       status: 'active',
-      totalAssets: assets.length,
+      totalAssets: activeAssetsCount,
       surveyedAssets: 0,
       completionRate: 0,
       statusBreakdown: {
@@ -183,7 +185,7 @@ function App() {
     const latestSurveys = await getSurveys();
     const activeSurveys = latestSurveys.filter(s => s.roundId === activeRound.id);
     
-    const totalAssetsCount = assets.length;
+    const totalAssetsCount = assets.filter(a => a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ').length;
     const surveyedCount = activeSurveys.length;
     const rate = totalAssetsCount > 0 ? Math.round((surveyedCount / totalAssetsCount) * 100) : 0;
 
