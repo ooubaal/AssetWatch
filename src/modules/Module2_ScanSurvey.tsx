@@ -105,8 +105,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
   // Calculate filtered checklist based on selected department
   const filteredChecklist = assets.filter(asset => {
-    if (selectedDept === 'all') return asset.status !== 'รอจำหน่าย' && asset.status !== 'อื่นๆ';
-    return asset.department === selectedDept && asset.status !== 'รอจำหน่าย' && asset.status !== 'อื่นๆ';
+    if (selectedDept === 'all') return true;
+    return asset.department === selectedDept;
   });
 
   const pendingList = filteredChecklist.filter(asset => !isAssetSurveyedInRound(asset.id));
@@ -608,10 +608,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         {roundHistoryTab === 'active' ? (
           <div>
             {activeRound ? (() => {
-              const activeRoundAssets = assets.filter(a => {
-                const isDeptMatch = selectedRoundDept === 'all' || a.department === selectedRoundDept;
-                return isDeptMatch && a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
-              });
+              const activeRoundAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
               const activeRoundSurveys = surveys.filter(s => {
                 if (s.roundId !== activeRound.id) return false;
                 if (selectedRoundDept === 'all') return true;
@@ -792,10 +789,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                   </thead>
                   <tbody>
                     {rounds.filter(r => r.status === 'closed').map(round => {
-                      const roundAssets = assets.filter(a => {
-                        const isDeptMatch = selectedRoundDept === 'all' || a.department === selectedRoundDept;
-                        return isDeptMatch && a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
-                      });
+                      const roundAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
                       const roundSurveys = surveys.filter(s => {
                         if (s.roundId !== round.id) return false;
                         if (selectedRoundDept === 'all') return true;
@@ -888,10 +882,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
             
             {(() => {
               // Recalculating round statistics dynamically for selectedRoundDept in print preview
-              const printAssets = assets.filter(a => {
-                const isDeptMatch = selectedRoundDept === 'all' || a.department === selectedRoundDept;
-                return isDeptMatch && a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
-              });
+              const printAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
               const printSurveys = surveys.filter(s => {
                 if (s.roundId !== printingRound.id) return false;
                 if (selectedRoundDept === 'all') return true;
@@ -922,7 +913,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               });
 
               const surveyedAssetIds = printSurveys.map(s => s.assetId);
-              const printMissed = printAssets.filter(a => !surveyedAssetIds.includes(a.id) && a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ');
+              const printMissed = printAssets.filter(a => !surveyedAssetIds.includes(a.id));
 
               return (
                 <>
