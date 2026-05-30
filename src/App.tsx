@@ -277,6 +277,7 @@ function App() {
         {currentTab === 'module2' && (
           <Module2_ScanSurvey 
             assets={assets}
+            surveys={surveys}
             onAddSurvey={handleAddSurvey}
             onUpdateAssetStatus={handleUpdateAssetStatus}
             onLogAudit={handleLogAudit}

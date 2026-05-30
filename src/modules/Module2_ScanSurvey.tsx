@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   QrCode, 
   CheckCircle2, 
@@ -9,7 +9,13 @@ import {
   FileImage,
   RefreshCw,
   Sparkles,
-  TrendingUp
+  TrendingUp,
+  ListTodo,
+  CheckCircle,
+  Clock,
+  ArrowRight,
+  ChevronRight,
+  ClipboardList
 } from 'lucide-react';
 import { Asset, SurveyRecord } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -18,6 +24,7 @@ import confetti from 'canvas-confetti';
 
 interface Module2ScanSurveyProps {
   assets: Asset[];
+  surveys: SurveyRecord[];
   onAddSurvey: (survey: Omit<SurveyRecord, 'id'>) => Promise<void>;
   onUpdateAssetStatus: (id: string, status: Asset['status']) => Promise<void>;
   onLogAudit: (trail: { assetId: string; assetName: string; action: any; operator: string; details: string }) => Promise<void>;
@@ -26,12 +33,18 @@ interface Module2ScanSurveyProps {
 
 export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   assets,
+  surveys,
   onAddSurvey,
   onUpdateAssetStatus,
   onLogAudit,
   onRedirectToAdd
 }) => {
   const [operator, setOperator] = useState(() => localStorage.getItem('assetwatch_operator') || 'ผู้ตรวจการทั่วไป');
+  
+  // Checklist-Driven State
+  const [selectedDept, setSelectedDept] = useState<string>(() => localStorage.getItem('assetwatch_selected_dept') || 'all');
+  const [checklistTab, setChecklistTab] = useState<'pending' | 'completed'>('pending');
+
   const [scannedId, setScannedId] = useState<string | null>(null);
   const [scannedAsset, setScannedAsset] = useState<Asset | null>(null);
   
@@ -44,12 +57,59 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [surveySuccess, setSurveySuccess] = useState(false);
   const [isNewScanNeeded, setIsNewScanNeeded] = useState(true);
 
+  // Extract unique departments for dropdown
+  const uniqueDepts = Array.from(new Set(assets.map(a => a.department).filter(Boolean)));
+
+  // Save selected department to localstorage
+  const handleDeptChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setSelectedDept(val);
+    localStorage.setItem('assetwatch_selected_dept', val);
+  };
+
   // Save operator name to localStorage on change
   const handleOperatorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setOperator(val);
     localStorage.setItem('assetwatch_operator', val);
   };
+
+  // Helpers to check if asset was surveyed today
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isAssetSurveyedToday = (assetId: string) => {
+    return surveys.some(s => {
+      try {
+        const sDate = new Date(s.timestamp).toISOString().split('T')[0];
+        return s.assetId === assetId && sDate === todayStr;
+      } catch {
+        return false;
+      }
+    });
+  };
+
+  // Calculate filtered checklist based on selected department
+  const filteredChecklist = assets.filter(asset => {
+    if (selectedDept === 'all') return asset.status !== 'รอจำหน่าย' && asset.status !== 'อื่นๆ';
+    return asset.department === selectedDept && asset.status !== 'รอจำหน่าย' && asset.status !== 'อื่นๆ';
+  });
+
+  const pendingList = filteredChecklist.filter(asset => !isAssetSurveyedToday(asset.id));
+  const completedList = filteredChecklist.filter(asset => isAssetSurveyedToday(asset.id));
+
+  const totalInList = filteredChecklist.length;
+  const surveyedInList = completedList.length;
+  const progressPercent = totalInList > 0 ? Math.round((surveyedInList / totalInList) * 100) : 0;
+
+  // Trigger celebration on 100% completion of selected list!
+  useEffect(() => {
+    if (progressPercent === 100 && totalInList > 0 && !isNewScanNeeded && surveySuccess) {
+      confetti({
+        particleCount: 200,
+        spread: 100,
+        origin: { y: 0.5 }
+      });
+    }
+  }, [progressPercent, totalInList, isNewScanNeeded, surveySuccess]);
 
   const handleScanSuccess = (decodedId: string) => {
     setIsNewScanNeeded(false);
@@ -61,10 +121,23 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       setScannedAsset(found);
       setSelectedStatus(found.status);
       setSurveySuccess(false);
+
+      // Warning if scanned asset belongs to a different department than selected
+      if (selectedDept !== 'all' && found.department !== selectedDept) {
+        // Just log a console warning or show in UI, we will handle in UI dynamically
+      }
     } else {
       setScannedAsset(null);
       setSurveySuccess(false);
     }
+  };
+
+  const handleManualCountSelect = (asset: Asset) => {
+    setIsNewScanNeeded(false);
+    setScannedId(asset.id);
+    setScannedAsset(asset);
+    setSelectedStatus(asset.status);
+    setSurveySuccess(false);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,7 +183,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           assetName: scannedAsset.name,
           action: 'survey',
           operator,
-          details: `แสกนสำรวจและเปลี่ยนสถานะครุภัณฑ์ จาก "${scannedAsset.status}" เป็น "${selectedStatus}"`
+          details: `สแกนสำรวจตรวจนับ และอัปเดตเปลี่ยนสถานะพัสดุ จาก "${scannedAsset.status}" เป็น "${selectedStatus}"`
         });
       } else if (scannedAsset) {
         // Log simple verification survey audit trail
@@ -119,7 +192,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           assetName: scannedAsset.name,
           action: 'survey',
           operator,
-          details: `แสกนสำรวจพบตัวครุภัณฑ์ สภาพยังคง "${selectedStatus}" เหมือนเดิม`
+          details: `สแกนสำรวจตรวจนับแล้ว สภาพยังคง "${selectedStatus}" ตามปกติ`
         });
       } else {
         // Unregistered asset checked
@@ -128,15 +201,15 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           assetName: 'ครุภัณฑ์ไม่ได้ลงทะเบียน',
           action: 'survey',
           operator,
-          details: `แสกนสำรวจพบรหัสที่ไม่ได้ลงทะเบียน: "${scannedId}"`
+          details: `สแกนพบและตรวจนับรหัสที่ยังไม่เคยมีในคลังระบบ: "${scannedId}"`
         });
       }
 
       // Polish: Confetti Rain!
       confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.7 }
       });
 
       setSurveySuccess(true);
@@ -159,35 +232,79 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     setIsNewScanNeeded(true);
   };
 
+  const statusColors: Record<string, string> = {
+    'ใช้งานได้': 'badge-success',
+    'ชำรุด': 'badge-danger',
+    'รอจำหน่าย': 'badge-warning',
+    'ขอป้ายรหัสใหม่': 'badge-info',
+    'รอโอน': 'badge-primary',
+    'อื่นๆ': 'badge-muted'
+  };
+
   return (
     <div className="module-container animate-fade-in">
       <div className="module-title-section">
-        <h2>สแกนตรวจนับครุภัณฑ์รายชิ้น (Module 2)</h2>
-        <p>เปิดสแกนผ่านกล้องโทรศัพท์มือถือเพื่อยืนยันสภาพและอัปโหลดรูปภาพความเสียหายแบบเรียลไทม์</p>
+        <h2>ระบบตรวจนับตามลิสต์และสแกนพัสดุรายหน่วยงาน (Module 2)</h2>
+        <p>เลือกแผนงานเป้าหมาย คัดลอกและเปิดกล้องเดินสแกนเช็คเป้าหมายพัสดุค้างตรวจนับพร้อมแถบความก้าวหน้าเรียลไทม์</p>
       </div>
 
-      {/* Operator profile card */}
-      <div className="operator-card glass-panel">
-        <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
+      {/* Setup configuration bar */}
+      <div className="survey-setup-bar glass-panel">
+        <div className="form-group flex-1" style={{ marginBottom: 0 }}>
           <label className="form-label">✍️ ชื่อผู้ตรวจสอบนับครุภัณฑ์</label>
           <input 
             type="text" 
             className="form-input" 
-            placeholder="โปรดป้อนชื่อผู้สำรวจพัสดุ..." 
+            placeholder="ป้อนชื่อผู้ตรวจนับ..." 
             value={operator}
             onChange={handleOperatorChange}
           />
         </div>
-        <div className="operator-survey-tip">
-          <TrendingUp size={16} color="var(--primary)" />
-          <span>ผู้แสกนหลายท่านสามารถเข้าระบบในคอมหรือมือถือพร้อมกันได้เพื่อช่วยกันนับอย่างเร็ว</span>
+        
+        <div className="form-group flex-1" style={{ marginBottom: 0 }}>
+          <label className="form-label">🏢 เลือกแผนงาน / หน่วยงานที่ต้องการลงพื้นที่สำรวจ</label>
+          <select 
+            className="form-select select-survey-target"
+            value={selectedDept}
+            onChange={handleDeptChange}
+          >
+            <option value="all">ทุกหน่วยงาน (ครุภัณฑ์ทั้งหมดในคลัง)</option>
+            {uniqueDepts.map(dept => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Scanner Control View Area */}
+      {/* Progress display dashboard for the selected checklist */}
+      <div className="checklist-progress-panel glass-panel">
+        <div className="progress-meta-info">
+          <div className="progress-label-group">
+            <ClipboardList size={20} className="text-blue" />
+            <div>
+              <h3>
+                เป้าหมาย: {selectedDept === 'all' ? 'ทุกหน่วยงานรวมกัน' : selectedDept}
+              </h3>
+              <p className="progress-sub">สำรวจพัสดุเสร็จแล้ว <strong>{surveyedInList}</strong> จากทั้งหมด <strong>{totalInList}</strong> รายการ</p>
+            </div>
+          </div>
+          <div className="progress-percent-large">
+            {progressPercent}%
+          </div>
+        </div>
+
+        <div className="progress-bar-bg" style={{ height: '12px', marginTop: '0.75rem' }}>
+          <div 
+            className="progress-bar-fill fill-primary"
+            style={{ width: `${progressPercent}%`, height: '100%', borderRadius: 'inherit' }}
+          ></div>
+        </div>
+      </div>
+
+      {/* Main scanning & checklist dashboard */}
       <div className="survey-layout-grid">
         
-        {/* Left Column: Scanner Panel */}
+        {/* Left Column: Barcode scanner camera */}
         <div className="scanner-column">
           {isNewScanNeeded ? (
             <div className="scan-frame glass-panel">
@@ -200,26 +317,98 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               <div className="scanned-code-pill">
                 <code>{scannedId}</code>
               </div>
-              <button className="btn btn-secondary" onClick={handleResetScan}>
-                <RefreshCw size={14} /> เริ่มต้นแสกนชิ้นถัดไป
+              
+              {scannedAsset && selectedDept !== 'all' && scannedAsset.department !== selectedDept && (
+                <div className="alert alert-danger" style={{ padding: '0.65rem 1rem', fontSize: '0.8rem', margin: '0.5rem 0' }}>
+                  <AlertTriangle size={16} />
+                  <span><strong>คำเตือน:</strong> ครุภัณฑ์ชิ้นนี้อยู่แผนก "{scannedAsset.department}" ไม่ตรงกับแผนกที่เลือกไว้!</span>
+                </div>
+              )}
+
+              <button className="btn btn-secondary w-full" onClick={handleResetScan} style={{ marginTop: '0.5rem' }}>
+                <RefreshCw size={14} /> กดเพื่อสแกนชิ้นถัดไป
               </button>
             </div>
           )}
         </div>
 
-        {/* Right Column: Scanned Result Card & Form */}
+        {/* Right Column: Dynamic Form or Checklist view */}
         <div className="form-column">
           
-          {/* Case 1: Scanning is in progress, waiting */}
-          {!scannedId && (
-            <div className="survey-wait-card glass-panel">
-              <QrCode size={48} className="pulse-scanning" color="var(--text-muted)" />
-              <h3>กำลังรอการแสกนบาร์โค้ด...</h3>
-              <p>หันกล้องไปที่ฉลากรหัสครุภัณฑ์ หรือกดปุ่มป้อนรหัสด้วยมือในช่องกล้องเพื่อตรวจนับ</p>
+          {/* CASE 1: Normal state (Scan is running, display checklist board below scanner) */}
+          {isNewScanNeeded && !scannedId && (
+            <div className="checklist-board-card glass-panel">
+              <div className="checklist-header-tabs">
+                <button 
+                  type="button"
+                  className={`checklist-tab-btn ${checklistTab === 'pending' ? 'tab-active' : ''}`}
+                  onClick={() => setChecklistTab('pending')}
+                >
+                  🔴 ค้างตรวจนับ ({pendingList.length})
+                </button>
+                <button 
+                  type="button"
+                  className={`checklist-tab-btn ${checklistTab === 'completed' ? 'tab-active' : ''}`}
+                  onClick={() => setChecklistTab('completed')}
+                >
+                  🟢 ตรวจแล้ววันนี้ ({completedList.length})
+                </button>
+              </div>
+
+              <div className="checklist-items-scroll">
+                {checklistTab === 'pending' ? (
+                  pendingList.length === 0 ? (
+                    <div className="empty-checklist-state">
+                      <CheckCircle2 size={36} color="var(--success)" />
+                      <h4>สแกนเสร็จสิ้นครบ 100% แล้ว!</h4>
+                      <p>ครุภัณฑ์ทั้งหมดของหน่วยงานนี้ได้รับการยืนยันประวัติเรียบร้อยแล้วในวันนี้</p>
+                    </div>
+                  ) : (
+                    pendingList.map(item => (
+                      <div key={item.id} className="checklist-item-row animate-fade-in">
+                        <div className="item-meta">
+                          <code className="item-code">{item.id}</code>
+                          <h4 className="item-title">{item.name}</h4>
+                          <span className="item-loc">📍 {item.location}</span>
+                        </div>
+                        <button 
+                          type="button"
+                          className="btn btn-secondary btn-xs btn-quick-survey"
+                          onClick={() => handleManualCountSelect(item)}
+                          title="กดเพื่อตรวจนับพัสดุชิ้นนี้ทันทีโดยไม่ต้องสแกนบาร์โค้ด"
+                        >
+                          ตรวจนับด้วยมือ <ChevronRight size={12} />
+                        </button>
+                      </div>
+                    ))
+                  )
+                ) : (
+                  completedList.length === 0 ? (
+                    <div className="empty-checklist-state">
+                      <Clock size={36} color="var(--text-muted)" />
+                      <h4>ยังไม่มีการตรวจนับวันนี้</h4>
+                      <p>หันกล้องมือถือไปสแกนป้ายบาร์โค้ด หรือกดสแกนด้วยมือข้างลิสต์เพื่อทำรายการตรวจรับชิ้นแรก</p>
+                    </div>
+                  ) : (
+                    completedList.map(item => (
+                      <div key={item.id} className="checklist-item-row item-row-completed animate-fade-in">
+                        <div className="item-meta">
+                          <code className="item-code">{item.id}</code>
+                          <h4 className="item-title" style={{ textDecoration: 'line-through', color: 'var(--text-muted)' }}>{item.name}</h4>
+                          <span className="item-loc" style={{ color: 'var(--text-muted)' }}>📍 {item.location}</span>
+                        </div>
+                        <span className="badge badge-success check-mark-completed">
+                          ✓ เช็คแล้ว ({item.status})
+                        </span>
+                      </div>
+                    ))
+                  )
+                )}
+              </div>
             </div>
           )}
 
-          {/* Case 2: Scanned ID but asset NOT registered in system */}
+          {/* CASE 2: Scanned ID but asset NOT registered in system */}
           {scannedId && !scannedAsset && !surveySuccess && (
             <div className="survey-unregistered-card glass-panel">
               <AlertTriangle size={48} color="var(--warning)" className="warning-shake" />
@@ -242,18 +431,22 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
             </div>
           )}
 
-          {/* Case 3: Asset Scanned Successfully, displaying Confirm Form */}
+          {/* CASE 3: Asset Scanned Successfully, displaying Confirm Form */}
           {scannedId && scannedAsset && !surveySuccess && (
             <form onSubmit={handleSurveySubmit} className="survey-form-panel glass-panel">
               <div className="survey-asset-brief">
                 <img 
                   src={scannedAsset.imageUrl || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60'} 
                   alt={scannedAsset.name} 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+                  }}
                 />
                 <div className="brief-details">
                   <span className="brief-id">{scannedAsset.id}</span>
                   <h3>{scannedAsset.name}</h3>
-                  <span>📍 {scannedAsset.location}</span>
+                  <span>📍 แผนก: {scannedAsset.department}</span>
+                  <span>📍 ที่ตั้ง: {scannedAsset.location}</span>
                 </div>
               </div>
 
@@ -315,7 +508,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
             </form>
           )}
 
-          {/* Case 4: Survey Success Screen */}
+          {/* CASE 4: Survey Success Screen */}
           {surveySuccess && (
             <div className="survey-success-card glass-panel">
               <div className="success-sparkle-halo">
@@ -329,6 +522,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 <code>{scannedId}</code>
               </div>
 
+              {progressPercent === 100 && totalInList > 0 ? (
+                <div className="alert alert-success animate-fade-in" style={{ width: '100%', marginBottom: '1rem' }}>
+                  <Sparkles size={20} />
+                  <span><strong>ยอดเยี่ยมมาก!</strong> คุณสำรวจครบ 100% ของเป้าหมายแผนงานนี้เรียบร้อยแล้ว! 🥳</span>
+                </div>
+              ) : null}
+
               <button className="btn btn-primary w-full" onClick={handleResetScan}>
                 สแกนชิ้นถัดไปทันที
               </button>
@@ -340,6 +540,192 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       </div>
 
       <style>{`
+        .survey-setup-bar {
+          padding: 1.25rem;
+          margin-bottom: 1.25rem;
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+        }
+
+        .select-survey-target {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--primary);
+          border-color: var(--primary);
+        }
+
+        /* Progress Panel */
+        .checklist-progress-panel {
+          padding: 1.25rem 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .progress-meta-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .progress-label-group {
+          display: flex;
+          align-items: center;
+          gap: 0.85rem;
+        }
+
+        .progress-label-group h3 {
+          font-size: 1.05rem;
+          font-weight: 750;
+          line-height: 1.2;
+        }
+
+        .progress-sub {
+          font-size: 0.775rem;
+          color: var(--text-secondary);
+          margin-top: 0.15rem;
+        }
+
+        .progress-percent-large {
+          font-size: 1.85rem;
+          font-weight: 900;
+          color: var(--primary);
+          line-height: 1;
+        }
+
+        /* Checklist board styles */
+        .checklist-board-card {
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          max-height: 400px;
+          height: 100%;
+        }
+
+        .checklist-header-tabs {
+          display: flex;
+          border-bottom: 1.5px solid var(--border);
+          margin-bottom: 0.75rem;
+          gap: 0.5rem;
+          padding-bottom: 0.25rem;
+        }
+
+        .checklist-tab-btn {
+          flex: 1;
+          padding: 0.65rem 0.5rem;
+          border: none;
+          background: transparent;
+          font-family: var(--font-family);
+          font-size: 0.85rem;
+          font-weight: 650;
+          color: var(--text-secondary);
+          cursor: pointer;
+          border-bottom: 2.5px solid transparent;
+          transition: all var(--transition-fast);
+          text-align: center;
+        }
+
+        .checklist-tab-btn:hover {
+          color: var(--text-primary);
+        }
+
+        .checklist-tab-btn.tab-active {
+          color: var(--primary);
+          border-bottom-color: var(--primary);
+        }
+
+        .checklist-items-scroll {
+          overflow-y: auto;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .checklist-item-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.65rem 0.85rem;
+          background-color: var(--bg-primary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          transition: all var(--transition-fast);
+        }
+
+        .checklist-item-row:hover {
+          border-color: var(--primary);
+          background-color: var(--bg-secondary);
+        }
+
+        .item-row-completed {
+          background-color: rgba(16, 185, 129, 0.01);
+          border-color: rgba(16, 185, 129, 0.15);
+        }
+
+        .item-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 0.1rem;
+          max-width: 65%;
+        }
+
+        .item-code {
+          font-size: 0.7rem;
+          font-family: monospace;
+          color: var(--text-muted);
+          font-weight: 550;
+        }
+
+        .item-title {
+          font-size: 0.825rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .item-loc {
+          font-size: 0.725rem;
+          color: var(--text-secondary);
+        }
+
+        .btn-quick-survey {
+          padding: 0.35rem 0.6rem;
+          font-size: 0.75rem;
+          border-radius: var(--radius-sm);
+          flex-shrink: 0;
+        }
+
+        .check-mark-completed {
+          font-size: 0.725rem;
+          padding: 0.25rem 0.5rem;
+          flex-shrink: 0;
+        }
+
+        .empty-checklist-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 3rem 1.5rem;
+          gap: 0.75rem;
+          color: var(--text-muted);
+        }
+
+        .empty-checklist-state h4 {
+          font-size: 0.9rem;
+          font-weight: 750;
+          color: var(--text-primary);
+        }
+
+        .empty-checklist-state p {
+          font-size: 0.775rem;
+          max-width: 240px;
+        }
+
         .operator-card {
           padding: 1.25rem;
           margin-bottom: 1.5rem;
