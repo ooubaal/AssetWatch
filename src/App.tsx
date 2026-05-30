@@ -525,23 +525,25 @@ function App() {
             </form>
 
             {/* Quick Demo Accounts Selector */}
-            <div className="quick-demo-accounts">
-              <span className="demo-title">⚡ ปุ่มล็อคอินบัญชีทดสอบระดับสิทธิ์ (Demo Bypass)</span>
-              <div className="demo-badges-grid">
-                <button className="demo-badge badge-admin" onClick={() => handleQuickLogin('admin')}>
-                  👑 แอดมินสูงสุด (Admin)
-                </button>
-                <button className="demo-badge badge-it" onClick={() => handleQuickLogin('it_user')}>
-                  💻 แผนก IT (User)
-                </button>
-                <button className="demo-badge badge-general" onClick={() => handleQuickLogin('admin_general')}>
-                  💼 บริหารทั่วไป (User)
-                </button>
-                <button className="demo-badge badge-blocked" onClick={() => handleQuickLogin('blocked')}>
-                  🚫 บัญชีโดนแบน (Blocked)
-                </button>
+            {!services.isConfigured && localStorage.getItem('assetwatch_hide_demo_bypass') !== 'true' && (
+              <div className="quick-demo-accounts">
+                <span className="demo-title">⚡ ปุ่มล็อคอินบัญชีทดสอบระดับสิทธิ์ (Demo Bypass)</span>
+                <div className="demo-badges-grid">
+                  <button className="demo-badge badge-admin" onClick={() => handleQuickLogin('admin')}>
+                    👑 แอดมินสูงสุด (Admin)
+                  </button>
+                  <button className="demo-badge badge-it" onClick={() => handleQuickLogin('it_user')}>
+                    💻 แผนก IT (User)
+                  </button>
+                  <button className="demo-badge badge-general" onClick={() => handleQuickLogin('admin_general')}>
+                    💼 บริหารทั่วไป (User)
+                  </button>
+                  <button className="demo-badge badge-blocked" onClick={() => handleQuickLogin('blocked')}>
+                    🚫 บัญชีโดนแบน (Blocked)
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
 

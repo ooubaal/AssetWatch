@@ -35,10 +35,15 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
   const [copied, setCopied] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<{ success: boolean; message: string } | null>(null);
-
+  const [hideDemoBypass, setHideDemoBypass] = useState(localStorage.getItem('assetwatch_hide_demo_bypass') === 'true');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentConfig = getStoredFirebaseConfig();
+
+  const handleToggleHideDemoBypass = (checked: boolean) => {
+    localStorage.setItem('assetwatch_hide_demo_bypass', checked ? 'true' : 'false');
+    setHideDemoBypass(checked);
+  };
 
   const handleCopyConfig = () => {
     if (!currentConfig) return;
@@ -155,19 +160,60 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
               </div>
 
               {!currentConfig ? (
-                <div className="no-config-warning-box">
-                  <CloudOff size={36} color="var(--warning)" />
-                  <div>
-                    <h4>ปัจจุบันระบบกำลังทำงานบน "โหมดตัวอย่างออฟไลน์" (Demo Mode)</h4>
-                    <p>
-                      ข้อมูลทั้งหมดถูกบันทึกชั่วคราวอยู่ในเว็บบราวเซอร์ของคุณ (LocalStorage) 
-                      หากปิดบราวเซอร์หรือล้างคุ้กกี้ข้อมูลจะหายไป เพื่อการใช้งานจริงร่วมกันหลายคน โปรดกดติดตั้ง Firebase
-                    </p>
+                <>
+                  <div className="no-config-warning-box">
+                    <CloudOff size={36} color="var(--warning)" />
+                    <div>
+                      <h4>ปัจจุบันระบบกำลังทำงานบน "โหมดตัวอย่างออฟไลน์" (Demo Mode)</h4>
+                      <p>
+                        ข้อมูลทั้งหมดถูกบันทึกชั่วคราวอยู่ในเว็บบราวเซอร์ของคุณ (LocalStorage) 
+                        หากปิดบราวเซอร์หรือล้างคุ้กกี้ข้อมูลจะหายไป เพื่อการใช้งานจริงร่วมกันหลายคน โปรดกดติดตั้ง Firebase
+                      </p>
+                    </div>
+                    <button className="btn btn-warning btn-sm" onClick={onClearConfig} style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                      ตั้งค่าเชื่อมต่อคลาวด์
+                    </button>
                   </div>
-                  <button className="btn btn-warning btn-sm" onClick={onClearConfig} style={{ marginLeft: 'auto', flexShrink: 0 }}>
-                    ตั้งค่าเชื่อมต่อคลาวด์
-                  </button>
-                </div>
+
+                  {/* Standalone production settings */}
+                  <div className="standalone-production-settings-box glass-panel" style={{ marginTop: '1.5rem', padding: '1.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 750, color: 'var(--primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      ⚙️ โหมดใช้งานจริงแบบเก็บข้อมูลในเครื่อง (Standalone Production Settings)
+                    </h4>
+                    <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', lineHeight: 1.45, marginBottom: '1.25rem' }}>
+                      หากคุณต้องการนำระบบนี้ไปใช้งานจริงในแบบ <strong>Standalone (บันทึกข้อมูลแบบออฟไลน์ในเครื่องนี้เครื่องเดียวอย่างปลอดภัย)</strong> คุณสามารถสั่งซ่อนปุ่มบัญชีทดสอบด่วน (Demo Bypass) ที่หน้าแรกได้ เพื่อความปลอดภัยและให้หน้าจอลงชื่อเข้าใช้งานมีความเป็นทางการ
+                    </p>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1.25rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                      <div>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 650, display: 'block', color: 'var(--text-primary)' }}>🔒 ซ่อนปุ่มบัญชีทดสอบด่วนบนหน้าแรก (Hide Demo Bypass Buttons)</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>เมื่อเปิดใช้งาน จะต้องป้อนชื่อผู้ใช้งานและรหัสผ่านจริงเท่านั้นเพื่อเข้าระบบ</span>
+                      </div>
+                      <div className="toggle-switch-wrapper">
+                        <input 
+                          type="checkbox" 
+                          id="hide-demo-toggle"
+                          checked={hideDemoBypass}
+                          onChange={(e) => handleToggleHideDemoBypass(e.target.checked)}
+                          style={{ cursor: 'pointer', width: '20px', height: '20px' }}
+                        />
+                      </div>
+                    </div>
+
+                    {hideDemoBypass && (
+                      <div className="alert alert-info animate-fade-in" style={{ marginTop: '1.25rem', fontSize: '0.8rem', padding: '1rem', backgroundColor: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 'var(--radius-md)', display: 'block' }}>
+                        <span style={{ display: 'block', fontWeight: 750, color: 'var(--primary)', marginBottom: '0.5rem' }}>💡 ข้อมูลการล็อคอินเริ่มต้นหลังจากซ่อนปุ่มเดโม:</span>
+                        <span style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>คุณยังคงสามารถล็อคอินเข้าสู่ระบบด้วยบัญชีผู้ใช้เริ่มต้นที่มีอยู่ในระบบได้ดังนี้:</span>
+                        <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0', listStyleType: 'disc', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <li>👑 <strong>สิทธิ์แอดมินสูงสุด (Admin):</strong> ชื่อผู้ใช้ <code>admin</code> | รหัสผ่าน <code>admin</code> (จัดการระบบและสิทธิ์ผู้ใช้อื่น)</li>
+                          <li>💻 <strong>สิทธิ์ฝ่ายเทคโนโลยี (IT User):</strong> ชื่อผู้ใช้ <code>it_user</code> | รหัสผ่าน <code>123</code> (จัดการครุภัณฑ์แผนก IT)</li>
+                          <li>💼 <strong>สิทธิ์ฝ่ายบริหารทั่วไป (General Admin):</strong> ชื่อผู้ใช้ <code>admin_general</code> | รหัสผ่าน <code>123</code> (จัดการครุภัณฑ์แผนกบริหาร)</li>
+                        </ul>
+                        <span style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.5rem' }}>*คุณสามารถเพิ่มบัญชี ลบรหัส หรือเปลี่ยนเป็นชื่อและรหัสผ่านจริงของคุณเองได้ตลอดเวลาใน <strong>"โมดูล 9: สิทธิ์และการเข้าถึง"</strong></span>
+                      </div>
+                    )}
+                  </div>
+                </>
               ) : (
                 <div className="configured-box">
                   <div className="config-grid-layout">
