@@ -12,7 +12,7 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Asset, AuditTrail, SurveyRecord, RepairCase, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS } from '../utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS } from '../utils/mockData';
 
 // Helper to check if we are using Firebase
 const getServices = () => {
@@ -37,6 +37,27 @@ const initLocalStorageIfNeeded = () => {
   }
   if (!localStorage.getItem('assetwatch_surveys')) {
     localStorage.setItem('assetwatch_surveys', JSON.stringify([]));
+  }
+  if (!localStorage.getItem('assetwatch_survey_rounds')) {
+    const defaultActiveRound: SurveyRound = {
+      id: 'round-default',
+      name: 'รอบสำรวจประจำปีงบประมาณ 2569 (ปีปัจจุบัน)',
+      dateCreated: new Date().toISOString(),
+      status: 'active',
+      totalAssets: 5,
+      surveyedAssets: 0,
+      completionRate: 0,
+      statusBreakdown: {
+        'ใช้งานได้': 0,
+        'ชำรุด': 0,
+        'รอจำหน่าย': 0,
+        'ขอป้ายรหัสใหม่': 0,
+        'รอโอน': 0,
+        'อื่นๆ': 0
+      },
+      operator: 'ระบบอัตโนมัติ'
+    };
+    localStorage.setItem('assetwatch_survey_rounds', JSON.stringify([defaultActiveRound]));
   }
 };
 initLocalStorageIfNeeded();
@@ -422,12 +443,82 @@ export const updateRepair = async (id: string, updates: Partial<RepairCase>): Pr
   }
 };
 
+// --- SURVEY ROUND SERVICES ---
+export const getSurveyRounds = async (): Promise<SurveyRound[]> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const q = query(collection(db, 'survey_rounds'), orderBy('dateCreated', 'desc'));
+      const snapshot = await getDocs(q);
+      const list: SurveyRound[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as SurveyRound);
+      });
+      return list;
+    } catch (e) {
+      console.error('Firebase getSurveyRounds failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const rounds: SurveyRound[] = JSON.parse(localStorage.getItem('assetwatch_survey_rounds') || '[]');
+  return rounds.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
+};
+
+export const addSurveyRound = async (round: SurveyRound): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'survey_rounds', round.id);
+      await setDoc(docRef, round);
+      return;
+    } catch (e) {
+      console.error('Firebase addSurveyRound failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const rounds: SurveyRound[] = JSON.parse(localStorage.getItem('assetwatch_survey_rounds') || '[]');
+  rounds.push(round);
+  localStorage.setItem('assetwatch_survey_rounds', JSON.stringify(rounds));
+};
+
+export const updateSurveyRound = async (id: string, updates: Partial<SurveyRound>): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'survey_rounds', id);
+      await updateDoc(docRef, updates as any);
+      return;
+    } catch (e) {
+      console.error('Firebase updateSurveyRound failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const rounds: SurveyRound[] = JSON.parse(localStorage.getItem('assetwatch_survey_rounds') || '[]');
+  const index = rounds.findIndex(r => r.id === id);
+  if (index !== -1) {
+    rounds[index] = { ...rounds[index], ...updates };
+    localStorage.setItem('assetwatch_survey_rounds', JSON.stringify(rounds));
+  } else {
+    throw new Error('ไม่พบรอบการสำรวจที่ต้องการอัปเดต');
+  }
+};
+
 // --- BACKUP & RESTORE ALL DATA ---
 export const exportBackupData = async (): Promise<string> => {
   const assets = await getAssets();
   const audits = await getAuditTrails();
   const repairs = await getRepairs();
   const surveys = await getSurveys();
+  const rounds = await getSurveyRounds();
 
   const backupObj = {
     version: '1.0.0',
@@ -435,7 +526,8 @@ export const exportBackupData = async (): Promise<string> => {
     assets,
     audits,
     repairs,
-    surveys
+    surveys,
+    rounds
   };
 
   return JSON.stringify(backupObj, null, 2);
@@ -452,8 +544,6 @@ export const importBackupData = async (jsonString: string): Promise<{ success: b
 
     if (isFirebase && db) {
       // Restore to Firebase Firestore
-      // To prevent locks, we will upload all records.
-      // This loop is fine for single client-side imports.
       for (const asset of backupObj.assets) {
         await setDoc(doc(db, 'assets', asset.id), asset);
       }
@@ -472,6 +562,11 @@ export const importBackupData = async (jsonString: string): Promise<{ success: b
           await setDoc(doc(db, 'surveys', survey.id), survey);
         }
       }
+      if (backupObj.rounds) {
+        for (const round of backupObj.rounds) {
+          await setDoc(doc(db, 'survey_rounds', round.id), round);
+        }
+      }
     }
 
     // Always keep LocalStorage in sync or write to LocalStorage if offline
@@ -479,6 +574,7 @@ export const importBackupData = async (jsonString: string): Promise<{ success: b
     localStorage.setItem('assetwatch_audits', JSON.stringify(backupObj.audits || []));
     localStorage.setItem('assetwatch_repairs', JSON.stringify(backupObj.repairs || []));
     localStorage.setItem('assetwatch_surveys', JSON.stringify(backupObj.surveys || []));
+    localStorage.setItem('assetwatch_survey_rounds', JSON.stringify(backupObj.rounds || []));
 
     return { success: true, message: `นำเข้าข้อมูลครุภัณฑ์สำเร็จทั้งหมด ${backupObj.assets.length} รายการ` };
   } catch (e: any) {

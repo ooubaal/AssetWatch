@@ -31,10 +31,31 @@ export interface AuditTrail {
 export interface SurveyRecord {
   id: string;
   assetId: string;
+  roundId: string; // Link to active survey round
   status: string;
   imageUrl?: string;
   operator: string;
   timestamp: string;
+}
+
+export interface SurveyRound {
+  id: string;
+  name: string;
+  dateCreated: string;
+  dateClosed?: string;
+  status: 'active' | 'closed';
+  totalAssets: number;
+  surveyedAssets: number;
+  completionRate: number;
+  statusBreakdown: {
+    'ใช้งานได้': number;
+    'ชำรุด': number;
+    'รอจำหน่าย': number;
+    'ขอป้ายรหัสใหม่': number;
+    'รอโอน': number;
+    'อื่นๆ': number;
+  };
+  operator: string;
 }
 
 export interface RepairCase {

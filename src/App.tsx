@@ -15,7 +15,10 @@ import {
   addAuditTrail,
   addSurvey,
   addRepair,
-  updateRepair
+  updateRepair,
+  getSurveyRounds,
+  addSurveyRound,
+  updateSurveyRound
 } from './services/dbService';
 
 // Module Components
@@ -28,7 +31,7 @@ import { Module5_Repair } from './modules/Module5_Repair';
 import { Module6_AuditTrail } from './modules/Module6_AuditTrail';
 import { Module7_Settings } from './modules/Module7_Settings';
 
-import { Asset, AuditTrail, SurveyRecord, RepairCase } from './utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound } from './utils/mockData';
 import { X, Camera, AlertCircle } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
@@ -52,6 +55,8 @@ function App() {
   const [audits, setAudits] = useState<AuditTrail[]>([]);
   const [repairs, setRepairs] = useState<RepairCase[]>([]);
   const [surveys, setSurveys] = useState<SurveyRecord[]>([]);
+  const [rounds, setRounds] = useState<SurveyRound[]>([]);
+  const [activeRound, setActiveRound] = useState<SurveyRound | null>(null);
 
   // Prefilled Asset ID used for onboarding scanned unregistered barcodes
   const [prefilledAssetId, setPrefilledAssetId] = useState<string | null>(null);
@@ -81,11 +86,16 @@ function App() {
       const allAudits = await getAuditTrails();
       const allRepairs = await getRepairs();
       const allSurveys = await getSurveys();
+      const allRounds = await getSurveyRounds();
 
       setAssets(allAssets);
       setAudits(allAudits);
       setRepairs(allRepairs);
       setSurveys(allSurveys);
+      setRounds(allRounds);
+
+      const active = allRounds.find(r => r.status === 'active');
+      setActiveRound(active || null);
     } catch (e) {
       console.error('Error fetching datasets:', e);
     }
@@ -134,6 +144,87 @@ function App() {
 
   const handleAddSurvey = async (survey: Omit<SurveyRecord, 'id'>) => {
     await addSurvey(survey);
+    await fetchAllData();
+  };
+
+  const handleCreateSurveyRound = async (name: string, operator: string) => {
+    const active = rounds.find(r => r.status === 'active');
+    if (active) {
+      alert('มีรอบการสำรวจที่กำลังดำเนินการอยู่แล้ว กรุณาปิดรอบการสำรวจเดิมก่อน');
+      return;
+    }
+
+    const newRound: SurveyRound = {
+      id: `round-${Date.now()}`,
+      name: name.trim(),
+      dateCreated: new Date().toISOString(),
+      status: 'active',
+      totalAssets: assets.length,
+      surveyedAssets: 0,
+      completionRate: 0,
+      statusBreakdown: {
+        'ใช้งานได้': 0,
+        'ชำรุด': 0,
+        'รอจำหน่าย': 0,
+        'ขอป้ายรหัสใหม่': 0,
+        'รอโอน': 0,
+        'อื่นๆ': 0
+      },
+      operator: operator || 'แอดมินพัสดุ'
+    };
+
+    await addSurveyRound(newRound);
+    await fetchAllData();
+  };
+
+  const handleCloseActiveRound = async (operator: string) => {
+    if (!activeRound) return;
+
+    const latestSurveys = await getSurveys();
+    const activeSurveys = latestSurveys.filter(s => s.roundId === activeRound.id);
+    
+    const totalAssetsCount = assets.length;
+    const surveyedCount = activeSurveys.length;
+    const rate = totalAssetsCount > 0 ? Math.round((surveyedCount / totalAssetsCount) * 100) : 0;
+
+    const breakdown = {
+      'ใช้งานได้': 0,
+      'ชำรุด': 0,
+      'รอจำหน่าย': 0,
+      'ขอป้ายรหัสใหม่': 0,
+      'รอโอน': 0,
+      'อื่นๆ': 0
+    };
+
+    activeSurveys.forEach(record => {
+      const s = record.status as keyof typeof breakdown;
+      if (s in breakdown) {
+        breakdown[s]++;
+      } else {
+        breakdown['อื่นๆ']++;
+      }
+    });
+
+    const closedRoundUpdates: Partial<SurveyRound> = {
+      status: 'closed',
+      dateClosed: new Date().toISOString(),
+      totalAssets: totalAssetsCount,
+      surveyedAssets: surveyedCount,
+      completionRate: rate,
+      statusBreakdown: breakdown,
+      operator: operator || activeRound.operator
+    };
+
+    await updateSurveyRound(activeRound.id, closedRoundUpdates);
+    
+    await handleLogAudit({
+      assetId: 'SYSTEM',
+      assetName: `รอบการสำรวจ: ${activeRound.name}`,
+      action: 'survey',
+      operator: operator || 'แอดมินพัสดุ',
+      details: `ปิดรอบการสำรวจประจำปีสำเร็จ อัตราการตรวจสอบ ${rate}% (ตรวจสอบแล้ว ${surveyedCount}/${totalAssetsCount} รายการ)`,
+    });
+
     await fetchAllData();
   };
 
@@ -278,10 +369,14 @@ function App() {
           <Module2_ScanSurvey 
             assets={assets}
             surveys={surveys}
+            rounds={rounds}
+            activeRound={activeRound}
             onAddSurvey={handleAddSurvey}
             onUpdateAssetStatus={handleUpdateAssetStatus}
             onLogAudit={handleLogAudit}
             onRedirectToAdd={handleRedirectToRegister}
+            onCreateSurveyRound={handleCreateSurveyRound}
+            onCloseActiveRound={handleCloseActiveRound}
           />
         )}
         {currentTab === 'module3' && (
