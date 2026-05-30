@@ -490,14 +490,20 @@ function App() {
               
               <div className="form-group">
                 <label className="form-label">👤 ชื่อผู้ใช้งาน (Username)</label>
-                <input 
-                  type="text" 
-                  className="form-input monospace-input" 
-                  placeholder="ป้อนชื่อผู้ใช้ภาษาอังกฤษ..."
+                <select 
+                  className="form-select monospace-input" 
                   value={loginUsername}
                   onChange={(e) => setLoginUsername(e.target.value)}
                   required
-                />
+                  style={{ cursor: 'pointer' }}
+                >
+                  <option value="">-- เลือกชื่อผู้ใช้งาน (Select User) --</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.username}>
+                      {u.name} ({u.username}) — {u.role === 'admin' ? '👑 แอดมินสูงสุด' : `💼 ${u.department}`} {u.isBlocked ? '🚫 [ถูกระงับสิทธิ์]' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group" style={{ marginTop: '0.85rem' }}>
