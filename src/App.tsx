@@ -150,6 +150,43 @@ function App() {
     }
   }, [currentUser, isSetupWizardNeeded]);
 
+  // --- AUTO-LOGOUT INACTIVITY TIMEOUT (30 MINUTES) ---
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Timeout duration: 30 minutes in milliseconds (30 * 60 * 1000)
+    const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+    let timeoutId: any;
+
+    const handleLogoutDueToInactivity = () => {
+      handleLogout();
+      alert('🔒 ระบบได้นำคุณออกจากระบบโดยอัตโนมัติ เนื่องจากไม่มีการเคลื่อนไหวหรือใช้งานติดต่อกันเกิน 30 นาที เพื่อความปลอดภัยของข้อมูลพัสดุ');
+    };
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(handleLogoutDueToInactivity, INACTIVITY_TIMEOUT);
+    };
+
+    // Set up activity event listeners
+    const activityEvents = ['mousemove', 'keydown', 'mousedown', 'click', 'scroll', 'touchstart'];
+    
+    activityEvents.forEach(event => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    // Start initial timer
+    resetTimer();
+
+    // Cleanup listeners and timer on unmount or user change
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [currentUser]);
+
   const handleSetupComplete = () => {
     localStorage.setItem('assetwatch_demo_bypass', 'true');
     setIsSetupWizardNeeded(false);
