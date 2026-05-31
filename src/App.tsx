@@ -141,6 +141,15 @@ function App() {
     }
   }, [isSetupWizardNeeded]);
 
+  useEffect(() => {
+    if (!currentUser && !isSetupWizardNeeded) {
+      // If we are logged out (on the login screen), fetch the latest users list so the dropdown is fully synced!
+      getUsers().then(latestUsers => {
+        setUsers(latestUsers);
+      }).catch(err => console.error('Failed to sync users on mount:', err));
+    }
+  }, [currentUser, isSetupWizardNeeded]);
+
   const handleSetupComplete = () => {
     localStorage.setItem('assetwatch_demo_bypass', 'true');
     setIsSetupWizardNeeded(false);
@@ -184,11 +193,20 @@ function App() {
     setCurrentTab('dashboard');
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
 
-    const foundUser = users.find(u => u.username.toLowerCase() === loginUsername.trim().toLowerCase());
+    // Fetch the absolute latest users from Firestore/Database to ensure real-time password sync across devices!
+    let latestUsers = users;
+    try {
+      latestUsers = await getUsers();
+      setUsers(latestUsers);
+    } catch (err) {
+      console.error('Failed to sync users before login:', err);
+    }
+
+    const foundUser = latestUsers.find(u => u.username.toLowerCase() === loginUsername.trim().toLowerCase());
     if (!foundUser) {
       setLoginError('ไม่พบชื่อผู้ใช้งานนี้ในระบบ');
       return;
