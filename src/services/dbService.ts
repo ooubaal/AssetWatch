@@ -146,7 +146,9 @@ export const uploadImage = async (file: File, path: string = 'assets'): Promise<
     console.error('Image compression failed, using original file:', err);
   }
 
-  if (isFirebase && storage) {
+  const forceBase64 = localStorage.getItem('assetwatch_force_base64_images') === 'true';
+
+  if (isFirebase && storage && !forceBase64) {
     try {
       const storageRef = ref(storage, `${path}/${Date.now()}_${processedFile.name}`);
       const snapshot = await uploadBytes(storageRef, processedFile);

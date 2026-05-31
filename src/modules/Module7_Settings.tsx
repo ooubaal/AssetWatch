@@ -36,6 +36,7 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
   const [importing, setImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [hideDemoBypass, setHideDemoBypass] = useState(localStorage.getItem('assetwatch_hide_demo_bypass') === 'true');
+  const [forceBase64, setForceBase64] = useState(localStorage.getItem('assetwatch_force_base64_images') === 'true');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentConfig = getStoredFirebaseConfig();
@@ -43,6 +44,11 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
   const handleToggleHideDemoBypass = (checked: boolean) => {
     localStorage.setItem('assetwatch_hide_demo_bypass', checked ? 'true' : 'false');
     setHideDemoBypass(checked);
+  };
+
+  const handleToggleForceBase64 = (checked: boolean) => {
+    localStorage.setItem('assetwatch_force_base64_images', checked ? 'true' : 'false');
+    setForceBase64(checked);
   };
 
   const handleCopyConfig = () => {
@@ -242,6 +248,25 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
                         <div className="meta-line"><span>Auth Domain:</span> <code>{currentConfig.authDomain}</code></div>
                         <div className="meta-line"><span>Storage Bucket:</span> <code>{currentConfig.storageBucket}</code></div>
                         <div className="meta-line"><span>API Key:</span> <code>{currentConfig.apiKey.substring(0, 10)}...</code></div>
+                      </div>
+
+                      <div className="standalone-production-settings-box" style={{ padding: '1.25rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'rgba(59, 130, 246, 0.03)', marginTop: '1rem' }}>
+                        <h4 style={{ fontSize: '0.875rem', fontWeight: 750, color: 'var(--primary)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          ⚡ โหมดใช้งานรูปถ่ายฟรี 100% (Free Cloud Photo Mode)
+                        </h4>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '0.85rem' }}>
+                          หากคุณใช้งานโปรเจกต์คลาวด์ฟรีและไม่ได้อัปเกรดแผนกชำระเงิน (Blaze Plan) การถ่ายรูปพัสดุจะค้างและช้ามาก ให้เปิดระบบนี้เพื่อ<strong>บังคับข้าม Firebase Storage</strong> และสลับมาใช้ระบบแปลงรูปภาพแบบ Base64 ซึ่งทำงานเสร็จใน 0.1 วินาที และบันทึกผ่านฐานข้อมูลออนไลน์ฟรีทันที!
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-primary)' }}>🚀 บังคับข้ามคลาวด์ Storage (Base64 Fast Mode)</span>
+                          <input 
+                            type="checkbox" 
+                            id="force-base64-toggle"
+                            checked={forceBase64}
+                            onChange={(e) => handleToggleForceBase64(e.target.checked)}
+                            style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                          />
+                        </div>
                       </div>
 
                       <div className="danger-zone-settings">
