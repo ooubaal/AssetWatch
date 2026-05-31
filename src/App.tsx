@@ -153,12 +153,22 @@ function App() {
   const handleSetupComplete = () => {
     localStorage.setItem('assetwatch_demo_bypass', 'true');
     setIsSetupWizardNeeded(false);
+    
+    // Clear any previous active session so that changing database forces a secure login!
+    setCurrentUser(null);
+    localStorage.removeItem('assetwatch_session');
+    localStorage.removeItem('assetwatch_operator');
   };
 
   const handleClearConfig = () => {
     localStorage.removeItem('assetwatch_demo_bypass');
     setIsSetupWizardNeeded(true);
     setCurrentTab('dashboard');
+    
+    // Clear active session when disconnecting database configuration
+    setCurrentUser(null);
+    localStorage.removeItem('assetwatch_session');
+    localStorage.removeItem('assetwatch_operator');
   };
 
   // --- USER ACCESS & ROLE HANDLERS ---
