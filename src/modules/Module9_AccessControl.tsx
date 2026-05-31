@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserAccount, DepartmentLocationConfig } from '../utils/mockData';
-import { Users, UserPlus, Ban, Trash2, Edit3, ShieldAlert, UserCheck, Search, Shield, Building, X, CheckCircle, Lock } from 'lucide-react';
+import { Users, UserPlus, Ban, Trash2, Edit3, ShieldAlert, UserCheck, Search, Shield, Building, X, CheckCircle, Lock, Eye, EyeOff } from 'lucide-react';
 
 interface Module9AccessControlProps {
   departments: DepartmentLocationConfig[];
@@ -34,6 +34,7 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
   const [department, setDepartment] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Stats calculation
   const totalCount = users.length;
@@ -59,6 +60,7 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
     setRole('user');
     setDepartment(departments[0]?.name || '');
     setError(null);
+    setShowPassword(false);
     setIsModalOpen(true);
   };
 
@@ -70,6 +72,7 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
     setRole(user.role);
     setDepartment(user.department);
     setError(null);
+    setShowPassword(false);
     setIsModalOpen(true);
   };
 
@@ -399,14 +402,37 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
                 <label className="form-label">
                   🔑 {editingUser ? 'เปลี่ยนรหัสผ่านใหม่ (ปล่อยว่างหากต้องการใช้รหัสผ่านเดิม)' : 'รหัสผ่านเข้าใช้งานเริ่มต้น'}
                 </label>
-                <input 
-                  type="password" 
-                  className="form-input" 
-                  placeholder={editingUser ? 'ป้อนรหัสผ่านใหม่...' : 'เช่น 123456 (ค่าดีฟอลต์หากว่าง)'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required={!editingUser}
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type={showPassword ? 'text' : 'password'} 
+                    className="form-input" 
+                    placeholder={editingUser ? 'ป้อนรหัสผ่านใหม่...' : 'เช่น 123456 (ค่าดีฟอลต์หากว่าง)'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required={!editingUser}
+                    style={{ paddingRight: '2.5rem' }}
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ 
+                      position: 'absolute', 
+                      right: '0.75rem', 
+                      background: 'none', 
+                      border: 'none', 
+                      color: 'var(--text-muted)', 
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0.25rem',
+                      height: 'auto'
+                    }}
+                    title={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <div className="form-group">
