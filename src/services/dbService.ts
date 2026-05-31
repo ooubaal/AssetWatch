@@ -180,6 +180,18 @@ export const getAssets = async (): Promise<Asset[]> => {
       snapshot.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as Asset);
       });
+
+      // Seeding Firestore if completely empty
+      if (list.length === 0) {
+        initLocalStorageIfNeeded();
+        const localAssets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+        const seedAssets = localAssets.length > 0 ? localAssets : INITIAL_ASSETS;
+        for (const asset of seedAssets) {
+          await setDoc(doc(db, 'assets', asset.id), asset);
+        }
+        return seedAssets;
+      }
+
       return list;
     } catch (e) {
       console.error('Firebase getAssets failed, falling back to localStorage:', e);
@@ -294,6 +306,17 @@ export const getAuditTrails = async (): Promise<AuditTrail[]> => {
       snapshot.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as AuditTrail);
       });
+
+      // Seeding Firestore if completely empty
+      if (list.length === 0) {
+        initLocalStorageIfNeeded();
+        const localAudits: AuditTrail[] = JSON.parse(localStorage.getItem('assetwatch_audits') || '[]');
+        for (const audit of localAudits) {
+          await setDoc(doc(db, 'audit_trails', audit.id), audit);
+        }
+        return localAudits.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      }
+
       return list;
     } catch (e) {
       console.error('Firebase getAuditTrails failed, falling back to localStorage:', e);
@@ -388,6 +411,17 @@ export const getRepairs = async (): Promise<RepairCase[]> => {
       snapshot.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as RepairCase);
       });
+
+      // Seeding Firestore if completely empty
+      if (list.length === 0) {
+        initLocalStorageIfNeeded();
+        const localRepairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
+        for (const repair of localRepairs) {
+          await setDoc(doc(db, 'repairs', repair.id), repair);
+        }
+        return localRepairs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      }
+
       return list;
     } catch (e) {
       console.error('Firebase getRepairs failed, falling back to localStorage:', e);
@@ -461,6 +495,17 @@ export const getSurveyRounds = async (): Promise<SurveyRound[]> => {
       snapshot.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as SurveyRound);
       });
+
+      // Seeding Firestore if completely empty
+      if (list.length === 0) {
+        initLocalStorageIfNeeded();
+        const localRounds: SurveyRound[] = JSON.parse(localStorage.getItem('assetwatch_survey_rounds') || '[]');
+        for (const round of localRounds) {
+          await setDoc(doc(db, 'survey_rounds', round.id), round);
+        }
+        return localRounds.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
+      }
+
       return list;
     } catch (e) {
       console.error('Firebase getSurveyRounds failed, falling back to localStorage:', e);
@@ -530,6 +575,18 @@ export const getDepartments = async (): Promise<DepartmentLocationConfig[]> => {
       snapshot.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as DepartmentLocationConfig);
       });
+
+      // Seeding Firestore if completely empty
+      if (list.length === 0) {
+        initLocalStorageIfNeeded();
+        const localDepts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
+        const seedDepts = localDepts.length > 0 ? localDepts : INITIAL_DEPARTMENTS;
+        for (const dept of seedDepts) {
+          await setDoc(doc(db, 'departments', dept.id), dept);
+        }
+        return seedDepts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+      }
+
       return list;
     } catch (e) {
       console.error('Firebase getDepartments failed, falling back to localStorage:', e);
@@ -707,6 +764,18 @@ export const getUsers = async (): Promise<UserAccount[]> => {
       snapshot.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as UserAccount);
       });
+
+      // Seeding Firestore if completely empty
+      if (list.length === 0) {
+        initLocalStorageIfNeeded();
+        const localUsers: UserAccount[] = JSON.parse(localStorage.getItem('assetwatch_users') || '[]');
+        const seedUsers = localUsers.length > 0 ? localUsers : INITIAL_USERS;
+        for (const user of seedUsers) {
+          await setDoc(doc(db, 'users', user.id), user);
+        }
+        return seedUsers.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }
+
       return list;
     } catch (e) {
       console.error('Firebase getUsers failed, falling back to localStorage:', e);
