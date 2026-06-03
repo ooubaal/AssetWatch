@@ -11,6 +11,7 @@ import {
   getRepairs, 
   getSurveys,
   addAsset,
+  addAssetsBulk,
   updateAsset,
   addAuditTrail,
   addSurvey,
@@ -297,6 +298,11 @@ function App() {
   // --- DATABASE TRIGGER WRAPPERS ---
   const handleAddNewAsset = async (newAsset: Asset) => {
     await addAsset(newAsset);
+    await fetchAllData();
+  };
+
+  const handleBulkAddAssets = async (newAssets: Asset[]) => {
+    await addAssetsBulk(newAssets);
     await fetchAllData();
   };
 
@@ -816,7 +822,9 @@ function App() {
             )}
             {currentTab === 'module3' && (
               <Module3_AddAsset 
+                assets={assets}
                 onAddAsset={handleAddNewAsset}
+                onBulkAddAssets={handleBulkAddAssets}
                 onLogAudit={handleLogAudit}
                 prefilledAssetId={prefilledAssetId}
                 clearPrefilledAssetId={() => setPrefilledAssetId(null)}

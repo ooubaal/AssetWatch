@@ -251,6 +251,35 @@ export const addAsset = async (asset: Asset): Promise<void> => {
   localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
 };
 
+export const addAssetsBulk = async (newAssets: Asset[]): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      // In Firestore, we can set docs in parallel.
+      await Promise.all(newAssets.map(async (asset) => {
+        const docRef = doc(db, 'assets', asset.id);
+        await setDoc(docRef, asset);
+      }));
+      return;
+    } catch (e) {
+      console.error('Firebase addAssetsBulk failed, falling back to localStorage:', e);
+    }
+  }
+
+  // LocalStorage Fallback
+  initLocalStorageIfNeeded();
+  const assets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+  
+  // Filter out duplicates that might be already in database (though live validated beforehand)
+  const existingIds = new Set(assets.map(a => a.id));
+  const uniqueNewAssets = newAssets.filter(a => !existingIds.has(a.id));
+  
+  assets.push(...uniqueNewAssets);
+  localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
+};
+
+
 export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<void> => {
   const { isFirebase, db } = getServices();
   

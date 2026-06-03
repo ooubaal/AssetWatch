@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle } from 'lucide-react';
+import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Download, UploadCloud, Clipboard, Trash2, HelpCircle } from 'lucide-react';
 import { Asset, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 import { uploadImage } from '../services/dbService';
 import confetti from 'canvas-confetti';
 
 interface Module3AddAssetProps {
+  assets: Asset[];
   onAddAsset: (asset: Asset) => Promise<void>;
+  onBulkAddAssets: (newAssets: Asset[]) => Promise<void>;
   onLogAudit: (trail: { assetId: string; assetName: string; action: any; operator: string; details: string }) => Promise<void>;
   prefilledAssetId: string | null;
   clearPrefilledAssetId: () => void;
@@ -15,7 +17,9 @@ interface Module3AddAssetProps {
 }
 
 export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
+  assets,
   onAddAsset,
+  onBulkAddAssets,
   onLogAudit,
   prefilledAssetId,
   clearPrefilledAssetId,
@@ -42,6 +46,333 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Sub-tab selection state
+  const isAdmin = currentUser?.role === 'admin';
+  const [activeSubTab, setActiveSubTab] = useState<'single' | 'mass'>('single');
+
+  // Mass Import states
+  const [pasteData, setPasteData] = useState('');
+  const [fileData, setFileData] = useState<string>('');
+  const [fileName, setFileName] = useState<string>('');
+  
+  interface ParsedAssetRow {
+    rowNum: number;
+    id: string;
+    name: string;
+    receivedDate: string;
+    source: string;
+    location: string;
+    department: string;
+    responsiblePerson: string;
+    note: string;
+    status: Asset['status'];
+    errors: string[];
+    warnings: string[];
+    isValid: boolean;
+  }
+  
+  const [parsedRows, setParsedRows] = useState<ParsedAssetRow[]>([]);
+  const [filterType, setFilterType] = useState<'all' | 'valid' | 'invalid'>('all');
+  const [massSuccess, setMassSuccess] = useState(false);
+  const [importedCount, setImportedCount] = useState(0);
+
+  // Download template CSV file
+  const handleDownloadTemplate = () => {
+    const headers = ['id', 'name', 'receivedDate', 'source', 'location', 'department', 'responsiblePerson', 'note', 'status'];
+    const exampleRow = ['6901-001-0001', 'คอมพิวเตอร์ All-in-One Dell', '2026-06-03', 'บริษัท เอ บี ซี จำกัด', 'ห้อง IT', 'ฝ่ายไอที', 'นายสมจิต รอดพ้น', 'สเปค Core i7 RAM 16GB', 'ใช้งานได้'];
+    
+    // Add UTF-8 BOM so Excel opens Thai characters correctly
+    const csvContent = "\uFEFF" + [headers.join(','), exampleRow.join(',')].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'AssetWatch_Import_Template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Auto-detect delimiter and split CSV line handling quoted values
+  const parseCSVLine = (text: string, delimiter: string): string[] => {
+    const result: string[] = [];
+    let curVal = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === delimiter && !inQuotes) {
+        result.push(curVal.trim().replace(/^"|"$/g, ''));
+        curVal = '';
+      } else {
+        curVal += char;
+      }
+    }
+    result.push(curVal.trim().replace(/^"|"$/g, ''));
+    return result;
+  };
+
+  const parseImportData = (rawText: string, isPaste: boolean) => {
+    if (!rawText.trim()) return [];
+    
+    const lines = rawText.split(/\r?\n/).filter(line => line.trim() !== '');
+    if (lines.length === 0) return [];
+    
+    // Auto-detect delimiter
+    let delimiter = ',';
+    delimiter = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
+    
+    let startIndex = 0;
+    const firstLine = lines[0].toLowerCase();
+    
+    // Skip headers if the first line looks like a header line
+    const hasHeaders = firstLine.includes('id') || firstLine.includes('name') || 
+                       firstLine.includes('รหัส') || firstLine.includes('ชื่อ') ||
+                       firstLine.includes('received') || firstLine.includes('date');
+                       
+    if (hasHeaders) {
+      startIndex = 1;
+    }
+    
+    const parsedRows = [];
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i];
+      const values = parseCSVLine(line, delimiter);
+      // Only process lines that have at least some data
+      if (values.length > 0 && values.some(v => v.trim() !== '')) {
+        parsedRows.push({
+          index: i + 1,
+          values
+        });
+      }
+    }
+    return parsedRows;
+  };
+
+  const validateRow = (
+    rowNum: number, 
+    values: string[], 
+    existingAssets: Asset[], 
+    systemDepts: DepartmentLocationConfig[], 
+    seenIds: Set<string>
+  ): ParsedAssetRow => {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    const rawId = (values[0] || '').trim();
+    const rawName = (values[1] || '').trim();
+    const rawReceivedDate = (values[2] || '').trim();
+    const rawSource = (values[3] || '').trim();
+    const rawLocation = (values[4] || '').trim();
+    const rawDepartment = (values[5] || '').trim();
+    const rawResponsible = (values[6] || '').trim();
+    const rawNote = (values[7] || '').trim();
+    const rawStatus = (values[8] || '').trim();
+    
+    // 1. ID Validation
+    let id = rawId.toUpperCase();
+    if (!id) {
+      errors.push('รหัสครุภัณฑ์ต้องไม่ว่าง');
+    } else {
+      if (seenIds.has(id)) {
+        errors.push(`รหัสครุภัณฑ์ซ้ำกันในข้อมูลชุดนี้ (${id})`);
+      } else {
+        seenIds.add(id);
+      }
+      
+      const isDuplicateInDb = existingAssets.some(a => a.id === id);
+      if (isDuplicateInDb) {
+        errors.push(`รหัสครุภัณฑ์นี้ถูกลงทะเบียนไว้ในระบบแล้ว (${id})`);
+      }
+    }
+    
+    // 2. Name Validation
+    let name = rawName;
+    if (!name) {
+      errors.push('ชื่อครุภัณฑ์ต้องไม่ว่าง');
+    }
+    
+    // 3. Date Validation/Fallback
+    let receivedDate = rawReceivedDate;
+    if (!receivedDate) {
+      receivedDate = new Date().toISOString().split('T')[0];
+      warnings.push(`ไม่ได้ระบุวันที่ตรวจรับ (ระบบจะใช้วันนี้: ${receivedDate})`);
+    } else {
+      const testDate = new Date(receivedDate);
+      if (isNaN(testDate.getTime())) {
+        receivedDate = new Date().toISOString().split('T')[0];
+        warnings.push(`รูปแบบวันที่ไม่ถูกต้อง (ระบบจะใช้วันนี้: ${receivedDate})`);
+      }
+    }
+    
+    // 4. Source
+    let source = rawSource || 'ไม่ระบุ/บริจาค';
+    if (!rawSource) {
+      warnings.push("ไม่ได้ระบุผู้จำหน่าย (ตั้งค่าเป็น: 'ไม่ระบุ/บริจาค')");
+    }
+    
+    // 5. Department Validation/Fallback
+    let department = rawDepartment;
+    if (!department) {
+      department = 'ฝ่ายพัสดุหลัก';
+      warnings.push("ไม่ได้ระบุฝ่ายที่ดูแล (ตั้งค่าเป็น: 'ฝ่ายพัสดุหลัก')");
+    } else {
+      const deptExists = systemDepts.some(d => d.name.toLowerCase() === department.toLowerCase());
+      if (!deptExists && systemDepts.length > 0) {
+        warnings.push(`ฝ่าย '${department}' ไม่พบในระบบ (จะสร้างเป็นแผนกใหม่)`);
+      }
+    }
+    
+    // 6. Location Validation/Fallback
+    let location = rawLocation;
+    if (!location) {
+      location = 'คลังพัสดุกลาง';
+      warnings.push("ไม่ได้ระบุสถานที่ตั้ง (ตั้งค่าเป็น: 'คลังพัสดุกลาง')");
+    } else {
+      const currentDeptObj = systemDepts.find(d => d.name.toLowerCase() === department.toLowerCase());
+      if (currentDeptObj) {
+        const locExists = currentDeptObj.locations.some(l => l.toLowerCase() === location.toLowerCase());
+        if (!locExists && currentDeptObj.locations.length > 0) {
+          warnings.push(`ไม่พบห้อง '${location}' ในฝ่าย '${department}' ของระบบ (จะบันทึกเป็นห้องใหม่)`);
+        }
+      }
+    }
+    
+    // 7. Responsible Person
+    let responsiblePerson = rawResponsible || 'ไม่มี';
+    if (!rawResponsible) {
+      warnings.push("ไม่ได้ระบุผู้รับผิดชอบ (ตั้งค่าเป็น: 'ไม่มี')");
+    }
+    
+    // 8. Note
+    let note = rawNote || '-';
+    
+    // 9. Status Validation
+    const validStatuses: Asset['status'][] = ['ใช้งานได้', 'รอจำหน่าย', 'ชำรุด', 'ขอป้ายรหัสใหม่', 'รอโอน', 'อื่นๆ'];
+    let status: Asset['status'] = 'ใช้งานได้';
+    if (rawStatus) {
+      if (validStatuses.includes(rawStatus as any)) {
+        status = rawStatus as Asset['status'];
+      } else {
+        warnings.push(`สถานะ '${rawStatus}' ไม่ถูกต้องในระบบ (ปรับเป็น: 'ใช้งานได้')`);
+      }
+    } else {
+      warnings.push("ไม่ได้ระบุสถานะ (ตั้งค่าเป็น: 'ใช้งานได้')");
+    }
+    
+    return {
+      rowNum,
+      id,
+      name,
+      receivedDate,
+      source,
+      location,
+      department,
+      responsiblePerson,
+      note,
+      status,
+      errors,
+      warnings,
+      isValid: errors.length === 0
+    };
+  };
+
+  // Mass Import parsing logic triggered live on pasteData change
+  useEffect(() => {
+    if (pasteData) {
+      const parsed = parseImportData(pasteData, true);
+      const seenIds = new Set<string>();
+      const validated = parsed.map(r => validateRow(r.index, r.values, assets, departments, seenIds));
+      setParsedRows(validated);
+    }
+  }, [pasteData, assets, departments]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setFileName(file.name);
+    setPasteData(''); // Clear paste data
+    
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      setFileData(text);
+      
+      const parsed = parseImportData(text, false);
+      const seenIds = new Set<string>();
+      const validated = parsed.map(r => validateRow(r.index, r.values, assets, departments, seenIds));
+      setParsedRows(validated);
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+
+  const handleResetImport = () => {
+    setPasteData('');
+    setFileData('');
+    setFileName('');
+    setParsedRows([]);
+    setMassSuccess(false);
+    setImportedCount(0);
+  };
+
+  const handleMassImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const validRows = parsedRows.filter(r => r.isValid);
+    if (validRows.length === 0) return;
+    
+    setSaving(true);
+    setError(null);
+    try {
+      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
+      
+      const assetsToAdd: Asset[] = validRows.map(r => ({
+        id: r.id,
+        name: r.name,
+        imageUrl: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60', // placeholder
+        receivedDate: r.receivedDate,
+        source: r.source,
+        location: r.location,
+        department: r.department,
+        responsiblePerson: r.responsiblePerson,
+        note: r.note,
+        status: r.status,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }));
+      
+      // Save all in bulk
+      await onBulkAddAssets(assetsToAdd);
+      
+      // Log Audit Trail
+      await onLogAudit({
+        assetId: 'SYSTEM',
+        assetName: `นำเข้าแบบกลุ่ม: ${assetsToAdd.length} รายการ`,
+        action: 'create',
+        operator: operatorName,
+        details: `แอดมินทำการนำเข้าข้อมูลครุภัณฑ์แบบกลุ่มสำเร็จ จำนวน ${assetsToAdd.length} รายการ`
+      });
+      
+      // Confetti!
+      confetti({
+        particleCount: 180,
+        spread: 100,
+        origin: { y: 0.6 }
+      });
+      
+      setImportedCount(assetsToAdd.length);
+      setMassSuccess(true);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'เกิดข้อผิดพลาดระหว่างนำเข้าข้อมูลแบบกลุ่ม');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // If there's a prefilled ID from Module 2 (Scanned but unregistered), prefill it
   useEffect(() => {
@@ -179,6 +510,31 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     setError(null);
   };
 
+  if (massSuccess) {
+    return (
+      <div className="module-container animate-fade-in">
+        <div className="success-wizard-card glass-panel text-center">
+          <div className="success-checkmark-wrapper">
+            <CheckCircle size={44} color="var(--success)" />
+          </div>
+          <h2>นำเข้าข้อมูลแบบกลุ่มสำเร็จ!</h2>
+          <p>
+            ระบบได้ทำการลงทะเบียนและบันทึกครุภัณฑ์จำนวน <strong style={{ color: 'var(--success)', fontSize: '1.2rem' }}>{importedCount}</strong> รายการ เรียบร้อยแล้ว
+          </p>
+
+          <div className="success-card-actions">
+            <button className="btn btn-secondary" onClick={() => setCurrentTab('module1')}>
+              เปิดดูบัญชีคลัง (Module 1)
+            </button>
+            <button className="btn btn-primary" onClick={handleResetImport}>
+              นำเข้าข้อมูลชุดอื่นเพิ่มเติม
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="module-container animate-fade-in">
@@ -217,252 +573,506 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         <p>บันทึกประวัติการรับมอบ ค้นหาภาพถ่าย อ้างอิงสัญญาสั่งซื้อพร้อมออกรหัสคุมบาร์โค้ด</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="intake-form glass-panel">
-        
-        {/* Row 1: Asset ID & Name */}
-        <div className="form-row-double">
-          <div className="form-group flex-1">
-            <label className="form-label">🏷️ รหัสครุภัณฑ์ (สแกนจากบาร์โค้ด หรือ กดสุ่มสร้าง)</label>
-            <div className="input-with-action">
+      {/* Sub-tabs if Admin */}
+      {isAdmin && (
+        <div className="sub-tabs-container">
+          <button 
+            type="button" 
+            className={`sub-tab ${activeSubTab === 'single' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveSubTab('single');
+              handleResetForm();
+              handleResetImport();
+            }}
+          >
+            ✍️ ลงทะเบียนทีละชิ้น (Single Registration)
+          </button>
+          <button 
+            type="button" 
+            className={`sub-tab ${activeSubTab === 'mass' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveSubTab('mass');
+              handleResetForm();
+              handleResetImport();
+            }}
+          >
+            📋 นำเข้าข้อมูลแบบกลุ่ม (Admin Mass Import)
+          </button>
+        </div>
+      )}
+
+      {activeSubTab === 'single' ? (
+        <form onSubmit={handleSubmit} className="intake-form glass-panel">
+          
+          {/* Row 1: Asset ID & Name */}
+          <div className="form-row-double">
+            <div className="form-group flex-1">
+              <label className="form-label">🏷️ รหัสครุภัณฑ์ (สแกนจากบาร์โค้ด หรือ กดสุ่มสร้าง)</label>
+              <div className="input-with-action">
+                <input 
+                  type="text" 
+                  className="form-input code-input-field" 
+                  placeholder="เช่น 6901-001-0001"
+                  value={assetId}
+                  onChange={(e) => setAssetId(e.target.value)}
+                  required
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm-action" 
+                  onClick={handleGenerateId}
+                  title="สุ่มสร้างรหัสบาร์โค้ด"
+                >
+                  <QrCode size={16} /> สุ่มสร้างรหัส
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group flex-1">
+              <label className="form-label">🖥️ ชื่อครุภัณฑ์ (ภาษาไทยหรืออังกฤษ)</label>
               <input 
                 type="text" 
-                className="form-input code-input-field" 
-                placeholder="เช่น 6901-001-0001"
-                value={assetId}
-                onChange={(e) => setAssetId(e.target.value)}
+                className="form-input" 
+                placeholder="เช่น คอมพิวเตอร์ All-in-One Dell Inspiron..."
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 required
               />
-              <button 
-                type="button" 
-                className="btn btn-secondary btn-sm-action" 
-                onClick={handleGenerateId}
-                title="สุ่มสร้างรหัสบาร์โค้ด"
-              >
-                <QrCode size={16} /> สุ่มสร้างรหัส
-              </button>
             </div>
           </div>
 
-          <div className="form-group flex-1">
-            <label className="form-label">🖥️ ชื่อครุภัณฑ์ (ภาษาไทยหรืออังกฤษ)</label>
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="เช่น คอมพิวเตอร์ All-in-One Dell Inspiron..."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-        </div>
-
-        {/* Row 2: Visual Upload Drawer */}
-        <div className="form-group">
-          <label className="form-label">📷 ถ่ายรูป หรืออัปโหลดรูปภาพครุภัณฑ์</label>
-          <div className="image-dropzone">
-            <input 
-              type="file" 
-              id="asset-image-picker"
-              accept="image/*"
-              className="file-hidden-input"
-              onChange={handleImageChange}
-            />
-            <label htmlFor="asset-image-picker" className="dropzone-label">
-              {imagePreview ? (
-                <div className="intake-preview-wrapper">
-                  <img src={imagePreview} alt="Intake asset preview" />
-                  <span className="change-pic-badge"><Camera size={12} /> เปลี่ยนรูป</span>
-                </div>
-              ) : (
-                <>
-                  <Camera size={32} color="var(--text-muted)" className="camera-bounce" />
-                  <span>ลากไฟล์รูปภาพมาวางที่นี่ หรือ กดคลิกเพื่ออัปโหลด</span>
-                  <span className="subtitle-help">รองรับไฟล์ JPG, PNG และการถ่ายภาพด่วนผ่านมือถือ</span>
-                </>
-              )}
-            </label>
-          </div>
-        </div>
-
-        {/* Row 3: Dates & Source */}
-        <div className="form-row-double">
-          <div className="form-group flex-1">
-            <label className="form-label">📅 วันที่เซ็นเอกสารตรวจรับ</label>
-            <input 
-              type="date" 
-              className="form-input"
-              value={receivedDate}
-              onChange={(e) => setReceivedDate(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group flex-1">
-            <label className="form-label">🧾 ผู้จำหน่าย / ผู้ขาย / ผู้บริจาค</label>
-            <input 
-              type="text" 
-              className="form-input"
-              placeholder="เช่น บริษัท เอ บี ซี จำกัด, บริจาคโดยสมาคม..."
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              required
-            />
-          </div>
-        </div>
-
-        {/* Row 4: Location, Dept, Responsible */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', marginTop: '0.25rem' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--text-muted)' }}>📍 ฝ่ายจัดวางพัสดุและห้องติดตั้ง</span>
-          {currentUser?.role !== 'user' && (
-            <button 
-              type="button" 
-              className="btn btn-ghost btn-xs"
-              onClick={() => {
-                const nextVal = !isCustomInput;
-                setIsCustomInput(nextVal);
-                if (nextVal) {
-                  setDepartment('');
-                  setLocation('');
-                } else {
-                  if (departments.length > 0) {
-                    setDepartment(departments[0].name);
-                    setLocation(departments[0].locations[0] || '');
-                  }
-                }
-              }}
-              style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem', border: '1px solid var(--border)', background: 'var(--bg-secondary)', height: 'auto', outline: 'none' }}
-            >
-              {isCustomInput ? '🏢 ใช้รายการระบบ' : '✍️ พิมพ์กรอกข้อมูลเอง'}
-            </button>
-          )}
-        </div>
-
-        <div className="grid-cols-3">
-          {isCustomInput ? (
-            <>
-              <div className="form-group">
-                <label className="form-label">🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  placeholder="พิมพ์ฝ่าย/แผนกใหม่..."
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">📍 สถานที่จัดเก็บ/ติดตั้งเริ่มต้น</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  placeholder="พิมพ์ห้องติดตั้งใหม่..."
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  required
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="form-group">
-                <label className="form-label">🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน {currentUser?.role === 'user' && '(ล็อคสิทธิ์ตามหน่วยงานของคุณ)'}</label>
-                <select 
-                  className="form-select"
-                  value={department}
-                  onChange={handleDepartmentSelectChange}
-                  disabled={currentUser?.role === 'user'}
-                  required
-                >
-                  {departments.length === 0 ? (
-                    <option value="">ไม่มีหน่วยงาน (โปรดกดพิมพ์กรอกเอง)</option>
-                  ) : (
-                    departments.map(dept => (
-                      <option key={dept.id} value={dept.name}>{dept.name}</option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">📍 สถานที่จัดเก็บ/ติดตั้งเริ่มต้น</label>
-                <select 
-                  className="form-select"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  required
-                >
-                  {(() => {
-                    const currentDeptObj = departments.find(d => d.name === department);
-                    if (!currentDeptObj || currentDeptObj.locations.length === 0) {
-                      return <option value="">ไม่มีห้องระบุ (โปรดกดพิมพ์กรอกเอง)</option>;
-                    }
-                    return currentDeptObj.locations.map(loc => (
-                      <option key={loc} value={loc}>{loc}</option>
-                    ));
-                  })()}
-                </select>
-              </div>
-            </>
-          )}
-
+          {/* Row 2: Visual Upload Drawer */}
           <div className="form-group">
-            <label className="form-label">👤 ผู้ดูแล / เจ้าหน้าที่ผู้รับผิดชอบ</label>
-            <input 
-              type="text" 
-              className="form-input"
-              placeholder="เช่น นายสมจิต รอดพ้น"
-              value={responsiblePerson}
-              onChange={(e) => setResponsiblePerson(e.target.value)}
-              required
-            />
+            <label className="form-label">📷 ถ่ายรูป หรืออัปโหลดรูปภาพครุภัณฑ์</label>
+            <div className="image-dropzone">
+              <input 
+                type="file" 
+                id="asset-image-picker"
+                accept="image/*"
+                className="file-hidden-input"
+                onChange={handleImageChange}
+              />
+              <label htmlFor="asset-image-picker" className="dropzone-label">
+                {imagePreview ? (
+                  <div className="intake-preview-wrapper">
+                    <img src={imagePreview} alt="Intake asset preview" />
+                    <span className="change-pic-badge"><Camera size={12} /> เปลี่ยนรูป</span>
+                  </div>
+                ) : (
+                  <>
+                    <Camera size={32} color="var(--text-muted)" className="camera-bounce" />
+                    <span>ลากไฟล์รูปภาพมาวางที่นี่ หรือ กดคลิกเพื่ออัปโหลด</span>
+                    <span className="subtitle-help">รองรับไฟล์ JPG, PNG และการถ่ายภาพด่วนผ่านมือถือ</span>
+                  </>
+                )}
+              </label>
+            </div>
+          </div>
+
+          {/* Row 3: Dates & Source */}
+          <div className="form-row-double">
+            <div className="form-group flex-1">
+              <label className="form-label">📅 วันที่เซ็นเอกสารตรวจรับ</label>
+              <input 
+                type="date" 
+                className="form-input"
+                value={receivedDate}
+                onChange={(e) => setReceivedDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group flex-1">
+              <label className="form-label">🧾 ผู้จำหน่าย / ผู้ขาย / ผู้บริจาค</label>
+              <input 
+                type="text" 
+                className="form-input"
+                placeholder="เช่น บริษัท เอ บี ซี จำกัด, บริจาคโดยสมาคม..."
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Row 4: Location, Dept, Responsible */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', marginTop: '0.25rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--text-muted)' }}>📍 ฝ่ายจัดวางพัสดุและห้องติดตั้ง</span>
+            {currentUser?.role !== 'user' && (
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-xs"
+                onClick={() => {
+                  const nextVal = !isCustomInput;
+                  setIsCustomInput(nextVal);
+                  if (nextVal) {
+                    setDepartment('');
+                    setLocation('');
+                  } else {
+                    if (departments.length > 0) {
+                      setDepartment(departments[0].name);
+                      setLocation(departments[0].locations[0] || '');
+                    }
+                  }
+                }}
+                style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem', border: '1px solid var(--border)', background: 'var(--bg-secondary)', height: 'auto', outline: 'none' }}
+              >
+                {isCustomInput ? '🏢 ใช้รายการระบบ' : '✍️ พิมพ์กรอกข้อมูลเอง'}
+              </button>
+            )}
+          </div>
+
+          <div className="grid-cols-3">
+            {isCustomInput ? (
+              <>
+                <div className="form-group">
+                  <label className="form-label">🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน</label>
+                  <input 
+                    type="text" 
+                    className="form-input"
+                    placeholder="พิมพ์ฝ่าย/แผนกใหม่..."
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">📍 สถานที่จัดเก็บ/ติดตั้งเริ่มต้น</label>
+                  <input 
+                    type="text" 
+                    className="form-input"
+                    placeholder="พิมพ์ห้องติดตั้งใหม่..."
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    required
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label className="form-label">🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน {currentUser?.role === 'user' && '(ล็อคสิทธิ์ตามหน่วยงานของคุณ)'}</label>
+                  <select 
+                    className="form-select"
+                    value={department}
+                    onChange={handleDepartmentSelectChange}
+                    disabled={currentUser?.role === 'user'}
+                    required
+                  >
+                    {departments.length === 0 ? (
+                      <option value="">ไม่มีหน่วยงาน (โปรดกดพิมพ์กรอกเอง)</option>
+                    ) : (
+                      departments.map(dept => (
+                        <option key={dept.id} value={dept.name}>{dept.name}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">📍 สถานที่จัดเก็บ/ติดตั้งเริ่มต้น</label>
+                  <select 
+                    className="form-select"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    required
+                  >
+                    {(() => {
+                      const currentDeptObj = departments.find(d => d.name === department);
+                      if (!currentDeptObj || currentDeptObj.locations.length === 0) {
+                        return <option value="">ไม่มีห้องระบุ (โปรดกดพิมพ์กรอกเอง)</option>;
+                      }
+                      return currentDeptObj.locations.map(loc => (
+                        <option key={loc} value={loc}>{loc}</option>
+                      ));
+                    })()}
+                  </select>
+                </div>
+              </>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">👤 ผู้ดูแล / เจ้าหน้าที่ผู้รับผิดชอบ</label>
+              <input 
+                type="text" 
+                className="form-input"
+                placeholder="เช่น นายสมจิต รอดพ้น"
+                value={responsiblePerson}
+                onChange={(e) => setResponsiblePerson(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Row 5: Notes & Status */}
+          <div className="form-row-double">
+            <div className="form-group flex-1">
+              <label className="form-label">🔍 สถานะเริ่มต้นครุภัณฑ์</label>
+              <select 
+                className="form-select"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as Asset['status'])}
+                required
+              >
+                <option value="ใช้งานได้">ใช้งานได้ (ปกติ)</option>
+                <option value="ชำรุด">ชำรุด (มีปัญหา)</option>
+                <option value="ขอป้ายรหัสใหม่">ขอป้ายรหัสใหม่</option>
+                <option value="รอโอน">รอโอน</option>
+              </select>
+            </div>
+
+            <div className="form-group flex-1">
+              <label className="form-label">📝 หมายเหตุเพิ่มเติม (ความจำเฉพาะตัวเครื่อง)</label>
+              <input 
+                type="text" 
+                className="form-input"
+                placeholder="เช่น สเปคเครื่อง Core i7 RAM 16GB, ยี่ห้อแท้ศูนย์..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="alert alert-danger animate-fade-in">
+              <AlertCircle size={20} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="form-actions-bar">
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? 'กำลังอัปโหลดและลงทะเบียน...' : '➕ ลงทะเบียนประวัติรับของใหม่'}
+            </button>
+          </div>
+
+        </form>
+      ) : (
+        <div className="intake-form glass-panel">
+          <div className="mass-import-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            
+            {/* Template Download Section */}
+            <div className="template-card">
+              <div className="template-info">
+                <h4>📥 เทมเพลตสำหรับกรอกข้อมูลนำเข้า (CSV Template File)</h4>
+                <p>ดาวน์โหลดไฟล์ตัวอย่างและนำไปเปิดกรอกใน Excel / Google Sheets เพื่อป้อนข้อมูลให้ถูกช่องความกว้างและฟิลด์ที่กำหนด</p>
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={handleDownloadTemplate}
+                style={{ gap: '0.35rem', height: '40px' }}
+              >
+                <FileText size={16} /> ดาวน์โหลดไฟล์ตัวอย่าง .csv
+              </button>
+            </div>
+
+            {/* Input Options (Paste or Upload) */}
+            <div className="import-grids">
+              
+              {/* Paste Box */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="import-box-header">
+                  <Clipboard size={16} /> 📋 วางข้อมูลตรงจาก Excel / Google Sheets (Copy-Paste)
+                </label>
+                <textarea
+                  className="paste-textarea"
+                  placeholder="ก๊อปปี้ข้อมูลตารางใน Excel (เฉพาะแถวเนื้อหา ไม่ต้องเอาแถวหัวเรื่อง) แล้วกด Ctrl+V วางตรงนี้ได้เลย..."
+                  value={pasteData}
+                  onChange={(e) => {
+                    setFileData('');
+                    setFileName('');
+                    setPasteData(e.target.value);
+                  }}
+                />
+                <span className="subtitle-help" style={{ marginTop: '0.25rem', display: 'block' }}>
+                  * ข้อมูลแต่ละคอลัมน์จะถูกคั่นด้วย Tab (TSV) โดยการกดวางจะประมวลผลให้เรียลไทม์
+                </span>
+              </div>
+
+              {/* File Upload Box */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="import-box-header">
+                  <UploadCloud size={16} /> 📂 เลือกอัปโหลดไฟล์ (.csv)
+                </label>
+                <input
+                  type="file"
+                  id="csv-file-picker"
+                  accept=".csv"
+                  className="file-hidden-input"
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="csv-file-picker" className="file-upload-box">
+                  <UploadCloud size={28} color={fileName ? "var(--primary)" : "var(--text-muted)"} />
+                  {fileName ? (
+                    <>
+                      <span className="selected-file-badge">{fileName}</span>
+                      <span className="subtitle-help">คลิกเพื่อเปลี่ยนไฟล์ CSV ใหม่</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>คลิกเพื่อค้นหาไฟล์ .csv ในเครื่อง</span>
+                      <span className="subtitle-help">รองรับไฟล์รูปแบบ Comma-Separated (.csv) เข้ารหัส UTF-8</span>
+                    </>
+                  )}
+                </label>
+                {fileName && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={handleResetImport}
+                    style={{ marginTop: '0.5rem', color: 'var(--danger)', fontSize: '0.75rem', padding: '0.25rem 0.5rem', border: '1px solid var(--border)', background: 'var(--bg-secondary)', width: 'fit-content' }}
+                  >
+                    <Trash2 size={12} /> ล้างข้อมูลไฟล์
+                  </button>
+                )}
+              </div>
+
+            </div>
+
+            {/* Live Validation & Preview Table */}
+            {parsedRows.length > 0 && (
+              <div className="validation-preview-section animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                
+                <div className="preview-stats-bar">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>🔍 ตารางตรวจสอบความถูกต้องสด (Live Preview):</span>
+                  </div>
+                  
+                  <div className="stats-group">
+                    <button 
+                      type="button" 
+                      className={`stat-badge all ${filterType === 'all' ? 'active' : ''}`}
+                      onClick={() => setFilterType('all')}
+                    >
+                      ทั้งหมด ({parsedRows.length} แถว)
+                    </button>
+                    <button 
+                      type="button" 
+                      className={`stat-badge success ${filterType === 'valid' ? 'active' : ''}`}
+                      onClick={() => setFilterType('valid')}
+                    >
+                      🟢 พร้อมนำเข้า ({parsedRows.filter(r => r.isValid).length} แถว)
+                    </button>
+                    <button 
+                      type="button" 
+                      className={`stat-badge danger ${filterType === 'invalid' ? 'active' : ''}`}
+                      onClick={() => setFilterType('invalid')}
+                    >
+                      🔴 ติดปัญหา ({parsedRows.filter(r => !r.isValid).length} แถว)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="preview-table-container">
+                  <table className="preview-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '60px' }}>แถวที่</th>
+                        <th style={{ width: '120px' }}>รหัสครุภัณฑ์</th>
+                        <th style={{ width: '150px' }}>ชื่อครุภัณฑ์</th>
+                        <th style={{ width: '100px' }}>ฝ่ายที่ดูแล</th>
+                        <th style={{ width: '100px' }}>สถานที่ตั้ง</th>
+                        <th style={{ width: '100px' }}>วันที่ตรวจรับ</th>
+                        <th style={{ width: '120px' }}>ผู้จำหน่าย / ที่มา</th>
+                        <th style={{ width: '120px' }}>ผู้ดูแลรับผิดชอบ</th>
+                        <th style={{ width: '80px' }}>สถานะ</th>
+                        <th style={{ width: '160px' }}>ผลการตรวจเช็ค</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsedRows.filter(row => {
+                        if (filterType === 'valid') return row.isValid;
+                        if (filterType === 'invalid') return !row.isValid;
+                        return true;
+                      }).length === 0 ? (
+                        <tr>
+                          <td colSpan={10} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                            ไม่มีแถวข้อมูลตามตัวเลือกตัวกรอง
+                          </td>
+                        </tr>
+                      ) : (
+                        parsedRows.filter(row => {
+                          if (filterType === 'valid') return row.isValid;
+                          if (filterType === 'invalid') return !row.isValid;
+                          return true;
+                        }).map((row) => (
+                          <tr key={row.rowNum} className={row.isValid ? 'row-valid' : 'row-invalid'}>
+                            <td style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{row.rowNum}</td>
+                            <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{row.id || '-'}</td>
+                            <td>{row.name || <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>[ไม่มีชื่อ]</span>}</td>
+                            <td>{row.department}</td>
+                            <td>{row.location}</td>
+                            <td>{row.receivedDate}</td>
+                            <td>{row.source}</td>
+                            <td>{row.responsiblePerson}</td>
+                            <td>
+                              <span className="badge" style={{ 
+                                fontSize: '0.7rem', 
+                                padding: '0.1rem 0.4rem',
+                                backgroundColor: row.status === 'ใช้งานได้' ? 'var(--success-light)' : (row.status === 'ชำรุด' ? 'var(--danger-light)' : 'var(--warning-light)'),
+                                color: row.status === 'ใช้งานได้' ? 'var(--success)' : (row.status === 'ชำรุด' ? 'var(--danger)' : 'var(--warning)')
+                              }}>
+                                {row.status}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="validation-messages">
+                                {row.isValid ? (
+                                  <span className="row-status-badge valid">🟢 ข้อมูลถูกต้อง</span>
+                                ) : (
+                                  <span className="row-status-badge invalid">🔴 ไม่สามารถนำเข้าได้</span>
+                                )}
+                                
+                                {row.errors.map((err, idx) => (
+                                  <span key={`err-${idx}`} className="val-msg error">❌ {err}</span>
+                                ))}
+                                
+                                {row.warnings.map((warn, idx) => (
+                                  <span key={`warn-${idx}`} className="val-msg warning">⚠️ {warn}</span>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Action Bar for import */}
+                <div className="form-actions-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    แถวที่พร้อมนำเข้า: <strong style={{ color: 'var(--success)', fontSize: '0.9rem' }}>{parsedRows.filter(r => r.isValid).length}</strong> แถว (แถวที่ติดปัญหา <strong style={{ color: 'var(--danger)' }}>{parsedRows.filter(r => !r.isValid).length}</strong> แถวจะไม่ถูกนำเข้า)
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary" 
+                      onClick={handleResetImport}
+                    >
+                      ล้างทั้งหมด
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-primary" 
+                      disabled={parsedRows.filter(r => r.isValid).length === 0 || saving}
+                      onClick={handleMassImportSubmit}
+                    >
+                      {saving ? 'กำลังประมวลผลนำเข้า...' : `💾 ยืนยันนำเข้าข้อมูล (${parsedRows.filter(r => r.isValid).length} แถว) ลงระบบ`}
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
           </div>
         </div>
-
-        {/* Row 5: Notes & Status */}
-        <div className="form-row-double">
-          <div className="form-group flex-1">
-            <label className="form-label">🔍 สถานะเริ่มต้นครุภัณฑ์</label>
-            <select 
-              className="form-select"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as Asset['status'])}
-              required
-            >
-              <option value="ใช้งานได้">ใช้งานได้ (ปกติ)</option>
-              <option value="ชำรุด">ชำรุด (มีปัญหา)</option>
-              <option value="ขอป้ายรหัสใหม่">ขอป้ายรหัสใหม่</option>
-              <option value="รอโอน">รอโอน</option>
-            </select>
-          </div>
-
-          <div className="form-group flex-1">
-            <label className="form-label">📝 หมายเหตุเพิ่มเติม (ความจำเฉพาะตัวเครื่อง)</label>
-            <input 
-              type="text" 
-              className="form-input"
-              placeholder="เช่น สเปคเครื่อง Core i7 RAM 16GB, ยี่ห้อแท้ศูนย์..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {error && (
-          <div className="alert alert-danger animate-fade-in">
-            <AlertCircle size={20} />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <div className="form-actions-bar">
-          <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? 'กำลังอัปโหลดและลงทะเบียน...' : '➕ ลงทะเบียนประวัติรับของใหม่'}
-          </button>
-        </div>
-
-      </form>
+      )}
 
       <style>{`
         .intake-form {
@@ -642,6 +1252,243 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
           justify-content: center;
         }
 
+        /* Mass Import Premium Styles */
+        .sub-tabs-container {
+          display: flex;
+          gap: 0.25rem;
+          margin-bottom: 1.5rem;
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 0.25rem;
+        }
+        .sub-tab {
+          padding: 0.75rem 1.25rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+          background: none;
+          border: none;
+          border-bottom: 2.5px solid transparent;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+          outline: none;
+        }
+        .sub-tab:hover {
+          color: var(--primary);
+        }
+        .sub-tab.active {
+          color: var(--primary);
+          border-bottom-color: var(--primary);
+        }
+        
+        .mass-import-container {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+        .template-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          padding: 1.25rem;
+          gap: 1rem;
+        }
+        .template-info h4 {
+          margin: 0 0 0.25rem 0;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+        .template-info p {
+          margin: 0;
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+        
+        .import-grids {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+        }
+        
+        .import-box-header {
+          font-size: 0.875rem;
+          font-weight: 700;
+          color: var(--text-secondary);
+          margin-bottom: 0.65rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .paste-textarea {
+          width: 100%;
+          min-height: 140px;
+          font-family: monospace;
+          font-size: 0.8rem;
+          padding: 0.85rem;
+          border-radius: var(--radius-md);
+          border: 1.5px solid var(--border);
+          background: var(--bg-primary);
+          color: var(--text-primary);
+          resize: vertical;
+          outline: none;
+          transition: border-color var(--transition-fast);
+        }
+        .paste-textarea:focus {
+          border-color: var(--border-focus);
+        }
+        .file-upload-box {
+          border: 2px dashed var(--border);
+          background: var(--bg-primary);
+          border-radius: var(--radius-md);
+          padding: 1.75rem 1rem;
+          text-align: center;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          transition: all var(--transition-fast);
+          min-height: 140px;
+        }
+        .file-upload-box:hover {
+          border-color: var(--primary);
+          background: rgba(59, 130, 246, 0.02);
+        }
+        .selected-file-badge {
+          background: var(--primary-light);
+          color: var(--primary);
+          font-size: 0.8rem;
+          font-weight: 700;
+          padding: 0.35rem 0.75rem;
+          border-radius: var(--radius-sm);
+          margin-top: 0.25rem;
+        }
+        
+        .preview-stats-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          padding: 0.85rem 1.25rem;
+          margin-top: 0.5rem;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+        }
+        .stats-group {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+        .stat-badge {
+          font-size: 0.775rem;
+          font-weight: 700;
+          padding: 0.35rem 0.75rem;
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          border: 1px solid var(--border);
+          background: var(--bg-secondary);
+          color: var(--text-secondary);
+          transition: all var(--transition-fast);
+        }
+        .stat-badge:hover {
+          transform: translateY(-1px);
+        }
+        .stat-badge.all.active {
+          border-color: var(--text-primary);
+          background: var(--text-primary);
+          color: var(--bg-secondary);
+        }
+        .stat-badge.success:hover, .stat-badge.success.active {
+          background: var(--success);
+          color: #ffffff;
+          border-color: var(--success);
+        }
+        .stat-badge.danger:hover, .stat-badge.danger.active {
+          background: var(--danger);
+          color: #ffffff;
+          border-color: var(--danger);
+        }
+        
+        .preview-table-container {
+          max-height: 380px;
+          overflow: auto;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          background: var(--bg-secondary);
+        }
+        .preview-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.825rem;
+          text-align: left;
+          min-width: 900px;
+        }
+        .preview-table th {
+          background: var(--bg-tertiary);
+          padding: 0.85rem 1rem;
+          font-weight: 700;
+          color: var(--text-secondary);
+          border-bottom: 1.5px solid var(--border);
+          position: sticky;
+          top: 0;
+          z-index: 5;
+        }
+        .preview-table td {
+          padding: 0.85rem 1rem;
+          border-bottom: 1px solid var(--border);
+          vertical-align: top;
+        }
+        .preview-table tr:last-child td {
+          border-bottom: none;
+        }
+        .preview-table tr.row-invalid {
+          background: rgba(239, 68, 68, 0.015);
+        }
+        .preview-table tr:hover {
+          background-color: rgba(59, 130, 246, 0.01);
+        }
+        
+        .row-status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          font-weight: 700;
+          padding: 0.2rem 0.5rem;
+          border-radius: var(--radius-sm);
+          font-size: 0.725rem;
+        }
+        .row-status-badge.valid {
+          background: var(--success-light);
+          color: var(--success);
+        }
+        .row-status-badge.invalid {
+          background: var(--danger-light);
+          color: var(--danger);
+        }
+        
+        .validation-messages {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          margin-top: 0.25rem;
+        }
+        .val-msg {
+          font-size: 0.725rem;
+          display: block;
+        }
+        .val-msg.error {
+          color: var(--danger);
+        }
+        .val-msg.warning {
+          color: var(--warning-hover);
+        }
+
         @media (max-width: 768px) {
           .form-row-double {
             flex-direction: column;
@@ -657,6 +1504,14 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
           .success-card-actions {
             flex-direction: column;
             gap: 0.75rem;
+          }
+          .import-grids {
+            grid-template-columns: 1fr;
+          }
+          .template-card {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
           }
         }
       `}</style>
