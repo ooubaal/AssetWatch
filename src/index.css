@@ -346,3 +346,38 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* GOVERNMENT A4 DOCUMENT PRINT STYLES */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #root, #root * {
+    visibility: hidden !important;
+  }
+  .print-preview-overlay, .print-preview-overlay * {
+    visibility: visible !important;
+  }
+  .print-preview-overlay {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+  .print-actions-bar {
+    display: none !important;
+  }
+  .printable-a4-document {
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}

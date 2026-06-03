@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Download, UploadCloud, Clipboard, Trash2, HelpCircle } from 'lucide-react';
+import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Download, UploadCloud, Clipboard, Trash2, HelpCircle, Printer } from 'lucide-react';
 import { Asset, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 import { uploadImage } from '../services/dbService';
 import confetti from 'canvas-confetti';
@@ -49,7 +49,26 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
   // Sub-tab selection state
   const isAdmin = currentUser?.role === 'admin';
-  const [activeSubTab, setActiveSubTab] = useState<'single' | 'mass'>('single');
+  const [activeSubTab, setActiveSubTab] = useState<'single' | 'mass' | 'report'>('single');
+
+  // Report states
+  const [selectedReportDept, setSelectedReportDept] = useState(() => {
+    return currentUser?.role === 'user' ? currentUser.department : 'all';
+  });
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [isReportPrintOpen, setIsReportPrintOpen] = useState(false);
+
+  // Sync operator user's department restriction
+  useEffect(() => {
+    if (currentUser?.role === 'user') {
+      setSelectedReportDept(currentUser.department);
+    }
+  }, [currentUser]);
 
   // Mass Import states
   const [pasteData, setPasteData] = useState('');
@@ -573,20 +592,20 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         <p>บันทึกประวัติการรับมอบ ค้นหาภาพถ่าย อ้างอิงสัญญาสั่งซื้อพร้อมออกรหัสคุมบาร์โค้ด</p>
       </div>
 
-      {/* Sub-tabs if Admin */}
-      {isAdmin && (
-        <div className="sub-tabs-container">
-          <button 
-            type="button" 
-            className={`sub-tab ${activeSubTab === 'single' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveSubTab('single');
-              handleResetForm();
-              handleResetImport();
-            }}
-          >
-            ✍️ ลงทะเบียนทีละชิ้น (Single Registration)
-          </button>
+      {/* Sub-tabs for Single, Mass (Admin), and Report */}
+      <div className="sub-tabs-container">
+        <button 
+          type="button" 
+          className={`sub-tab ${activeSubTab === 'single' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveSubTab('single');
+            handleResetForm();
+            handleResetImport();
+          }}
+        >
+          ✍️ ลงทะเบียนทีละชิ้น (Single Registration)
+        </button>
+        {isAdmin && (
           <button 
             type="button" 
             className={`sub-tab ${activeSubTab === 'mass' ? 'active' : ''}`}
@@ -598,8 +617,19 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
           >
             📋 นำเข้าข้อมูลแบบกลุ่ม (Admin Mass Import)
           </button>
-        </div>
-      )}
+        )}
+        <button 
+          type="button" 
+          className={`sub-tab ${activeSubTab === 'report' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveSubTab('report');
+            handleResetForm();
+            handleResetImport();
+          }}
+        >
+          🖨️ รายงานครุภัณฑ์ลงทะเบียนใหม่ (Report)
+        </button>
+      </div>
 
       {activeSubTab === 'single' ? (
         <form onSubmit={handleSubmit} className="intake-form glass-panel">
@@ -848,7 +878,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
           </div>
 
         </form>
-      ) : (
+      ) : activeSubTab === 'mass' && isAdmin ? (
         <div className="intake-form glass-panel">
           <div className="mass-import-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             
@@ -1069,6 +1099,184 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
               </div>
             )}
+
+          </div>
+        </div>
+      ) : (
+        <div className="report-config-panel intake-form glass-panel animate-fade-in" style={{ padding: '2rem' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+             ออกรายงานประวัติครุภัณฑ์ขึ้นทะเบียนใหม่
+          </h3>
+           
+          <div className="grid-cols-3">
+            <div className="form-group">
+              <label className="form-label">🏢 ฝ่าย/หน่วยงานผู้ดูแล</label>
+              <select 
+                className="form-select"
+                value={selectedReportDept}
+                onChange={(e) => setSelectedReportDept(e.target.value)}
+                disabled={currentUser?.role === 'user'}
+              >
+                {currentUser?.role !== 'user' && <option value="all">ทุกหน่วยงาน</option>}
+                {currentUser?.role === 'user' ? (
+                  <option value={currentUser.department}>{currentUser.department}</option>
+                ) : (
+                  Array.from(new Set(assets.map(a => a.department).filter(Boolean))).map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))
+                )}
+              </select>
+            </div>
+             
+            <div className="form-group">
+              <label className="form-label">📅 เริ่มต้นตั้งแต่วันที่</label>
+               <input 
+                 type="date" 
+                 className="form-input"
+                 value={startDate}
+                 onChange={(e) => setStartDate(e.target.value)}
+               />
+             </div>
+             
+             <div className="form-group">
+               <label className="form-label">📅 จนถึงวันที่</label>
+               <input 
+                 type="date" 
+                 className="form-input"
+                 value={endDate}
+                 onChange={(e) => setEndDate(e.target.value)}
+               />
+             </div>
+          </div>
+           
+          <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginTop: '1rem' }}>
+            <button 
+              type="button" 
+              className="btn btn-primary"
+              onClick={() => setIsReportPrintOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+            >
+              <Printer size={16} /> 🖨️ แสดงตัวอย่างรายงานและจัดพิมพ์
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* FULLSCREEN PRINT PREVIEW OVERLAY */}
+      {isReportPrintOpen && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
+          
+          <div className="print-actions-bar glass-panel" style={{ maxWidth: '800px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10000 }}>
+            <div>
+              <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ ตัวอย่างก่อนพิมพ์รายงานครุภัณฑ์ใหม่ (A4 Preview)</h4>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>รายงานพัสดุรับใหม่จัดรูปแบบสำหรับพิมพ์ลงกระดาษ A4</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => setIsReportPrintOpen(false)}
+              >
+                ย้อนกลับ
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={() => window.print()}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Printer size={16} /> สั่งพิมพ์ / PDF
+              </button>
+            </div>
+          </div>
+
+          <div className="print-paper-a4 printable-a4-document" style={{ background: '#ffffff', color: '#000000', maxWidth: '800px', width: '100%', margin: '0 auto', padding: '2.5rem 3rem', minHeight: '11.28in', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', fontFamily: "'Sarabun', 'Noto Sans Thai', sans-serif", fontSize: '13px', lineHeight: '1.6', colorScheme: 'light', borderRadius: '4px' }}>
+            
+            {(() => {
+              // Filter new assets based on selected dates and department
+              const reportAssets = assets.filter(a => {
+                const dateOk = a.receivedDate >= startDate && a.receivedDate <= endDate;
+                const deptOk = selectedReportDept === 'all' || a.department === selectedReportDept;
+                return dateOk && deptOk;
+              });
+
+              return (
+                <>
+                  <div style={{ textAlign: 'center', position: 'relative', marginBottom: '2.5rem' }}>
+                    <div style={{ fontSize: '28px', color: '#000000', marginBottom: '0.5rem' }}>🇹🇭</div>
+                    <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#000000', margin: '0.2rem 0' }}>
+                      รายงานประวัติครุภัณฑ์ขึ้นทะเบียนรับใหม่เข้าคลัง
+                    </h1>
+                    <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#333333', margin: '0.2rem 0' }}>
+                      ประจำวันที่ {new Date(startDate).toLocaleDateString('th-TH')} ถึงวันที่ {new Date(endDate).toLocaleDateString('th-TH')}
+                    </h2>
+                    {selectedReportDept !== 'all' && (
+                      <div style={{ fontSize: '1rem', fontWeight: 600, marginTop: '0.25rem' }}>หน่วยงาน: {selectedReportDept}</div>
+                    )}
+                    <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.5rem' }}>
+                      ผู้ดูแลรับผิดชอบ: ระบบคลังข้อมูลครุภัณฑ์ AssetWatch
+                    </div>
+                  </div>
+
+                  <hr style={{ border: '0', borderTop: '2px double #333333', margin: '1rem 0 1.5rem 0' }} />
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: '#f8f9fa', padding: '1rem', border: '1px solid #dddddd', borderRadius: '4px' }}>
+                    <div>
+                      <div><strong>👤 ผู้ออกรายงาน:</strong> {currentUser?.name || 'ไม่ได้ระบุ'}</div>
+                      <div><strong>🏢 บทบาทหน้าที่:</strong> {currentUser?.role === 'admin' ? 'แอดมินสูงสุด' : (currentUser?.role === 'manager' ? 'ผู้จัดการ' : 'ผู้ปฏิบัติงาน')}</div>
+                    </div>
+                    <div style={{ borderLeft: '1px solid #dddddd', paddingLeft: '1rem' }}>
+                      <div><strong>📦 ครุภัณฑ์ขึ้นทะเบียนใหม่:</strong> {reportAssets.length} รายการ</div>
+                      <div><strong>📅 วันเวลาที่ออกเอกสาร:</strong> {new Date().toLocaleDateString('th-TH')} {new Date().toLocaleTimeString('th-TH')} น.</div>
+                    </div>
+                  </div>
+
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: '#f2f2f2', borderBottom: '1.5px solid #000000', borderTop: '1px solid #dddddd' }}>
+                        <th style={{ padding: '0.5rem', textAlign: 'center', border: '1px solid #dddddd', width: '50px' }}>ลำดับ</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #dddddd', width: '100px' }}>วันที่ตรวจรับ</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #dddddd', width: '120px' }}>รหัสครุภัณฑ์</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #dddddd' }}>ชื่อรายการครุภัณฑ์</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #dddddd', width: '120px' }}>แหล่งที่มา</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #dddddd', width: '100px' }}>ฝ่ายที่ดูแล</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'left', border: '1px solid #dddddd', width: '100px' }}>สถานที่ตั้ง</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportAssets.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} style={{ padding: '1.5rem', textAlign: 'center', border: '1px solid #dddddd', color: '#666666' }}>
+                            ไม่พบข้อมูลการขึ้นทะเบียนครุภัณฑ์ใหม่ในช่วงเวลานี้
+                          </td>
+                        </tr>
+                      ) : (
+                        reportAssets.map((asset, idx) => (
+                          <tr key={asset.id} style={{ borderBottom: '1px solid #dddddd' }}>
+                            <td style={{ padding: '0.5rem', textAlign: 'center', border: '1px solid #dddddd' }}>{idx + 1}</td>
+                            <td style={{ padding: '0.5rem', border: '1px solid #dddddd' }}>{new Date(asset.receivedDate).toLocaleDateString('th-TH')}</td>
+                            <td style={{ padding: '0.5rem', border: '1px solid #dddddd', fontFamily: 'monospace', fontWeight: 'bold' }}>{asset.id}</td>
+                            <td style={{ padding: '0.5rem', border: '1px solid #dddddd' }}>{asset.name}</td>
+                            <td style={{ padding: '0.5rem', border: '1px solid #dddddd' }}>{asset.source}</td>
+                            <td style={{ padding: '0.5rem', border: '1px solid #dddddd' }}>{asset.department}</td>
+                            <td style={{ padding: '0.5rem', border: '1px solid #dddddd' }}>{asset.location}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+
+                  <div style={{ marginTop: '5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ textAlign: 'center', width: '280px' }}>
+                      <div style={{ marginBottom: '3rem' }}>ลงชื่อ.................................................................. ผู้รายงานผล</div>
+                      <div>( {currentUser?.name || '..............................................'} )</div>
+                      <div style={{ fontSize: '0.85rem', color: '#666666', marginTop: '0.35rem' }}>ตำแหน่ง: เจ้าหน้าที่ทะเบียนพัสดุ</div>
+                      <div style={{ fontSize: '0.85rem', color: '#666666' }}>วันที่ {new Date().toLocaleDateString('th-TH')}</div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
           </div>
         </div>

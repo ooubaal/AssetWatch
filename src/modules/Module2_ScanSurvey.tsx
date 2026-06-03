@@ -88,6 +88,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [roundHistoryTab, setRoundHistoryTab] = useState<'active' | 'history'>('active');
   const [selectedRoundDept, setSelectedRoundDept] = useState('all');
 
+  // Lock selectedRoundDept to operator's department on load
+  useEffect(() => {
+    if (currentUser?.role === 'user') {
+      setSelectedRoundDept(currentUser.department);
+    }
+  }, [currentUser]);
+
   // Extract unique departments for dropdown
   const uniqueDepts = Array.from(new Set(assets.map(a => a.department).filter(Boolean)));
 
@@ -589,12 +596,17 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 className="form-select select-survey-target" 
                 value={selectedRoundDept} 
                 onChange={(e) => setSelectedRoundDept(e.target.value)}
+                disabled={currentUser?.role === 'user'}
                 style={{ padding: '0.15rem 1.5rem 0.15rem 0.35rem', fontSize: '0.75rem', border: 'none', background: 'transparent', width: 'auto', fontWeight: 'bold', color: 'var(--primary)', height: 'auto', outline: 'none', boxShadow: 'none' }}
               >
-                <option value="all">ทุกหน่วยงาน</option>
-                {uniqueDepts.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
+                {currentUser?.role !== 'user' && <option value="all">ทุกหน่วยงาน</option>}
+                {currentUser?.role === 'user' ? (
+                  <option value={currentUser.department}>{currentUser.department}</option>
+                ) : (
+                  uniqueDepts.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -659,8 +671,17 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                       </div>
                     </div>
 
-                    {currentUser?.role !== 'manager' ? (
-                      !showCloseConfirm ? (
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary"
+                        onClick={() => setPrintingRound(activeRound)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                      >
+                        <Printer size={15} /> 🖨️ ออกรายงานรอบปัจจุบัน
+                      </button>
+
+                      {currentUser?.role !== 'manager' && !showCloseConfirm && (
                         <button 
                           type="button" 
                           className="btn btn-danger"
@@ -672,57 +693,61 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                         >
                           <Lock size={15} /> 🔒 ปิดรอบการสำรวจและบันทึกประวัติ
                         </button>
-                      ) : (
-                        <div className="close-confirm-card" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1.5px solid var(--danger)', padding: '1rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <AlertTriangle color="var(--danger)" size={18} />
-                            <h5 style={{ fontWeight: 800, color: 'var(--danger)' }}>ยืนยันการปิดรอบการสำรวจพัสดุประจำปี?</h5>
-                          </div>
-                          
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            การปิดรอบจะทำการ **แช่แข็งสถิติ** (อัตราความก้าวหน้า และจำนวนสถานะ) เก็บเข้าสารบบประวัติของรอบนี้ และ **รีเซ็ตเช็คลิสต์ตรวจนับ** ของครุภัณฑ์ทุกชิ้นกลับเป็น "ค้างตรวจนับ" เพื่อเริ่มปีงบประมาณรอบใหม่
-                          </p>
+                      )}
+                    </div>
 
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label className="form-label" style={{ color: 'var(--text-primary)' }}>👤 ลงลายมือชื่อแอดมินผู้ปิดรอบ / ตรวจสอบความถูกต้อง</label>
-                            <input 
-                              type="text" 
-                              className="form-input" 
-                              placeholder="พิมพ์ชื่อของคุณเพื่อยืนยัน..." 
-                              value={closeOperator}
-                              onChange={(e) => setCloseOperator(e.target.value)}
-                              required
-                              style={{ border: '1.5px solid var(--danger)' }}
-                            />
-                          </div>
-
-                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCloseConfirm(false)}>
-                              ยกเลิก
-                            </button>
-                            <button 
-                              type="button" 
-                              className="btn btn-danger btn-sm" 
-                              disabled={!closeOperator.trim()}
-                              onClick={async () => {
-                                if (!closeOperator.trim()) return;
-                                await onCloseActiveRound(closeOperator);
-                                setShowCloseConfirm(false);
-                                confetti({
-                                  particleCount: 150,
-                                  spread: 80,
-                                  origin: { y: 0.6 }
-                                });
-                              }}
-                            >
-                              ยืนยันการปิดรอบและรีเซ็ตระบบ
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    ) : (
+                    {currentUser?.role === 'manager' && (
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem' }}>
                         <Lock size={14} /> บัญชีผู้จัดการ (Manager) — ไม่มีสิทธิ์ปิดรอบสำรวจพัสดุ
+                      </div>
+                    )}
+
+                    {currentUser?.role !== 'manager' && showCloseConfirm && (
+                      <div className="close-confirm-card" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1.5px solid var(--danger)', padding: '1rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <AlertTriangle color="var(--danger)" size={18} />
+                          <h5 style={{ fontWeight: 800, color: 'var(--danger)' }}>ยืนยันการปิดรอบการสำรวจพัสดุประจำปี?</h5>
+                        </div>
+                        
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          การปิดรอบจะทำการ **แช่แข็งสถิติ** (อัตราความก้าวหน้า และจำนวนสถานะ) เก็บเข้าสารบบประวัติของรอบนี้ และ **รีเซ็ตเช็คลิสต์ตรวจนับ** ของครุภัณฑ์ทุกชิ้นกลับเป็น "ค้างตรวจนับ" เพื่อเริ่มปีงบประมาณรอบใหม่
+                        </p>
+
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label className="form-label" style={{ color: 'var(--text-primary)' }}>👤 ลงลายมือชื่อแอดมินผู้ปิดรอบ / ตรวจสอบความถูกต้อง</label>
+                          <input 
+                            type="text" 
+                            className="form-input" 
+                            placeholder="พิมพ์ชื่อของคุณเพื่อยืนยัน..." 
+                            value={closeOperator}
+                            onChange={(e) => setCloseOperator(e.target.value)}
+                            required
+                            style={{ border: '1.5px solid var(--danger)' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCloseConfirm(false)}>
+                            ยกเลิก
+                          </button>
+                          <button 
+                            type="button" 
+                            className="btn btn-danger btn-sm" 
+                            disabled={!closeOperator.trim()}
+                            onClick={async () => {
+                              if (!closeOperator.trim()) return;
+                              await onCloseActiveRound(closeOperator);
+                              setShowCloseConfirm(false);
+                              confetti({
+                                particleCount: 150,
+                                spread: 80,
+                                origin: { y: 0.6 }
+                              });
+                            }}
+                          >
+                            ยืนยันการปิดรอบและรีเซ็ตระบบ
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

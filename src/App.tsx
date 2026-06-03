@@ -836,6 +836,7 @@ function App() {
             {currentTab === 'module4' && (
               <Module4_Dispose 
                 assets={assets}
+                audits={audits}
                 onUpdateAssetStatus={handleUpdateAssetStatus}
                 onLogAudit={handleLogAudit}
                 currentUser={currentUser}
@@ -844,6 +845,7 @@ function App() {
             {currentTab === 'module5_transfer' && (
               <Module5_Transfer 
                 assets={assets}
+                audits={audits}
                 onUpdateAssetTransfer={handleUpdateAssetTransfer}
                 onLogAudit={handleLogAudit}
                 departments={departments}
