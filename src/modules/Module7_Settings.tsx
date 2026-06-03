@@ -528,8 +528,8 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
                 </div>
               </div>
 
-              <div className="guide-section" style={{ borderBottom: 'none' }}>
-                <h4>3. 🔧 การติดตามและติดตามความคืบหน้านำซ่อม (โมดูล 5)</h4>
+              <div className="guide-section">
+                <h4>3. 🔧 การติดตามความคืบหน้านำซ่อม (โมดูล 5)</h4>
                 <div className="guide-steps-list">
                   <div className="guide-step-row">
                     <span className="step-num">1</span>
@@ -542,6 +542,46 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
                   <div className="guide-step-row">
                     <span className="step-num">3</span>
                     <p><strong>รับกลับพัสดุคืน</strong>: เมื่อร้านซ่อมเสร็จส่งคืน ให้กดปุ่ม **"ตรวจรับคืน"** เพื่อตรวจสอบความถูกต้อง ถ่ายรูปยืนยันสภาพพร้อมใช้งาน และเปลี่ยนสถานะกลับเป็นปกติโดยอัตโนมัติ</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="guide-section">
+                <h4>4. 🔄 วิธีการย้ายฐานข้อมูลคลาวด์ ไปยังบัญชี Firebase ใหม่ (Data Migration)</h4>
+                <div className="guide-steps-list">
+                  <div className="guide-step-row">
+                    <span className="step-num">1</span>
+                    <p><strong>ส่งออกข้อมูลเดิม (Export JSON)</strong>: ไปที่หัวข้อ **"สำรอง & กู้คืนข้อมูล (Backup)"** บนแท็บด้านซ้าย แล้วกดปุ่ม **"ส่งออกข้อมูลแบคอัพทั้งหมด"** เพื่อเซฟไฟล์ <code>.json</code> ลงในเครื่องคอมพิวเตอร์</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">2</span>
+                    <p><strong>เชื่อมต่อบัญชีใหม่</strong>: ไปที่หัวข้อ **"ตั้งค่าฐานข้อมูลคลาวด์"** เลื่อนลงไปล่างสุดตรง Danger Zone แล้วกด **"ตัดการเชื่อมต่อฐานข้อมูลคลาวด์นี้"** จากนั้นป้อนรหัสคลาวด์ (Firebase Config) ตัวใหม่ที่ต้องการย้ายไป</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">3</span>
+                    <p><strong>นำเข้าข้อมูลสำเร็จรูป (Import Restore)</strong>: เข้าสู่ระบบฐานข้อมูลใหม่ ไปที่หัวข้อ **"สำรอง & กู้คืนข้อมูล (Backup)"** อีกครั้ง อัปโหลดไฟล์ <code>.json</code> ที่สำรองไว้ในขั้นแรก แล้วกด **"กู้คืนฐานข้อมูลจากไฟล์ JSON"** ข้อมูลและบัญชีทั้งหมดจะถูกกู้คืนออนไลน์ทันที</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="guide-section" style={{ borderBottom: 'none' }}>
+                <h4>5. 🛡️ ความปลอดภัยของระบบและการป้องกันข้อมูล (System Security & Data Protection)</h4>
+                <div className="guide-steps-list">
+                  <div className="guide-step-row">
+                    <span className="step-num">1</span>
+                    <p><strong>การเข้ารหัสข้อมูลขณะส่ง (HTTPS/SSL)</strong>: ข้อมูลและรูปภาพทั้งหมดที่วิ่งระหว่างระบบกับคลาวด์ Firebase จะถูกส่งผ่านโปรโตคอล HTTPS เสมอ ป้องกันการดักจับหรือดักฟังข้อมูลระหว่างทาง</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">2</span>
+                    <p><strong>กฎการเข้าถึงข้อมูล (Firestore Rules)</strong>: มีระบบตั้งค่าสิทธิ์ให้เฉพาะผู้ใช้ที่ผ่านการเข้าสู่ระบบอย่างถูกต้องเท่านั้นที่จะสามารถเข้าถึงหรือแก้ไขข้อมูลครุภัณฑ์ออนไลน์ได้ ป้องกันบุคคลภายนอกเดาคีย์แล้วเขียนข้อมูลทับ</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">3</span>
+                    <p><strong>ความปลอดภัยบน GitHub</strong>: ตัวโปรแกรมหลักเป็นเว็บแอปพลิเคชันฝั่งเครื่องผู้ใช้ (Client-side) ที่อยู่บน GitHub โดยจะไม่มีการเก็บประวัติ รหัสผ่าน หรือไฟล์ข้อมูลครุภัณฑ์ใดๆ ขององค์กรไว้บน GitHub ทั้งหมดจะเก็บอยู่ในคลาวด์ Firebase และเครื่องคอมพิวเตอร์ของคุณเท่านั้น จึงไม่เสี่ยงต่อการรั่วไหลผ่านซอร์สโค้ด</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">4</span>
+                    <p><strong>ความปลอดภัยของรหัสผ่าน</strong>: รหัสผ่านของบัญชีผู้ใช้งานทั้งหมดที่เพิ่มในระบบ จะถูกตรวจสอบผ่านการเช็กสิทธิ์ระดับฐานข้อมูลและไม่สามารถดูเป็นข้อความรหัสผ่านตรงๆ ได้เพื่อรักษาความปลอดภัยขั้นสูงสุด</p>
                   </div>
                 </div>
               </div>
