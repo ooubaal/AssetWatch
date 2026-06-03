@@ -30,7 +30,7 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'admin' | 'user'>('user');
+  const [role, setRole] = useState<'admin' | 'manager' | 'user'>('user');
   const [department, setDepartment] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +39,7 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
   // Stats calculation
   const totalCount = users.length;
   const adminCount = users.filter(u => u.role === 'admin').length;
+  const managerCount = users.filter(u => u.role === 'manager').length;
   const userCount = users.filter(u => u.role === 'user').length;
   const blockedCount = users.filter(u => u.isBlocked).length;
 
@@ -174,14 +175,14 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
       </div>
 
       {/* Stats row */}
-      <div className="stats-row-simple grid-cols-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="stat-card-simple glass-panel">
           <div className="stat-icon-wrapper" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}>
             <Users size={20} />
           </div>
           <div className="stat-data">
             <span className="stat-num">{totalCount}</span>
-            <span className="stat-label">บัญชีผู้ใช้งานทั้งหมด</span>
+            <span className="stat-label">บัญชีทั้งหมด</span>
           </div>
         </div>
 
@@ -196,12 +197,22 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
         </div>
 
         <div className="stat-card-simple glass-panel">
+          <div className="stat-icon-wrapper" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+            <Eye size={20} />
+          </div>
+          <div className="stat-data">
+            <span className="stat-num">{managerCount}</span>
+            <span className="stat-label">ผู้จัดการ (Manager)</span>
+          </div>
+        </div>
+
+        <div className="stat-card-simple glass-panel">
           <div className="stat-icon-wrapper" style={{ backgroundColor: 'rgba(6, 182, 212, 0.1)', color: 'var(--cyan)' }}>
             <Building size={20} />
           </div>
           <div className="stat-data">
             <span className="stat-num">{userCount}</span>
-            <span className="stat-label">เจ้าหน้าที่พัสดุฝ่าย</span>
+            <span className="stat-label">ผู้ปฏิบัติงาน (Operator)</span>
           </div>
         </div>
 
@@ -211,7 +222,7 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
           </div>
           <div className="stat-data">
             <span className="stat-num">{blockedCount}</span>
-            <span className="stat-label">บัญชีที่ถูกระงับสิทธิ์</span>
+            <span className="stat-label">โดนระงับสิทธิ์</span>
           </div>
         </div>
       </div>
@@ -236,11 +247,12 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
               className="form-select select-sm"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              style={{ width: '140px' }}
+              style={{ width: '160px' }}
             >
               <option value="all">ระดับสิทธิ์ทั้งหมด</option>
               <option value="admin">ผู้ดูแล (Admin)</option>
-              <option value="user">เจ้าหน้าที่ฝ่าย (User)</option>
+              <option value="manager">ผู้จัดการ (Manager)</option>
+              <option value="user">ผู้ปฏิบัติงาน (Operator)</option>
             </select>
 
             <select 
@@ -276,6 +288,7 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
             // Dynamic avatar gradient depending on role and status
             let avatarBg = 'linear-gradient(135deg, #3b82f6, #6366f1)';
             if (user.role === 'admin') avatarBg = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
+            if (user.role === 'manager') avatarBg = 'linear-gradient(135deg, #8b5cf6, #ec4899)';
             if (user.isBlocked) avatarBg = 'linear-gradient(135deg, #ef4444, #991b1b)';
 
             return (
@@ -287,8 +300,10 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
                     <span className="role-badge badge-red"><Ban size={12} /> ถูกบล็อก</span>
                   ) : user.role === 'admin' ? (
                     <span className="role-badge badge-blue"><Shield size={12} /> ผู้ดูแลระบบ</span>
+                  ) : user.role === 'manager' ? (
+                    <span className="role-badge badge-purple" style={{ backgroundColor: 'rgba(139, 92, 246, 0.12)', color: '#8b5cf6', border: '1px solid rgba(139, 92, 246, 0.2)' }}><Eye size={12} /> ผู้จัดการ (Manager)</span>
                   ) : (
-                    <span className="role-badge badge-cyan"><Building size={12} /> เจ้าหน้าที่ฝ่าย</span>
+                    <span className="role-badge badge-cyan"><Building size={12} /> ผู้ปฏิบัติงาน (Operator)</span>
                   )}
                   
                   {user.id === currentUser?.id && (
@@ -311,7 +326,7 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
                 <div className="user-dept-row">
                   <Building size={14} className="icon-dept" />
                   <span className="dept-text">
-                    {user.role === 'admin' ? 'ดูแลภาพรวมทุกแผนก' : (user.department || 'ไม่ระบุฝ่าย')}
+                    {user.role === 'admin' ? 'ดูแลภาพรวมทุกแผนก (Full)' : user.role === 'manager' ? 'ดูรายงานภาพรวมทุกแผนก (Read-Only)' : (user.department || 'ไม่ระบุฝ่าย')}
                   </span>
                 </div>
 
@@ -440,10 +455,11 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
                 <select 
                   className="form-select"
                   value={role}
-                  onChange={(e) => setRole(e.target.value as 'admin' | 'user')}
+                  onChange={(e) => setRole(e.target.value as 'admin' | 'manager' | 'user')}
                   required
                 >
-                  <option value="user">เจ้าหน้าที่ปฏิบัติการฝ่ายพัสดุ (User Operation)</option>
+                  <option value="user">เจ้าหน้าที่ปฏิบัติการฝ่ายพัสดุ (Operator)</option>
+                  <option value="manager">ผู้จัดการ/ผู้ดูรายงานภาพรวม (Manager - ดูอย่างเดียว)</option>
                   <option value="admin">ผู้ดูแลระบบสูงสุด (Admin)</option>
                 </select>
               </div>

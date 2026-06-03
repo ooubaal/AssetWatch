@@ -24,7 +24,7 @@ import {
   FileText,
   CheckSquare
 } from 'lucide-react';
-import { Asset, SurveyRecord, SurveyRound } from '../utils/mockData';
+import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { uploadImage } from '../services/dbService';
 import confetti from 'canvas-confetti';
@@ -40,6 +40,7 @@ interface Module2ScanSurveyProps {
   onRedirectToAdd: (prefilledId: string) => void;
   onCreateSurveyRound: (name: string, operator: string) => Promise<void>;
   onCloseActiveRound: (operator: string) => Promise<void>;
+  currentUser: UserAccount | null;
 }
 
 export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
@@ -52,9 +53,16 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   onLogAudit,
   onRedirectToAdd,
   onCreateSurveyRound,
-  onCloseActiveRound
+  onCloseActiveRound,
+  currentUser
 }) => {
   const [operator, setOperator] = useState(() => localStorage.getItem('assetwatch_operator') || 'ผู้ตรวจการทั่วไป');
+
+  useEffect(() => {
+    if (currentUser) {
+      setOperator(currentUser.name);
+    }
+  }, [currentUser]);
   
   // Checklist-Driven State
   const [selectedDept, setSelectedDept] = useState<string>(() => localStorage.getItem('assetwatch_selected_dept') || 'all');
@@ -518,9 +526,15 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 <button type="button" className="btn btn-secondary" onClick={handleResetScan}>
                   ยกเลิก
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'กำลังบันทึก...' : '✅ ยืนยันความถูกต้องพัสดุ'}
-                </button>
+                {currentUser?.role === 'manager' ? (
+                  <button type="button" className="btn btn-muted" disabled style={{ cursor: 'not-allowed', opacity: 0.65 }}>
+                    🔒 ผู้จัดการ (Manager) — อ่านอย่างเดียว
+                  </button>
+                ) : (
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                    {saving ? 'กำลังบันทึก...' : '✅ ยืนยันความถูกต้องพัสดุ'}
+                  </button>
+                )}
               </div>
             </form>
           )}
@@ -645,64 +659,70 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                       </div>
                     </div>
 
-                    {!showCloseConfirm ? (
-                      <button 
-                        type="button" 
-                        className="btn btn-danger"
-                        onClick={() => {
-                          setShowCloseConfirm(true);
-                          setCloseOperator(operator);
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
-                      >
-                        <Lock size={15} /> 🔒 ปิดรอบการสำรวจและบันทึกประวัติ
-                      </button>
+                    {currentUser?.role !== 'manager' ? (
+                      !showCloseConfirm ? (
+                        <button 
+                          type="button" 
+                          className="btn btn-danger"
+                          onClick={() => {
+                            setShowCloseConfirm(true);
+                            setCloseOperator(operator);
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                        >
+                          <Lock size={15} /> 🔒 ปิดรอบการสำรวจและบันทึกประวัติ
+                        </button>
+                      ) : (
+                        <div className="close-confirm-card" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1.5px solid var(--danger)', padding: '1rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <AlertTriangle color="var(--danger)" size={18} />
+                            <h5 style={{ fontWeight: 800, color: 'var(--danger)' }}>ยืนยันการปิดรอบการสำรวจพัสดุประจำปี?</h5>
+                          </div>
+                          
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            การปิดรอบจะทำการ **แช่แข็งสถิติ** (อัตราความก้าวหน้า และจำนวนสถานะ) เก็บเข้าสารบบประวัติของรอบนี้ และ **รีเซ็ตเช็คลิสต์ตรวจนับ** ของครุภัณฑ์ทุกชิ้นกลับเป็น "ค้างตรวจนับ" เพื่อเริ่มปีงบประมาณรอบใหม่
+                          </p>
+
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label" style={{ color: 'var(--text-primary)' }}>👤 ลงลายมือชื่อแอดมินผู้ปิดรอบ / ตรวจสอบความถูกต้อง</label>
+                            <input 
+                              type="text" 
+                              className="form-input" 
+                              placeholder="พิมพ์ชื่อของคุณเพื่อยืนยัน..." 
+                              value={closeOperator}
+                              onChange={(e) => setCloseOperator(e.target.value)}
+                              required
+                              style={{ border: '1.5px solid var(--danger)' }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCloseConfirm(false)}>
+                              ยกเลิก
+                            </button>
+                            <button 
+                              type="button" 
+                              className="btn btn-danger btn-sm" 
+                              disabled={!closeOperator.trim()}
+                              onClick={async () => {
+                                if (!closeOperator.trim()) return;
+                                await onCloseActiveRound(closeOperator);
+                                setShowCloseConfirm(false);
+                                confetti({
+                                  particleCount: 150,
+                                  spread: 80,
+                                  origin: { y: 0.6 }
+                                });
+                              }}
+                            >
+                              ยืนยันการปิดรอบและรีเซ็ตระบบ
+                            </button>
+                          </div>
+                        </div>
+                      )
                     ) : (
-                      <div className="close-confirm-card" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1.5px solid var(--danger)', padding: '1rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <AlertTriangle color="var(--danger)" size={18} />
-                          <h5 style={{ fontWeight: 800, color: 'var(--danger)' }}>ยืนยันการปิดรอบการสำรวจพัสดุประจำปี?</h5>
-                        </div>
-                        
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          การปิดรอบจะทำการ **แช่แข็งสถิติ** (อัตราความก้าวหน้า และจำนวนสถานะ) เก็บเข้าสารบบประวัติของรอบนี้ และ **รีเซ็ตเช็คลิสต์ตรวจนับ** ของครุภัณฑ์ทุกชิ้นกลับเป็น "ค้างตรวจนับ" เพื่อเริ่มปีงบประมาณรอบใหม่
-                        </p>
-
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label className="form-label" style={{ color: 'var(--text-primary)' }}>👤 ลงลายมือชื่อแอดมินผู้ปิดรอบ / ตรวจสอบความถูกต้อง</label>
-                          <input 
-                            type="text" 
-                            className="form-input" 
-                            placeholder="พิมพ์ชื่อของคุณเพื่อยืนยัน..." 
-                            value={closeOperator}
-                            onChange={(e) => setCloseOperator(e.target.value)}
-                            required
-                            style={{ border: '1.5px solid var(--danger)' }}
-                          />
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCloseConfirm(false)}>
-                            ยกเลิก
-                          </button>
-                          <button 
-                            type="button" 
-                            className="btn btn-danger btn-sm" 
-                            disabled={!closeOperator.trim()}
-                            onClick={async () => {
-                              if (!closeOperator.trim()) return;
-                              await onCloseActiveRound(closeOperator);
-                              setShowCloseConfirm(false);
-                              confetti({
-                                particleCount: 150,
-                                spread: 80,
-                                origin: { y: 0.6 }
-                              });
-                            }}
-                          >
-                            ยืนยันการปิดรอบและรีเซ็ตระบบ
-                          </button>
-                        </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem' }}>
+                        <Lock size={14} /> บัญชีผู้จัดการ (Manager) — ไม่มีสิทธิ์ปิดรอบสำรวจพัสดุ
                       </div>
                     )}
                   </div>

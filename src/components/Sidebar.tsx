@@ -43,12 +43,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'แผงควบคุม (Dashboard)', icon: LayoutDashboard },
     { id: 'module1', label: 'ฐานข้อมูลครุภัณฑ์', icon: Database },
     { id: 'module2', label: 'แสกนตรวจนับครุภัณฑ์', icon: QrCode },
-    { id: 'module3', label: 'ลงทะเบียนใหม่', icon: PlusCircle },
-    { id: 'module4', label: 'จำหน่ายครุภัณฑ์', icon: Trash2 },
-    { id: 'module5_transfer', label: 'โอนย้ายครุภัณฑ์', icon: Move },
-    { id: 'module5_repair', label: 'ประวัติการส่งซ่อม', icon: Wrench },
-    { id: 'module6', label: 'ประวัติกิจกรรม (Audit)', icon: History },
   ];
+
+  if (currentUser?.role !== 'manager') {
+    menuItems.push(
+      { id: 'module3', label: 'ลงทะเบียนใหม่', icon: PlusCircle }
+    );
+  }
+
+  // Only Admin has authorization to dispose assets (Module 4)
+  if (currentUser?.role === 'admin') {
+    menuItems.push(
+      { id: 'module4', label: 'จำหน่ายครุภัณฑ์', icon: Trash2 }
+    );
+  }
+
+  if (currentUser?.role !== 'manager') {
+    menuItems.push(
+      { id: 'module5_transfer', label: 'โอนย้ายครุภัณฑ์', icon: Move }
+    );
+  }
+
+  menuItems.push(
+    { id: 'module5_repair', label: 'ประวัติการส่งซ่อม', icon: Wrench },
+    { id: 'module6', label: 'ประวัติกิจกรรม (Audit)', icon: History }
+  );
 
   if (currentUser?.role === 'admin') {
     menuItems.push(
@@ -110,15 +129,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="user-profile-avatar" style={{
               background: currentUser.role === 'admin' 
                 ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
-                : 'linear-gradient(135deg, #3b82f6, #06b6d4)'
+                : currentUser.role === 'manager'
+                  ? 'linear-gradient(135deg, #8b5cf6, #ec4899)'
+                  : 'linear-gradient(135deg, #3b82f6, #06b6d4)'
             }}>
               {currentUser.name.slice(0, 2).toUpperCase()}
             </div>
             <div className="user-profile-info">
               <span className="profile-name">{currentUser.name}</span>
               <div className="profile-badges">
-                <span className={`profile-role-badge ${currentUser.role === 'admin' ? 'badge-admin' : 'badge-user'}`}>
-                  {currentUser.role === 'admin' ? 'แอดมิน' : 'พัสดุฝ่าย'}
+                <span className={`profile-role-badge ${
+                  currentUser.role === 'admin' ? 'badge-admin' : currentUser.role === 'manager' ? 'badge-manager' : 'badge-user'
+                }`}>
+                  {currentUser.role === 'admin' ? 'แอดมิน' : currentUser.role === 'manager' ? 'ผู้จัดการ' : 'เจ้าหน้าที่'}
                 </span>
                 {currentUser.role === 'user' && currentUser.department && (
                   <span className="profile-dept-badge" title={currentUser.department}>
@@ -618,6 +641,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         .badge-admin {
           background-color: rgba(99, 102, 241, 0.12);
           color: #6366f1;
+        }
+
+        .badge-manager {
+          background-color: rgba(139, 92, 246, 0.12);
+          color: #8b5cf6;
         }
 
         .badge-user {

@@ -288,12 +288,14 @@ export const Module5_Repair: React.FC<Module5RepairProps> = ({
         >
           🗂️ กระดานติดตามเคสซ่อมแซม ({myRepairs.length})
         </button>
-        <button 
-          className={`repair-tab-btn ${activeTab === 'open_case' ? 'repair-tab-active' : ''}`}
-          onClick={() => setActiveTab('open_case')}
-        >
-          🚨 เปิดเคสแจ้งชำรุดใหม่ (Open Case)
-        </button>
+        {currentUser?.role !== 'manager' && (
+          <button 
+            className={`repair-tab-btn ${activeTab === 'open_case' ? 'repair-tab-active' : ''}`}
+            onClick={() => setActiveTab('open_case')}
+          >
+            🚨 เปิดเคสแจ้งชำรุดใหม่ (Open Case)
+          </button>
+        )}
       </div>
 
       {/* WORKFLOW VIEW 1: Cases Table/Board */}
@@ -362,30 +364,38 @@ export const Module5_Repair: React.FC<Module5RepairProps> = ({
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div className="board-action-buttons">
-                          {item.status === 'open' && (
-                            <button 
-                              className="btn btn-warning btn-xs"
-                              onClick={() => {
-                                setWorkflowCase(item);
-                                setWorkflowAction('send');
-                              }}
-                            >
-                              🚚 นำส่งช่างซ่อม
-                            </button>
-                          )}
-                          {item.status === 'sent' && (
-                            <button 
-                              className="btn btn-success btn-xs"
-                              onClick={() => {
-                                setWorkflowCase(item);
-                                setWorkflowAction('receive');
-                              }}
-                            >
-                              ✅ ตรวจรับคืน
-                            </button>
-                          )}
-                          {item.status === 'completed' && (
-                            <span className="case-closed-check">🔒 ปิดเคสประวัติ</span>
+                          {currentUser?.role !== 'manager' ? (
+                            <>
+                              {item.status === 'open' && (
+                                <button 
+                                  className="btn btn-warning btn-xs"
+                                  onClick={() => {
+                                    setWorkflowCase(item);
+                                    setWorkflowAction('send');
+                                  }}
+                                >
+                                  🚚 นำส่งช่างซ่อม
+                                </button>
+                              )}
+                              {item.status === 'sent' && (
+                                <button 
+                                  className="btn btn-success btn-xs"
+                                  onClick={() => {
+                                    setWorkflowCase(item);
+                                    setWorkflowAction('receive');
+                                  }}
+                                >
+                                  ✅ ตรวจรับคืน
+                                </button>
+                              )}
+                              {item.status === 'completed' && (
+                                <span className="case-closed-check">🔒 ปิดเคสประวัติ</span>
+                              )}
+                            </>
+                          ) : (
+                            <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                              {item.status === 'completed' ? '🔒 ปิดเคสประวัติ' : '👀 ดูอย่างเดียว'}
+                            </span>
                           )}
                         </div>
                       </td>

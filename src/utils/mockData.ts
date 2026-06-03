@@ -218,7 +218,7 @@ export interface UserAccount {
   username: string;
   password?: string;
   name: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'manager' | 'user';
   department: string; // empty string for admin, or specific department name for user
   isBlocked: boolean;
   createdAt: string;
@@ -234,6 +234,16 @@ export const INITIAL_USERS: UserAccount[] = [
     department: "",
     isBlocked: false,
     createdAt: "2026-01-01T00:00:00.000Z"
+  },
+  {
+    id: "user-manager",
+    username: "manager",
+    password: "123",
+    name: "ผู้จัดการกองพัสดุ (Manager)",
+    role: "manager",
+    department: "",
+    isBlocked: false,
+    createdAt: "2026-02-01T00:00:00.000Z"
   },
   {
     id: "user-it",

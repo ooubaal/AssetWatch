@@ -603,13 +603,16 @@ function App() {
                   <button className="demo-badge badge-admin" onClick={() => handleQuickLogin('admin')}>
                     👑 แอดมินสูงสุด (Admin)
                   </button>
+                  <button className="demo-badge badge-manager" onClick={() => handleQuickLogin('manager')}>
+                    💼 ผู้จัดการ (Manager)
+                  </button>
                   <button className="demo-badge badge-it" onClick={() => handleQuickLogin('it_user')}>
-                    💻 แผนก IT (User)
+                    💻 แผนก IT (Operator)
                   </button>
                   <button className="demo-badge badge-general" onClick={() => handleQuickLogin('admin_general')}>
-                    💼 บริหารทั่วไป (User)
+                    💼 บริหารทั่วไป (Operator)
                   </button>
-                  <button className="demo-badge badge-blocked" onClick={() => handleQuickLogin('blocked')}>
+                  <button className="demo-badge badge-blocked" onClick={() => handleQuickLogin('blocked')} style={{ gridColumn: 'span 2' }}>
                     🚫 บัญชีโดนแบน (Blocked)
                   </button>
                 </div>
@@ -729,6 +732,12 @@ function App() {
               background-color: rgba(99, 102, 241, 0.05);
             }
 
+            .badge-manager:hover {
+              border-color: #8b5cf6;
+              color: #8b5cf6;
+              background-color: rgba(139, 92, 246, 0.05);
+            }
+
             .badge-it:hover {
               border-color: var(--primary);
               color: var(--primary);
@@ -802,6 +811,7 @@ function App() {
                 onRedirectToAdd={handleRedirectToRegister}
                 onCreateSurveyRound={handleCreateSurveyRound}
                 onCloseActiveRound={handleCloseActiveRound}
+                currentUser={currentUser}
               />
             )}
             {currentTab === 'module3' && (
@@ -857,6 +867,7 @@ function App() {
                 rounds={rounds}
                 departments={departments}
                 users={users}
+                currentUser={currentUser}
               />
             )}
             {currentTab === 'module8' && currentUser?.role === 'admin' && (

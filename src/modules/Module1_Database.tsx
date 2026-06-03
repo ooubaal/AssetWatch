@@ -55,6 +55,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   const isAllowedToEdit = (asset: Asset) => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
+    if (currentUser.role === 'manager') return false;
     return asset.department === currentUser.department;
   };
 

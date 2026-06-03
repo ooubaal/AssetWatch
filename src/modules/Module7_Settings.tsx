@@ -34,6 +34,7 @@ interface Module7SettingsProps {
   rounds: SurveyRound[];
   departments: DepartmentLocationConfig[];
   users: UserAccount[];
+  currentUser: UserAccount | null;
 }
 
 export const Module7_Settings: React.FC<Module7SettingsProps> = ({
@@ -45,7 +46,8 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
   surveys,
   rounds,
   departments,
-  users
+  users,
+  currentUser
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'config' | 'backup' | 'guide'>('config');
   const [copied, setCopied] = useState(false);
@@ -233,9 +235,11 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
                         หากปิดบราวเซอร์หรือล้างคุ้กกี้ข้อมูลจะหายไป เพื่อการใช้งานจริงร่วมกันหลายคน โปรดกดติดตั้ง Firebase
                       </p>
                     </div>
-                    <button className="btn btn-warning btn-sm" onClick={onClearConfig} style={{ marginLeft: 'auto', flexShrink: 0 }}>
-                      ตั้งค่าเชื่อมต่อคลาวด์
-                    </button>
+                    {currentUser?.role === 'admin' && (
+                      <button className="btn btn-warning btn-sm" onClick={onClearConfig} style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                        ตั้งค่าเชื่อมต่อคลาวด์
+                      </button>
+                    )}
                   </div>
 
                   {/* Standalone production settings */}
@@ -326,13 +330,15 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
                         </div>
                       </div>
 
-                      <div className="danger-zone-settings">
-                        <h4>🚨 พื้นที่อันตราย (Danger Zone)</h4>
-                        <p>การตัดการเชื่อมต่อจะยุติการอ่านข้อมูลออนไลน์ และให้คุณสลับไปเปลี่ยน Firebase Project อื่นหรือสลับไปทดสอบออฟไลน์</p>
-                        <button className="btn btn-danger btn-sm" onClick={handleClearConnection} style={{ marginTop: '0.75rem' }}>
-                          <Trash2 size={14} /> ตัดการเชื่อมต่อฐานข้อมูลคลาวด์นี้
-                        </button>
-                      </div>
+                      {currentUser?.role === 'admin' && (
+                        <div className="danger-zone-settings">
+                          <h4>🚨 พื้นที่อันตราย (Danger Zone)</h4>
+                          <p>การตัดการเชื่อมต่อจะยุติการอ่านข้อมูลออนไลน์ และให้คุณสลับไปเปลี่ยน Firebase Project อื่นหรือสลับไปทดสอบออฟไลน์</p>
+                          <button className="btn btn-danger btn-sm" onClick={handleClearConnection} style={{ marginTop: '0.75rem' }}>
+                            <Trash2 size={14} /> ตัดการเชื่อมต่อฐานข้อมูลคลาวด์นี้
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                   </div>
@@ -456,21 +462,33 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
                   <h4>กู้คืนระบบจากไฟล์แบคอัพ (Import Restore)</h4>
                   <p>อัปโหลดไฟล์สำรองข้อมูล JSON กลับเข้าสู่คลาวด์และหน่วยความจำเพื่อกู้ข้อมูลพัสดุเดิมของคุณ</p>
                   
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    accept=".json" 
-                    onChange={handleFileImport} 
-                    style={{ display: 'none' }} 
-                  />
-                  <button 
-                    className="btn btn-success w-full" 
-                    onClick={handleImportClick} 
-                    disabled={importing}
-                    style={{ marginTop: 'auto' }}
-                  >
-                    <Upload size={14} /> {importing ? 'กำลังนำเข้าข้อมูล...' : 'กู้คืนฐานข้อมูลจากไฟล์ JSON'}
-                  </button>
+                  {currentUser?.role === 'admin' ? (
+                    <>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        accept=".json" 
+                        onChange={handleFileImport} 
+                        style={{ display: 'none' }} 
+                      />
+                      <button 
+                        className="btn btn-success w-full" 
+                        onClick={handleImportClick} 
+                        disabled={importing}
+                        style={{ marginTop: 'auto' }}
+                      >
+                        <Upload size={14} /> {importing ? 'กำลังนำเข้าข้อมูล...' : 'กู้คืนฐานข้อมูลจากไฟล์ JSON'}
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      className="btn btn-muted w-full" 
+                      disabled
+                      style={{ marginTop: 'auto', cursor: 'not-allowed', opacity: 0.6 }}
+                    >
+                      🔒 สงวนสิทธิ์สำหรับผู้ดูแลระบบ (Admin)
+                    </button>
+                  )}
                 </div>
 
               </div>
@@ -582,6 +600,10 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
                   <div className="guide-step-row">
                     <span className="step-num">4</span>
                     <p><strong>ความปลอดภัยของรหัสผ่าน</strong>: รหัสผ่านของบัญชีผู้ใช้งานทั้งหมดที่เพิ่มในระบบ จะถูกตรวจสอบผ่านการเช็กสิทธิ์ระดับฐานข้อมูลและไม่สามารถดูเป็นข้อความรหัสผ่านตรงๆ ได้เพื่อรักษาความปลอดภัยขั้นสูงสุด</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">5</span>
+                    <p><strong>ระดับสิทธิ์การเข้าถึง 3 ระดับ (RBAC)</strong>: ระบบแบ่งขอบเขตหน้าที่อย่างชัดเจน: (1) **Admin** มีสิทธิ์สูงสุด จัดการระบบและทำเรื่องจำหน่ายได้, (2) **Manager** สำหรับผู้บริหารดูรายงานสถิติได้ทุกแผนกแบบอ่านอย่างเดียว (Read-Only), และ (3) **Operator** เจ้าหน้าที่ฝ่ายพัสดุ ลงทะเบียน/แก้ไขครุภัณฑ์ได้เฉพาะแผนกของตนเอง และห้ามกดจำหน่ายหรือลบข้อมูลออกเอง</p>
                   </div>
                 </div>
               </div>
