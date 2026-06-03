@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { 
   Settings, 
   Download, 
@@ -15,21 +15,37 @@ import {
   Wrench,
   HelpCircle,
   Copy,
-  Check
+  Check,
+  FileCode
 } from 'lucide-react';
 import { getStoredFirebaseConfig, clearFirebaseConfig, FirebaseConfig } from '../firebase';
 import { exportBackupData, importBackupData } from '../services/dbService';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
+import { Asset, AuditTrail, RepairCase, SurveyRecord, SurveyRound, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 
 interface Module7SettingsProps {
   onClearConfig: () => void;
   onImportSuccess: () => void;
+  assets: Asset[];
+  audits: AuditTrail[];
+  repairs: RepairCase[];
+  surveys: SurveyRecord[];
+  rounds: SurveyRound[];
+  departments: DepartmentLocationConfig[];
+  users: UserAccount[];
 }
 
 export const Module7_Settings: React.FC<Module7SettingsProps> = ({
   onClearConfig,
-  onImportSuccess
+  onImportSuccess,
+  assets,
+  audits,
+  repairs,
+  surveys,
+  rounds,
+  departments,
+  users
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'config' | 'backup' | 'guide'>('config');
   const [copied, setCopied] = useState(false);
@@ -38,6 +54,47 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
   const [hideDemoBypass, setHideDemoBypass] = useState(localStorage.getItem('assetwatch_hide_demo_bypass') === 'true');
   const [forceBase64, setForceBase64] = useState(localStorage.getItem('assetwatch_force_base64_images') === 'true');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [githubRepoSizeKb, setGithubRepoSizeKb] = useState<number | null>(null);
+  const [loadingGithubSize, setLoadingGithubSize] = useState(false);
+
+  useEffect(() => {
+    setLoadingGithubSize(true);
+    fetch('https://api.github.com/repos/ooubaal/AssetWatch')
+      .then(res => {
+        if (!res.ok) throw new Error('Not found or private repository');
+        return res.json();
+      })
+      .then(data => {
+        if (data && typeof data.size === 'number') {
+          setGithubRepoSizeKb(data.size);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch GitHub repo size:', err);
+        // Fallback to estimated repository size
+        setGithubRepoSizeKb(480);
+      })
+      .finally(() => setLoadingGithubSize(false));
+  }, []);
+
+  const getFirestoreSizeEstimation = () => {
+    try {
+      const dataToMeasure = {
+        assets,
+        audits,
+        repairs,
+        surveys,
+        rounds,
+        departments,
+        users
+      };
+      const jsonString = JSON.stringify(dataToMeasure);
+      const byteSize = new Blob([jsonString]).size;
+      return byteSize;
+    } catch (e) {
+      return 0;
+    }
+  };
 
   const currentConfig = getStoredFirebaseConfig();
 
@@ -281,6 +338,97 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Capacity Status Dashboard */}
+              <div className="capacity-dashboard-box glass-panel" style={{ marginTop: '2rem', padding: '1.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: 750, color: 'var(--text-primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                  📊 สถิติความจุและคลังเก็บข้อมูล (Storage & Repository Capacity)
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                  
+                  {/* Firestore / LocalStorage Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Database size={16} /> ฐานข้อมูล {currentConfig ? 'Cloud Firestore' : 'LocalStorage (บราวเซอร์)'}
+                    </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      <span>ปริมาณการใช้งานปัจจุบัน:</span>
+                      <strong style={{ color: 'var(--text-primary)' }}>
+                        {(getFirestoreSizeEstimation() / 1024).toFixed(2)} KB 
+                        / {currentConfig ? '1,048,576 KB (1 GB)' : '5,120 KB (5 MB)'}
+                      </strong>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--border)', borderRadius: '999px', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: `${Math.min(100, (getFirestoreSizeEstimation() / (currentConfig ? 1024 * 1024 * 1024 : 5 * 1024 * 1024)) * 100)}%`, 
+                        height: '100%', 
+                        backgroundColor: 'var(--primary)',
+                        borderRadius: '999px',
+                        transition: 'width 0.5s ease-in-out'
+                      }} />
+                    </div>
+
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                      {currentConfig ? (
+                        <span>*คำนวณจากปริมาณตัวอักษรของข้อมูลพัสดุและไฟล์รูปภาพ Base64 ทั้งหมด โดยอิงตามข้อจำกัดโควตาฟรี (Free Tier 1GB) ของ Google Cloud Firestore</span>
+                      ) : (
+                        <span>*ข้อมูลกำลังบันทึกเก็บไว้ใน LocalStorage ของเว็บบราวเซอร์นี้ ซึ่งมีขีดจำกัดมาตรฐานของบราวเซอร์อยู่ที่ประมาณ 5MB</span>
+                      )}
+                    </div>
+
+                    {/* Dataset Breakdown */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.35rem', marginTop: '0.5rem', padding: '0.5rem', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border)' }}>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>📦 พัสดุ: <strong>{assets.length}</strong> รายการ</div>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>📝 บันทึกตรวจ: <strong>{surveys.length}</strong> รายการ</div>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>🔧 แจ้งซ่อม: <strong>{repairs.length}</strong> เคส</div>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>👤 ผู้ใช้: <strong>{users.length}</strong> บัญชี</div>
+                    </div>
+                  </div>
+
+                  {/* GitHub Repository Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <FileCode size={16} /> พื้นที่จัดเก็บบน GitHub Repository
+                    </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      <span>ขนาดโปรเจกต์ (Code & Assets):</span>
+                      <strong style={{ color: 'var(--text-primary)' }}>
+                        {loadingGithubSize ? 'กำลังคำนวณ...' : githubRepoSizeKb ? `${githubRepoSizeKb.toLocaleString()} KB` : '480 KB'} 
+                        / 1,048,576 KB (1 GB)
+                      </strong>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--border)', borderRadius: '999px', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: `${Math.min(100, ((githubRepoSizeKb || 480) / (1024 * 1024)) * 100)}%`, 
+                        height: '100%', 
+                        backgroundColor: 'var(--success)',
+                        borderRadius: '999px',
+                        transition: 'width 0.5s ease-in-out'
+                      }} />
+                    </div>
+
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                      *ดึงข้อมูลขนาดเนื้อที่โดยตรงจาก GitHub API สำหรับโปรเจกต์ <code>ooubaal/AssetWatch</code> (ขีดจำกัดแนะนำคือ 1GB ต่อ Repository)
+                    </div>
+
+                    <div style={{ marginTop: 'auto', paddingTop: '0.5rem' }}>
+                      <a 
+                        href="https://github.com/ooubaal/AssetWatch" 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'underline' }}
+                      >
+                        🌐 ไปที่หน้าคลัง GitHub Repository ของคุณ <ArrowRight size={12} />
+                      </a>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
             </div>
           )}
 

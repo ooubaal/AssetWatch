@@ -850,6 +850,13 @@ function App() {
               <Module7_Settings 
                 onClearConfig={handleClearConfig}
                 onImportSuccess={fetchAllData}
+                assets={assets}
+                audits={audits}
+                repairs={repairs}
+                surveys={surveys}
+                rounds={rounds}
+                departments={departments}
+                users={users}
               />
             )}
             {currentTab === 'module8' && currentUser?.role === 'admin' && (
