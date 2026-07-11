@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Wrench, Calendar, FileText, Bell, Plus, CheckCircle, Clock, AlertTriangle, 
-  Trash2, Phone, User, Building, ExternalLink, Printer, ChevronLeft, ChevronRight, Camera, Search, ArrowRight 
+  Trash2, Phone, User, Building, ExternalLink, Printer, ChevronLeft, ChevronRight, Camera, Search, ArrowRight, RefreshCw 
 } from 'lucide-react';
 import { Asset, PMContract, PMSchedule, PMNotification, RepairCase, UserAccount } from '../utils/mockData';
 import { uploadImage } from '../services/dbService';
@@ -19,6 +19,7 @@ interface Module10MaintenanceProps {
   onAddPMSchedule: (schedule: PMSchedule) => Promise<void>;
   onUpdatePMSchedule: (id: string, updates: Partial<PMSchedule>) => Promise<void>;
   onAddRepair: (repair: Omit<RepairCase, 'id'>) => Promise<string>;
+  onUpdateRepair: (id: string, updates: Partial<RepairCase>) => Promise<void>;
   onUpdateAssetStatus: (id: string, status: Asset['status']) => Promise<void>;
   onLogAudit: (trail: { assetId: string; assetName: string; action: any; operator: string; details: string }) => Promise<void>;
   currentUser: UserAccount | null;
@@ -37,6 +38,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   onAddPMSchedule,
   onUpdatePMSchedule,
   onAddRepair,
+  onUpdateRepair,
   onUpdateAssetStatus,
   onLogAudit,
   currentUser,
@@ -89,6 +91,23 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [repairAssetId, setRepairAssetId] = useState('');
   const [repairSymptom, setRepairSymptom] = useState('');
   const [submittingRepair, setSubmittingRepair] = useState(false);
+
+  // CM Repair Workflow States
+  const [workflowCase, setWorkflowCase] = useState<RepairCase | null>(null);
+  const [workflowAction, setWorkflowAction] = useState<'send' | 'receive' | null>(null);
+  
+  // Sent form states
+  const [repairVendorName, setRepairVendorName] = useState('');
+  const [repairContactPhone, setRepairContactPhone] = useState('');
+  const [sendProofFile, setSendProofFile] = useState<File | null>(null);
+  const [sendProofPreview, setSendProofPreview] = useState<string | null>(null);
+  const [submittingSend, setSubmittingSend] = useState(false);
+
+  // Receive form states
+  const [receiveDate, setReceiveDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [receiveProofFile, setReceiveProofFile] = useState<File | null>(null);
+  const [receiveProofPreview, setReceiveProofPreview] = useState<string | null>(null);
+  const [submittingReceive, setSubmittingReceive] = useState(false);
 
   // Sync Operator department
   useEffect(() => {
@@ -403,6 +422,121 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       alert('เกิดข้อผิดพลาดในการลงบันทึกการแจ้งซ่อมครั้งคราว');
     } finally {
       setSubmittingRepair(false);
+    }
+  };
+
+  const handleSendProofImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSendProofFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setSendProofPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleReceiveProofImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setReceiveProofFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setReceiveProofPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Dispatch CM case to shop
+  const handleSentToVendorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workflowCase) return;
+
+    setSubmittingSend(true);
+    try {
+      let proofUrl = '';
+      if (sendProofFile) {
+        proofUrl = await uploadImage(sendProofFile, 'repairs');
+      }
+
+      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินส่งซ่อม';
+
+      await onUpdateRepair(workflowCase.id, {
+        status: 'sent',
+        dateSent: new Date().toISOString().split('T')[0],
+        repairCompany: repairVendorName,
+        contactPerson: repairContactPhone,
+        sentProofUrl: proofUrl || undefined,
+        updatedAt: new Date().toISOString()
+      });
+
+      await onLogAudit({
+        assetId: workflowCase.assetId,
+        assetName: workflowCase.assetName,
+        action: 'repair_send',
+        operator: operatorName,
+        details: `นำส่งครุภัณฑ์ไปยังช่างซ่อม บริษัท: ${repairVendorName} เบอร์โทร: ${repairContactPhone}`
+      });
+
+      setWorkflowCase(null);
+      setWorkflowAction(null);
+      setRepairVendorName('');
+      setRepairContactPhone('');
+      setSendProofFile(null);
+      setSendProofPreview(null);
+      await onRefreshData();
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการส่งร้านซ่อม');
+    } finally {
+      setSubmittingSend(false);
+    }
+  };
+
+  // Receive completed CM repair back
+  const handleReceiveSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workflowCase) return;
+
+    setSubmittingReceive(true);
+    try {
+      let returnedProofUrl = '';
+      if (receiveProofFile) {
+        returnedProofUrl = await uploadImage(receiveProofFile, 'repairs');
+      }
+
+      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินรับคืน';
+
+      await onUpdateRepair(workflowCase.id, {
+        status: 'completed',
+        dateReceived: receiveDate,
+        receivedProofUrl: returnedProofUrl || undefined,
+        updatedAt: new Date().toISOString()
+      });
+
+      await onUpdateAssetStatus(workflowCase.assetId, 'ใช้งานได้');
+
+      await onLogAudit({
+        assetId: workflowCase.assetId,
+        assetName: workflowCase.assetName,
+        action: 'repair_receive',
+        operator: operatorName,
+        details: `ตรวจรับครุภัณฑ์พัสดุส่งซ่อมคืนคลังสำเร็จ ตรวจเช็คเครื่องแล้วสามารถนำกลับมา "ใช้งานได้" ตามปกติ`
+      });
+
+      confetti({
+        particleCount: 100,
+        spread: 80
+      });
+
+      setWorkflowCase(null);
+      setWorkflowAction(null);
+      setReceiveProofFile(null);
+      setReceiveProofPreview(null);
+      await onRefreshData();
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการตรวจรับพัสดุคืนคลัง');
+    } finally {
+      setSubmittingReceive(false);
     }
   };
 
@@ -821,6 +955,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                   <th>อาการเสีย (CM Details)</th>
                   <th style={{ width: '130px' }}>ผู้ทำเรื่องส่งซ่อม</th>
                   <th style={{ width: '110px' }}>สถานะการซ่อม</th>
+                  <th style={{ width: '140px', textAlign: 'right' }}>การจัดการเคส</th>
                 </tr>
               </thead>
               <tbody>
@@ -839,7 +974,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                   if (filteredCM.length === 0) {
                     return (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                           ไม่พบประวัติการแจ้งซ่อม CM ครั้งคราว
                         </td>
                       </tr>
@@ -851,7 +986,21 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       <td>{getThaiDateFormatted(r.dateOpened)}</td>
                       <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{r.assetId}</td>
                       <td><strong>{r.assetName}</strong></td>
-                      <td>{r.symptom}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                          <span>{r.symptom}</span>
+                          {r.symptomImageUrl && (
+                            <a href={r.symptomImageUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.725rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 550 }}>
+                              🖼️ ดูรูปถ่ายอาการเสีย
+                            </a>
+                          )}
+                          {r.dateSent && (
+                            <span style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>
+                              🚚 ร้านซ่อม: {r.repairCompany} (โทร: {r.contactPerson})
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td>👤 {r.operator}</td>
                       <td>
                         <span className={`badge ${
@@ -860,6 +1009,51 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                         }`} style={{ fontSize: '0.725rem' }}>
                           {r.status === 'completed' ? '🟢 ซ่อมสำเร็จ' : (r.status === 'sent' ? '🟡 นำส่งช่าง' : '🔴 รอช่างตรวจ')}
                         </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '0.45rem' }}>
+                          {currentUser?.role !== 'manager' ? (
+                            <>
+                              {r.status === 'open' && (
+                                <button 
+                                  className="btn btn-warning btn-xs"
+                                  onClick={() => {
+                                    setWorkflowCase(r);
+                                    setWorkflowAction('send');
+                                    setRepairVendorName('');
+                                    setRepairContactPhone('');
+                                    setSendProofFile(null);
+                                    setSendProofPreview(null);
+                                  }}
+                                  style={{ padding: '0.2rem 0.5rem', height: 'auto', fontSize: '0.725rem' }}
+                                >
+                                  🚚 นำส่งช่าง
+                                </button>
+                              )}
+                              {r.status === 'sent' && (
+                                <button 
+                                  className="btn btn-success btn-xs"
+                                  onClick={() => {
+                                    setWorkflowCase(r);
+                                    setWorkflowAction('receive');
+                                    setReceiveProofFile(null);
+                                    setReceiveProofPreview(null);
+                                  }}
+                                  style={{ padding: '0.2rem 0.5rem', height: 'auto', fontSize: '0.725rem' }}
+                                >
+                                  ✅ รับของคืน
+                                </button>
+                              )}
+                              {r.status === 'completed' && (
+                                <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--text-muted)' }}>🔒 ปิดเคส</span>
+                              )}
+                            </>
+                          ) : (
+                            <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                              {r.status === 'completed' ? '🔒 ปิดเคส' : '👀 ดูอย่างเดียว'}
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ));
@@ -1277,6 +1471,149 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </button>
               <button type="submit" className="btn btn-danger" disabled={submittingRepair}>
                 {submittingRepair ? 'กำลังประมวลผลบันทึก...' : '🚨 ยืนยันเปิดใบแจ้งซ่อมด่วน'}
+              </button>
+            </div>
+
+          </form>
+        </div>
+      )}
+
+      {/* --- MODAL 5: CM REPAIR DISPATCH (SEND TO VENDOR) --- */}
+      {workflowAction === 'send' && workflowCase && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <form onSubmit={handleSentToVendorSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '520px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>🚚 นำส่งครุภัณฑ์ไปยังช่างซ่อม</h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setWorkflowAction(null)} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>
+                ✕
+              </button>
+            </div>
+
+            <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>หมายเลขเคส: <code>{workflowCase.id}</code></div>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{workflowCase.assetName}</h4>
+              <span style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 650 }}>⚠️ อาการชำรุด: {workflowCase.symptom}</span>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">🏢 บริษัทร้านค้าช่างผู้ดูแลซ่อมแซม</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="เช่น บริษัทแอดไวซ์ ไอที สาขากรุงเทพ, ช่างชาติซ่อมแอร์..."
+                value={repairVendorName}
+                onChange={(e) => setRepairVendorName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">📞 เบอร์โทรศัพท์ช่องทางติดต่อช่างซ่อม</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="เช่น 081-XXXXXXX"
+                value={repairContactPhone}
+                onChange={(e) => setRepairContactPhone(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">📷 ถ่ายรูปหลักฐานการเซ็นส่งของ / ใบรับเคลม (ตัวเลือก)</label>
+              <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.75rem' }}>
+                <input 
+                  type="file" 
+                  id="send-proof-picker"
+                  accept="image/*"
+                  onChange={handleSendProofImageChange}
+                  className="file-hidden-input"
+                />
+                <label htmlFor="send-proof-picker" className="dropzone-label">
+                  {sendProofPreview ? (
+                    <div style={{ maxWidth: '100px', margin: '0 auto' }}>
+                      <img src={sendProofPreview} alt="Send proof preview" style={{ width: '100%', borderRadius: '4px' }} />
+                    </div>
+                  ) : (
+                    <>
+                      <Camera size={24} color="var(--text-muted)" />
+                      <span style={{ fontSize: '0.75rem' }}>ถ่ายใบนำส่งเคลมเก็บเป็นหลักฐานคลาวด์</span>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+
+            <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.25rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setWorkflowAction(null)}>ยกเลิก</button>
+              <button type="submit" className="btn btn-warning" disabled={submittingSend}>
+                {submittingSend ? 'กำลังอัปเดต...' : '🚚 อัปเดตสถานะขนส่งแล้ว'}
+              </button>
+            </div>
+
+          </form>
+        </div>
+      )}
+
+      {/* --- MODAL 6: CM REPAIR RECEIVE (RECEIVE BACK FROM VENDOR) --- */}
+      {workflowAction === 'receive' && workflowCase && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <form onSubmit={handleReceiveSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '520px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>✅ ตรวจรับของคืนคลังและปิดงานซ่อม</h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setWorkflowAction(null)} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>
+                ✕
+              </button>
+            </div>
+
+            <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>หมายเลขเคส: <code>{workflowCase.id}</code></div>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{workflowCase.assetName}</h4>
+              <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 650 }}>🏢 ร้านซ่อม: {workflowCase.repairCompany} (โทร: {workflowCase.contactPerson})</span>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">📅 วันที่ตรวจรับของส่งกลับคืนคลังสำเร็จ</label>
+              <input 
+                type="date" 
+                className="form-input" 
+                value={receiveDate}
+                onChange={(e) => setReceiveDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">📷 ถ่ายรูปทรัพย์สินสภาพหลังเสร็จสมบูรณ์ / ใบเสร็จปิดงาน (ตัวเลือก)</label>
+              <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.75rem' }}>
+                <input 
+                  type="file" 
+                  id="receive-proof-picker"
+                  accept="image/*"
+                  onChange={handleReceiveProofImageChange}
+                  className="file-hidden-input"
+                />
+                <label htmlFor="receive-proof-picker" className="dropzone-label">
+                  {receiveProofPreview ? (
+                    <div style={{ maxWidth: '100px', margin: '0 auto' }}>
+                      <img src={receiveProofPreview} alt="Receive proof preview" style={{ width: '100%', borderRadius: '4px' }} />
+                    </div>
+                  ) : (
+                    <>
+                      <Camera size={24} color="var(--text-muted)" />
+                      <span style={{ fontSize: '0.75rem' }}>ถ่ายสภาพของที่รับคืนเพื่อปิดเคส</span>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+
+            <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.25rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setWorkflowAction(null)}>ยกเลิก</button>
+              <button type="submit" className="btn btn-success" disabled={submittingReceive}>
+                {submittingReceive ? 'กำลังตรวจรับของ...' : '✅ ตรวจรับ & ปิดเคสสำเร็จ'}
               </button>
             </div>
 

@@ -46,7 +46,6 @@ import { Module2_ScanSurvey } from './modules/Module2_ScanSurvey';
 import { Module3_AddAsset } from './modules/Module3_AddAsset';
 import { Module4_Dispose } from './modules/Module4_Dispose';
 import { Module5_Transfer } from './modules/Module5_Transfer';
-import { Module5_Repair } from './modules/Module5_Repair';
 import { Module6_AuditTrail } from './modules/Module6_AuditTrail';
 import { Module7_Settings } from './modules/Module7_Settings';
 import { Module8_Departments } from './modules/Module8_Departments';
@@ -1086,21 +1085,11 @@ function App() {
                 onAddPMSchedule={handleAddPMSchedule}
                 onUpdatePMSchedule={handleUpdatePMSchedule}
                 onAddRepair={handleAddRepair}
-                onUpdateAssetStatus={handleUpdateAssetStatus}
-                onLogAudit={handleLogAudit}
-                currentUser={currentUser}
-                onRefreshData={fetchAllData}
-              />
-            )}
-            {currentTab === 'module5_repair' && (
-              <Module5_Repair 
-                assets={assets}
-                repairs={repairs}
-                onAddRepair={handleAddRepair}
                 onUpdateRepair={handleUpdateRepair}
                 onUpdateAssetStatus={handleUpdateAssetStatus}
                 onLogAudit={handleLogAudit}
                 currentUser={currentUser}
+                onRefreshData={fetchAllData}
               />
             )}
             {currentTab === 'module6' && (
