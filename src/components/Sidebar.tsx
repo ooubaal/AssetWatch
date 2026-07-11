@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   Building,
-  Lock
+  Lock,
+  Calendar
 } from 'lucide-react';
 import { UserAccount } from '../utils/mockData';
 
@@ -65,6 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }
 
   menuItems.push(
+    { id: 'module10_pm', label: 'บำรุงรักษา (PM/CM)', icon: Calendar },
     { id: 'module5_repair', label: 'ประวัติการส่งซ่อม', icon: Wrench },
     { id: 'module6', label: 'ประวัติกิจกรรม (Audit)', icon: History }
   );

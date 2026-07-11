@@ -381,3 +381,48 @@ h1, h2, h3, h4, h5, h6 {
     max-width: 100% !important;
   }
 }
+
+/* --- Preventive & Corrective Maintenance (PM/CM) Styles --- */
+.calendar-day-cell {
+  transition: all var(--transition-fast);
+}
+.calendar-day-cell:not(.empty):hover {
+  background-color: var(--bg-tertiary) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.calendar-schedule-tag {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.calendar-schedule-tag:hover {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-sm);
+}
+
+.notification-card-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.notification-card-item:hover {
+  transform: translateX(3px);
+  box-shadow: var(--shadow-sm);
+}
+
+.top-header-bar {
+  backdrop-filter: var(--glass-backdrop);
+}
+.notifications-dropdown-menu {
+  background-color: var(--bg-secondary) !important;
+  border-radius: var(--radius-md) !important;
+  animation: slideDown var(--transition-fast) forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

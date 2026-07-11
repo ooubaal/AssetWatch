@@ -12,7 +12,7 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS, INITIAL_USERS } from '../utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, PMContract, PMSchedule, PMNotification, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS, INITIAL_USERS, INITIAL_CONTRACTS, INITIAL_SCHEDULES, INITIAL_NOTIFICATIONS } from '../utils/mockData';
 
 // Helper to check if we are using Firebase
 const getServices = () => {
@@ -43,6 +43,15 @@ const initLocalStorageIfNeeded = () => {
   }
   if (!localStorage.getItem('assetwatch_departments')) {
     localStorage.setItem('assetwatch_departments', JSON.stringify(INITIAL_DEPARTMENTS));
+  }
+  if (!localStorage.getItem('assetwatch_contracts')) {
+    localStorage.setItem('assetwatch_contracts', JSON.stringify(INITIAL_CONTRACTS));
+  }
+  if (!localStorage.getItem('assetwatch_schedules')) {
+    localStorage.setItem('assetwatch_schedules', JSON.stringify(INITIAL_SCHEDULES));
+  }
+  if (!localStorage.getItem('assetwatch_pm_notifications')) {
+    localStorage.setItem('assetwatch_pm_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
   }
   if (!localStorage.getItem('assetwatch_survey_rounds')) {
     const defaultActiveRound: SurveyRound = {
@@ -862,4 +871,250 @@ export const deleteUser = async (id: string): Promise<void> => {
   const users: UserAccount[] = JSON.parse(localStorage.getItem('assetwatch_users') || '[]');
   const filtered = users.filter(u => u.id !== id);
   localStorage.setItem('assetwatch_users', JSON.stringify(filtered));
+};
+
+// --- PM CONTRACT SERVICES ---
+export const getPMContracts = async (): Promise<PMContract[]> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const q = query(collection(db, 'pm_contracts'));
+      const snapshot = await getDocs(q);
+      const list: PMContract[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as PMContract);
+      });
+
+      if (list.length === 0) {
+        initLocalStorageIfNeeded();
+        const localContracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+        for (const contract of localContracts) {
+          await setDoc(doc(db, 'pm_contracts', contract.id), contract);
+        }
+        return localContracts;
+      }
+      return list;
+    } catch (e) {
+      console.error('Firebase getPMContracts failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  return JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+};
+
+export const addPMContract = async (contract: PMContract): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      await setDoc(doc(db, 'pm_contracts', contract.id), contract);
+      return;
+    } catch (e) {
+      console.error('Firebase addPMContract failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  const contracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+  contracts.push(contract);
+  localStorage.setItem('assetwatch_contracts', JSON.stringify(contracts));
+};
+
+export const updatePMContract = async (id: string, updates: Partial<PMContract>): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      await updateDoc(doc(db, 'pm_contracts', id), updates);
+      return;
+    } catch (e) {
+      console.error('Firebase updatePMContract failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  const contracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+  const index = contracts.findIndex(c => c.id === id);
+  if (index !== -1) {
+    contracts[index] = { ...contracts[index], ...updates };
+    localStorage.setItem('assetwatch_contracts', JSON.stringify(contracts));
+  }
+};
+
+export const deletePMContract = async (id: string): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      await deleteDoc(doc(db, 'pm_contracts', id));
+      return;
+    } catch (e) {
+      console.error('Firebase deletePMContract failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  const contracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+  const filtered = contracts.filter(c => c.id !== id);
+  localStorage.setItem('assetwatch_contracts', JSON.stringify(filtered));
+};
+
+// --- PM SCHEDULE SERVICES ---
+export const getPMSchedules = async (): Promise<PMSchedule[]> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const q = query(collection(db, 'pm_schedules'));
+      const snapshot = await getDocs(q);
+      const list: PMSchedule[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as PMSchedule);
+      });
+
+      if (list.length === 0) {
+        initLocalStorageIfNeeded();
+        const localSchedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
+        for (const sched of localSchedules) {
+          await setDoc(doc(db, 'pm_schedules', sched.id), sched);
+        }
+        return localSchedules;
+      }
+      return list;
+    } catch (e) {
+      console.error('Firebase getPMSchedules failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  return JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
+};
+
+export const addPMSchedule = async (schedule: PMSchedule): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      await setDoc(doc(db, 'pm_schedules', schedule.id), schedule);
+      return;
+    } catch (e) {
+      console.error('Firebase addPMSchedule failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  const schedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
+  schedules.push(schedule);
+  localStorage.setItem('assetwatch_schedules', JSON.stringify(schedules));
+};
+
+export const updatePMSchedule = async (id: string, updates: Partial<PMSchedule>): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      await updateDoc(doc(db, 'pm_schedules', id), updates);
+      return;
+    } catch (e) {
+      console.error('Firebase updatePMSchedule failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  const schedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
+  const index = schedules.findIndex(s => s.id === id);
+  if (index !== -1) {
+    schedules[index] = { ...schedules[index], ...updates };
+    localStorage.setItem('assetwatch_schedules', JSON.stringify(schedules));
+  }
+};
+
+// --- PM NOTIFICATION SERVICES ---
+export const getPMNotifications = async (): Promise<PMNotification[]> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      const q = query(collection(db, 'pm_notifications'));
+      const snapshot = await getDocs(q);
+      const list: PMNotification[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as PMNotification);
+      });
+
+      if (list.length === 0) {
+        initLocalStorageIfNeeded();
+        const localNotifications: PMNotification[] = JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
+        for (const notif of localNotifications) {
+          await setDoc(doc(db, 'pm_notifications', notif.id), notif);
+        }
+        return localNotifications;
+      }
+      return list;
+    } catch (e) {
+      console.error('Firebase getPMNotifications failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  return JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
+};
+
+export const addPMNotification = async (notification: PMNotification): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      await setDoc(doc(db, 'pm_notifications', notification.id), notification);
+      return;
+    } catch (e) {
+      console.error('Firebase addPMNotification failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  const notifications: PMNotification[] = JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
+  notifications.push(notification);
+  localStorage.setItem('assetwatch_pm_notifications', JSON.stringify(notifications));
+};
+
+export const updatePMNotification = async (id: string, updates: Partial<PMNotification>): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      await updateDoc(doc(db, 'pm_notifications', id), updates);
+      return;
+    } catch (e) {
+      console.error('Firebase updatePMNotification failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  const notifications: PMNotification[] = JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
+  const index = notifications.findIndex(n => n.id === id);
+  if (index !== -1) {
+    notifications[index] = { ...notifications[index], ...updates };
+    localStorage.setItem('assetwatch_pm_notifications', JSON.stringify(notifications));
+  }
+};
+
+export const deletePMNotification = async (id: string): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      await deleteDoc(doc(db, 'pm_notifications', id));
+      return;
+    } catch (e) {
+      console.error('Firebase deletePMNotification failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  const notifications: PMNotification[] = JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
+  const filtered = notifications.filter(n => n.id !== id);
+  localStorage.setItem('assetwatch_pm_notifications', JSON.stringify(filtered));
 };

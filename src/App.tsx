@@ -26,7 +26,18 @@ import {
   deleteDepartment,
   getUsers,
   addOrUpdateUser,
-  deleteUser
+  deleteUser,
+  getPMContracts,
+  addPMContract,
+  updatePMContract,
+  deletePMContract,
+  getPMSchedules,
+  addPMSchedule,
+  updatePMSchedule,
+  getPMNotifications,
+  addPMNotification,
+  updatePMNotification,
+  deletePMNotification
 } from './services/dbService';
 
 // Module Components
@@ -40,9 +51,10 @@ import { Module6_AuditTrail } from './modules/Module6_AuditTrail';
 import { Module7_Settings } from './modules/Module7_Settings';
 import { Module8_Departments } from './modules/Module8_Departments';
 import { Module9_AccessControl } from './modules/Module9_AccessControl';
+import { Module10_Maintenance } from './modules/Module10_Maintenance';
 
-import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS } from './utils/mockData';
-import { X, Camera, AlertCircle, Lock } from 'lucide-react';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS, PMContract, PMSchedule, PMNotification } from './utils/mockData';
+import { X, Camera, AlertCircle, Lock, Bell } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
 function App() {
@@ -69,6 +81,13 @@ function App() {
   const [activeRound, setActiveRound] = useState<SurveyRound | null>(null);
   const [departments, setDepartments] = useState<DepartmentLocationConfig[]>([]);
   const [users, setUsers] = useState<UserAccount[]>([]);
+  
+  // PM & CM States
+  const [contracts, setContracts] = useState<PMContract[]>([]);
+  const [schedules, setSchedules] = useState<PMSchedule[]>([]);
+  const [pmNotifications, setPmNotifications] = useState<PMNotification[]>([]);
+  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
+
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
     const saved = localStorage.getItem('assetwatch_session');
     if (saved) {
@@ -107,6 +126,43 @@ function App() {
     localStorage.setItem('assetwatch_theme', theme);
   }, [theme]);
 
+  // Automated PM/CM alert check
+  const checkAndGeneratePMNotifications = async (scheds: PMSchedule[], notifs: PMNotification[]) => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    const warningLimit = new Date();
+    warningLimit.setDate(warningLimit.getDate() + 7);
+    const warningLimitStr = warningLimit.toISOString().split('T')[0];
+
+    for (const s of scheds) {
+      if (s.status === 'pending') {
+        const isOverdue = s.plannedDate < todayStr;
+        const isUpcoming = s.plannedDate >= todayStr && s.plannedDate <= warningLimitStr;
+
+        if (isOverdue || isUpcoming) {
+          const notifType = isOverdue ? 'pm_overdue' : 'pm_upcoming';
+          const exists = notifs.some(n => n.type === notifType && n.message.includes(s.assetId));
+          
+          if (!exists) {
+            const newNotif: PMNotification = {
+              id: `notif-${Date.now()}-${s.id}`,
+              title: isOverdue ? `🔴 แผน PM เลยกำหนดตรวจเช็ค (${s.assetId})` : `📅 ใกล้ถึงกำหนดบำรุงรักษา PM (${s.assetId})`,
+              message: isOverdue 
+                ? `ครุภัณฑ์ ${s.assetName} รหัส ${s.assetId} เลยกำหนดเข้าตรวจบำรุงรักษา PM เมื่อวันที่ ${s.plannedDate}`
+                : `ครุภัณฑ์ ${s.assetName} รหัส ${s.assetId} มีแผนเข้าตรวจบำรุงรักษา PM ในวันที่ ${s.plannedDate}`,
+              targetDate: todayStr,
+              isRead: false,
+              type: notifType,
+              linkTo: 'module10_pm'
+            };
+            await addPMNotification(newNotif);
+          }
+        }
+      }
+    }
+  };
+
   // Load all data from Firestore/LocalStorage
   const fetchAllData = async () => {
     try {
@@ -117,6 +173,9 @@ function App() {
       const allRounds = await getSurveyRounds();
       const allDepts = await getDepartments();
       const allUsers = await getUsers();
+      const allContracts = await getPMContracts();
+      const allSchedules = await getPMSchedules();
+      const allPMNotifs = await getPMNotifications();
 
       setAssets(allAssets);
       setAudits(allAudits);
@@ -125,9 +184,14 @@ function App() {
       setRounds(allRounds);
       setDepartments(allDepts);
       setUsers(allUsers);
-      setSurveys(allSurveys);
-      setRounds(allRounds);
-      setDepartments(allDepts);
+      setContracts(allContracts);
+      setSchedules(allSchedules);
+      setPmNotifications(allPMNotifs);
+
+      // Automated check and notification generation
+      await checkAndGeneratePMNotifications(allSchedules, allPMNotifs);
+      const updatedPMNotifs = await getPMNotifications();
+      setPmNotifications(updatedPMNotifs);
 
       const active = allRounds.find(r => r.status === 'active');
       setActiveRound(active || null);
@@ -232,6 +296,37 @@ function App() {
 
   const handleDeleteUser = async (id: string) => {
     await deleteUser(id);
+    await fetchAllData();
+  };
+
+  // --- PM & CM MAINTENANCE HANDLERS ---
+  const handleAddContract = async (contract: PMContract) => {
+    await addPMContract(contract);
+    await fetchAllData();
+  };
+
+  const handleUpdateContract = async (id: string, updates: Partial<PMContract>) => {
+    await updatePMContract(id, updates);
+    await fetchAllData();
+  };
+
+  const handleDeleteContract = async (id: string) => {
+    await deletePMContract(id);
+    await fetchAllData();
+  };
+
+  const handleAddPMSchedule = async (schedule: PMSchedule) => {
+    await addPMSchedule(schedule);
+    await fetchAllData();
+  };
+
+  const handleUpdatePMSchedule = async (id: string, updates: Partial<PMSchedule>) => {
+    await updatePMSchedule(id, updates);
+    await fetchAllData();
+  };
+
+  const handleUpdatePMNotification = async (id: string, updates: Partial<PMNotification>) => {
+    await updatePMNotification(id, updates);
     await fetchAllData();
   };
 
@@ -787,6 +882,132 @@ function App() {
 
           {/* Main Content Area */}
           <main className="main-content">
+            
+            {/* Top Bar for Desktop/Mobile Notifications */}
+            <div className="top-header-bar glass-panel" style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              padding: '0.5rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '1.25rem',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-secondary)',
+              position: 'relative'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {/* Notification Bell */}
+                <button 
+                  onClick={() => setIsNotifDrawerOpen(!isNotifDrawerOpen)}
+                  className="btn btn-ghost" 
+                  style={{
+                    position: 'relative',
+                    padding: '0.4rem',
+                    height: 'auto',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-primary)',
+                    borderRadius: '50%'
+                  }}
+                  title="การแจ้งเตือนบำรุงรักษา"
+                >
+                  <Bell size={16} />
+                  {pmNotifications.filter(n => !n.isRead).length > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      background: 'var(--danger)',
+                      color: 'white',
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      borderRadius: '50%',
+                      width: '16px',
+                      height: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 0 0 2px var(--bg-secondary)'
+                    }}>
+                      {pmNotifications.filter(n => !n.isRead).length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notifications Dropdown Drawer */}
+                {isNotifDrawerOpen && (
+                  <div className="notifications-dropdown-menu glass-panel" style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: '0',
+                    marginTop: '0.5rem',
+                    width: '320px',
+                    maxHeight: '400px',
+                    overflowY: 'auto',
+                    zIndex: 999,
+                    padding: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    border: '1px solid var(--border)',
+                    boxShadow: 'var(--shadow-lg)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.35rem' }}>
+                      <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>🔔 การแจ้งเตือนบำรุงรักษา ({pmNotifications.filter(n => !n.isRead).length})</h4>
+                      {pmNotifications.filter(n => !n.isRead).length > 0 && (
+                        <button 
+                          className="btn btn-ghost btn-xs" 
+                          onClick={async () => {
+                            for (const n of pmNotifications) {
+                              if (!n.isRead) {
+                                await handleUpdatePMNotification(n.id, { isRead: true });
+                              }
+                            }
+                          }}
+                          style={{ fontSize: '0.7rem', padding: '0 0.25rem' }}
+                        >
+                          อ่านทั้งหมด
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {pmNotifications.length === 0 ? (
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem 0' }}>
+                          ไม่มีแจ้งเตือนบำรุงรักษา
+                        </div>
+                      ) : (
+                        pmNotifications.map(notif => (
+                          <div 
+                            key={notif.id} 
+                            onClick={async () => {
+                              if (!notif.isRead) {
+                                await handleUpdatePMNotification(notif.id, { isRead: true });
+                              }
+                              setCurrentTab('module10_pm');
+                              setIsNotifDrawerOpen(false);
+                            }}
+                            style={{
+                              background: notif.isRead ? 'transparent' : 'rgba(59, 130, 246, 0.05)',
+                              border: '1px solid var(--border)',
+                              padding: '0.6rem 0.75rem',
+                              borderRadius: 'var(--radius-sm)',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem', fontWeight: 700 }}>
+                              <span>{notif.title}</span>
+                              {!notif.isRead && <span style={{ width: '6px', height: '6px', background: 'var(--primary)', borderRadius: '50%' }}></span>}
+                            </div>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.35 }}>{notif.message}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {currentTab === 'dashboard' && (
               <Dashboard 
                 assets={assets} 
@@ -850,6 +1071,25 @@ function App() {
                 onLogAudit={handleLogAudit}
                 departments={departments}
                 currentUser={currentUser}
+              />
+            )}
+            {currentTab === 'module10_pm' && (
+              <Module10_Maintenance 
+                assets={assets}
+                repairs={repairs}
+                contracts={contracts}
+                schedules={schedules}
+                notifications={pmNotifications}
+                onAddContract={handleAddContract}
+                onUpdateContract={handleUpdateContract}
+                onDeleteContract={handleDeleteContract}
+                onAddPMSchedule={handleAddPMSchedule}
+                onUpdatePMSchedule={handleUpdatePMSchedule}
+                onAddRepair={handleAddRepair}
+                onUpdateAssetStatus={handleUpdateAssetStatus}
+                onLogAudit={handleLogAudit}
+                currentUser={currentUser}
+                onRefreshData={fetchAllData}
               />
             )}
             {currentTab === 'module5_repair' && (

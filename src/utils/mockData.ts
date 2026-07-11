@@ -277,3 +277,138 @@ export const INITIAL_USERS: UserAccount[] = [
   }
 ];
 
+export interface PMContract {
+  id: string;
+  contractNumber: string;
+  title: string;
+  vendorName: string;
+  startDate: string;
+  endDate: string;
+  pmFrequency: 'monthly' | 'quarterly' | 'semi-annually' | 'annually';
+  assetIds: string[];
+  contactPerson: string;
+  contactPhone: string;
+}
+
+export interface PMSchedule {
+  id: string;
+  contractId: string;
+  assetId: string;
+  assetName: string;
+  plannedDate: string;
+  status: 'pending' | 'completed' | 'overdue';
+  completedDate?: string;
+  details?: string;
+  operator?: string;
+  proofImageUrl?: string;
+  notes?: string;
+}
+
+export interface PMNotification {
+  id: string;
+  title: string;
+  message: string;
+  targetDate: string;
+  isRead: boolean;
+  type: 'pm_upcoming' | 'pm_overdue' | 'repair_alert';
+  linkTo: string;
+}
+
+export const INITIAL_CONTRACTS: PMContract[] = [
+  {
+    id: "contract-1",
+    contractNumber: "PM-IT-2569-01",
+    title: "สัญญาจ้างบริการซ่อมบำรุงรักษาคอมพิวเตอร์และเครื่องพิมพ์ประจำปี",
+    vendorName: "บริษัท ซิสเต็มส์เซอร์วิส แอนด์ โซลูชัน จำกัด",
+    startDate: "2026-01-01",
+    endDate: "2026-12-31",
+    pmFrequency: "quarterly",
+    assetIds: ["6901-001-0001", "6901-003-0044"],
+    contactPerson: "คุณอนุรักษ์ ไอทีแมน",
+    contactPhone: "089-123-4567"
+  },
+  {
+    id: "contract-2",
+    contractNumber: "PM-AC-2569-02",
+    title: "สัญญาจ้างบริการบำรุงรักษาและล้างเครื่องปรับอากาศประจำปี",
+    vendorName: "บริษัท ไทยคูลลิ่ง เซอร์วิส จำกัด",
+    startDate: "2026-01-01",
+    endDate: "2026-12-31",
+    pmFrequency: "semi-annually",
+    assetIds: ["6901-001-0002"],
+    contactPerson: "ช่างสมยศ ลมเย็น",
+    contactPhone: "081-987-6543"
+  }
+];
+
+export const INITIAL_SCHEDULES: PMSchedule[] = [
+  {
+    id: "sched-1",
+    contractId: "contract-1",
+    assetId: "6901-001-0001",
+    assetName: "คอมพิวเตอร์ All-in-One Dell Inspiron 5415",
+    plannedDate: "2026-03-15",
+    status: "completed",
+    completedDate: "2026-03-14",
+    details: "1. เป่าฝุ่นทำความสะอาดอุปกรณ์ฮาร์ดแวร์ภายนอก\n2. ตรวจสอบสถานะการเชื่อมต่อเครือข่าย\n3. อัปเดตแพตช์ความปลอดภัยระบบปฏิบัติการ Windows ล่าสุด",
+    operator: "เจ้าหน้าที่ไอที",
+    proofImageUrl: "https://images.unsplash.com/photo-1588508065123-287b28e013da?w=600&auto=format&fit=crop&q=60",
+    notes: "เครื่องทำงานได้ปกติดี พัดลมระบายความร้อนเสียงไม่ดัง"
+  },
+  {
+    id: "sched-2",
+    contractId: "contract-1",
+    assetId: "6901-001-0001",
+    assetName: "คอมพิวเตอร์ All-in-One Dell Inspiron 5415",
+    plannedDate: "2026-06-15",
+    status: "completed",
+    completedDate: "2026-06-12",
+    details: "1. สแกนตรวจสอบมัลแวร์และไวรัสในระบบ\n2. ตรวจเช็คพื้นที่จัดเก็บ SSD\n3. ล้างทำความสะอาดแผงคีย์บอร์ดและหน้าจอ",
+    operator: "เจ้าหน้าที่ไอที",
+    proofImageUrl: "https://images.unsplash.com/photo-1588508065123-287b28e013da?w=600&auto=format&fit=crop&q=60",
+    notes: "ลบไฟล์ขยะเพิ่มพื้นที่ได้ 45GB"
+  },
+  {
+    id: "sched-3",
+    contractId: "contract-1",
+    assetId: "6901-001-0001",
+    assetName: "คอมพิวเตอร์ All-in-One Dell Inspiron 5415",
+    plannedDate: "2026-09-15",
+    status: "pending"
+  },
+  {
+    id: "sched-4",
+    contractId: "contract-2",
+    assetId: "6901-001-0002",
+    assetName: "เครื่องปรับอากาศ Daikin Inverter 18,000 BTU",
+    plannedDate: "2026-05-10",
+    status: "completed",
+    completedDate: "2026-05-09",
+    details: "1. ล้างแผ่นกรองอากาศ (Filter)\n2. วัดระดับน้ำยาแอร์ (R32) และเติมส่วนขาด\n3. ล้างคอยล์ร้อนคอยล์เย็น",
+    operator: "เจ้าหน้าที่บริหารทั่วไป",
+    proofImageUrl: "https://images.unsplash.com/photo-1621905252507-b354bc25edac?w=600&auto=format&fit=crop&q=60",
+    notes: "กระแสไฟและน้ำยาอยู่ในเกณฑ์ปกติ ลมเย็นฉ่ำดี"
+  },
+  {
+    id: "sched-5",
+    contractId: "contract-2",
+    assetId: "6901-001-0002",
+    assetName: "เครื่องปรับอากาศ Daikin Inverter 18,000 BTU",
+    plannedDate: "2026-11-10",
+    status: "pending"
+  }
+];
+
+export const INITIAL_NOTIFICATIONS: PMNotification[] = [
+  {
+    id: "notif-1",
+    title: "📅 มีกำหนดการบำรุงรักษาคอมพิวเตอร์ (Dell AIO)",
+    message: "ครุภัณฑ์รหัส 6901-001-0001 มีแผนกำหนดเข้าทำ PM ไตรมาสที่ 3 ในวันที่ 2026-09-15 โปรดนัดหมายบริษัทช่างรับจ้างเข้าดำเนินการ",
+    targetDate: "2026-09-08",
+    isRead: false,
+    type: "pm_upcoming",
+    linkTo: "pm_cm"
+  }
+];
+
+
