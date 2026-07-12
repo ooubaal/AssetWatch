@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert } from 'lucide-react';
-import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount } from '../utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
 
 interface Module1DatabaseProps {
@@ -8,6 +8,7 @@ interface Module1DatabaseProps {
   audits: AuditTrail[];
   repairs: RepairCase[];
   surveys: SurveyRecord[];
+  schedules: PMSchedule[];
   onAssetEdit: (asset: Asset) => void;
   currentUser: UserAccount | null;
 }
@@ -17,6 +18,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   audits,
   repairs,
   surveys,
+  schedules,
   onAssetEdit,
   currentUser
 }) => {
@@ -253,6 +255,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           audits={audits}
           repairs={repairs}
           surveys={surveys}
+          schedules={schedules}
         />
       )}
 

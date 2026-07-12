@@ -13,7 +13,7 @@ import {
   Download,
   AlertCircle
 } from 'lucide-react';
-import { Asset, AuditTrail, SurveyRecord, RepairCase } from '../utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, PMSchedule } from '../utils/mockData';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface AssetModalProps {
@@ -23,6 +23,7 @@ interface AssetModalProps {
   audits: AuditTrail[];
   repairs: RepairCase[];
   surveys: SurveyRecord[];
+  schedules?: PMSchedule[];
 }
 
 export const AssetModal: React.FC<AssetModalProps> = ({
@@ -31,7 +32,8 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   onEditClick,
   audits,
   repairs,
-  surveys
+  surveys,
+  schedules = []
 }) => {
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'repairs' | 'surveys'>('info');
 
@@ -39,6 +41,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   const assetAudits = audits.filter(a => a.assetId === asset.id);
   const assetRepairs = repairs.filter(r => r.assetId === asset.id);
   const assetSurveys = surveys.filter(s => s.assetId === asset.id);
+  const assetPMSchedules = schedules.filter(s => s.assetId === asset.id);
 
   // Status badging styles
   const statusColors: Record<string, string> = {
@@ -144,7 +147,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
             className={`modal-tab-btn ${activeTab === 'repairs' ? 'tab-active' : ''}`}
             onClick={() => setActiveTab('repairs')}
           >
-            <Wrench size={16} /> บันทึกการส่งซ่อม ({assetRepairs.length})
+            <Wrench size={16} /> ประวัติซ่อมบำรุง ({assetRepairs.length + assetPMSchedules.length})
           </button>
           <button 
             className={`modal-tab-btn ${activeTab === 'surveys' ? 'tab-active' : ''}`}
@@ -305,45 +308,112 @@ export const AssetModal: React.FC<AssetModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: Repair cases list */}
+          {/* TAB 3: Repair & Maintenance cases list */}
           {activeTab === 'repairs' && (
-            <div className="modal-repairs-layout">
-              {assetRepairs.length === 0 ? (
-                <div className="empty-tab-state">
-                  <AlertCircle size={28} />
-                  <p>ไม่มีรายการแจ้งซ่อมครุภัณฑ์นี้ในอดีต</p>
-                </div>
-              ) : (
-                assetRepairs.map((item) => (
-                  <div key={item.id} className="repair-log-card">
-                    <div className="repair-log-header">
-                      <span className={`badge ${
-                        item.status === 'open' ? 'badge-danger' : 
-                        item.status === 'sent' ? 'badge-warning' : 'badge-success'
-                      }`}>
-                        {item.status === 'open' ? 'เคสใหม่' : 
-                         item.status === 'sent' ? 'ส่งช่างซ่อม' : 'ปิดงานสำเร็จ'}
-                      </span>
-                      <span className="repair-log-id">เคส: <code>{item.id}</code></span>
-                    </div>
-                    
-                    <div className="repair-log-desc">
-                      <p><strong>อาการชำรุด:</strong> {item.symptom}</p>
-                      <p><strong>ผู้แจ้งซ่อม:</strong> {item.operator} ({item.dateOpened})</p>
+            <div className="modal-repairs-layout" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '420px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+              
+              {/* SECTION A: Preventive Maintenance (PM) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '0.35rem', margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Calendar size={14} /> 🔧 ประวัติการบำรุงรักษาเชิงป้องกัน (PM)
+                </h4>
+                
+                {assetPMSchedules.length === 0 ? (
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0.25rem 0 0.75rem 0.5rem' }}>
+                    ไม่มีประวัติการบำรุงรักษาเชิงป้องกัน (PM)
+                  </p>
+                ) : (
+                  assetPMSchedules.map((item) => {
+                    let statusColor = 'var(--warning)';
+                    let statusLabel = 'รอดำเนินการ';
+                    if (item.status === 'completed') {
+                      statusColor = 'var(--success)';
+                      statusLabel = 'เสร็จสมบูรณ์';
+                    } else if (item.status === 'postponed') {
+                      statusColor = '#d97706';
+                      statusLabel = 'เลื่อนการตรวจ';
+                    } else if (item.status === 'awaiting_repair') {
+                      statusColor = 'var(--danger)';
+                      statusLabel = 'พบปัญหา/รอซ่อม';
+                    }
+
+                    const formatThaiDate = (dateStr: string) => {
+                      if (!dateStr) return '';
+                      const parts = dateStr.split('-');
+                      if (parts.length !== 3) return dateStr;
+                      const year = parseInt(parts[0]) + 543;
+                      const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                      const month = months[parseInt(parts[1]) - 1];
+                      const day = parseInt(parts[2]);
+                      return `${day} ${month} ${year}`;
+                    };
+
+                    return (
+                      <div key={item.id} className="repair-log-card" style={{ padding: '0.8rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                          <span className="badge" style={{ background: statusColor, color: '#fff', fontSize: '0.675rem', padding: '0.15rem 0.4rem' }}>
+                            {statusLabel}
+                          </span>
+                          <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                            รอบกำหนด PM: {formatThaiDate(item.plannedDate)}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          {item.completedDate && <div>📅 <strong>วันที่ดำเนินการจริง:</strong> {formatThaiDate(item.completedDate)}</div>}
+                          {item.operator && <div>👤 <strong>ผู้ปฏิบัติงาน:</strong> {item.operator}</div>}
+                          {item.details && <div>📝 <strong>รายละเอียดตรวจเช็ค:</strong> <span style={{ whiteSpace: 'pre-line' }}>{item.details}</span></div>}
+                          {item.notes && <div>💬 <strong>หมายเหตุเพิ่มเติม:</strong> {item.notes}</div>}
+                          {item.nextPMNotes && <div style={{ color: '#d97706' }}>⏰ <strong>โน๊ตฝากถึงรอบถัดไป:</strong> {item.nextPMNotes}</div>}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* SECTION B: Corrective Maintenance (CM) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.5rem' }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '0.35rem', margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Wrench size={14} /> 🛠️ ประวัติการแจ้งซ่อมครุภัณฑ์ (CM)
+                </h4>
+                
+                {assetRepairs.length === 0 ? (
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0.25rem 0 0 0.5rem' }}>
+                    ไม่มีประวัติการส่งซ่อมครุภัณฑ์ (CM)
+                  </p>
+                ) : (
+                  assetRepairs.map((item) => (
+                    <div key={item.id} className="repair-log-card" style={{ padding: '0.8rem' }}>
+                      <div className="repair-log-header" style={{ marginBottom: '0.4rem' }}>
+                        <span className={`badge ${
+                          item.status === 'open' ? 'badge-danger' : 
+                          item.status === 'sent' ? 'badge-warning' : 'badge-success'
+                        }`} style={{ fontSize: '0.675rem', padding: '0.15rem 0.4rem' }}>
+                          {item.status === 'open' ? 'เคสใหม่' : 
+                           item.status === 'sent' ? 'ส่งช่างซ่อม' : 'ปิดงานสำเร็จ'}
+                        </span>
+                        <span className="repair-log-id">รหัสซ่อม: <code>{item.id}</code></span>
+                      </div>
                       
-                      {item.repairCompany && (
-                        <p><strong>ร้านที่ส่งซ่อม:</strong> {item.repairCompany} ({item.contactPerson || '-'})</p>
-                      )}
-                      
-                      {item.dateReceived && (
-                        <p className="return-note">
-                          ✅ <strong>รับของคืนเมื่อ:</strong> {item.dateReceived}
-                        </p>
-                      )}
+                      <div className="repair-log-desc" style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                        <div><strong>อาการชำรุด:</strong> {item.symptom}</div>
+                        <div><strong>ผู้แจ้งซ่อม:</strong> {item.operator} ({item.dateOpened})</div>
+                        
+                        {item.repairCompany && (
+                          <div><strong>ร้านที่ส่งซ่อม:</strong> {item.repairCompany} ({item.contactPerson || '-'})</div>
+                        )}
+                        
+                        {item.dateReceived && (
+                          <div className="return-note" style={{ marginTop: '0.15rem' }}>
+                            ✅ <strong>รับของคืนเมื่อ:</strong> {item.dateReceived}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
+
             </div>
           )}
 

@@ -1045,6 +1045,7 @@ function App() {
                 audits={audits}
                 repairs={repairs}
                 surveys={surveys}
+                schedules={schedules}
                 onAssetEdit={handleStartEditAsset}
                 currentUser={currentUser}
               />
