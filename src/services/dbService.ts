@@ -147,10 +147,14 @@ export const compressImage = (file: File, maxWidth = 1280, maxHeight = 1280, qua
 export const uploadImage = async (file: File, path: string = 'assets'): Promise<string> => {
   const { isFirebase, storage } = getServices();
   
-  // Compress image to ~1024px to prevent Out of Memory on mobile and speed up uploading
+  // Compress image to prevent Out of Memory on mobile and speed up uploading
   let processedFile = file;
   try {
-    processedFile = await compressImage(file);
+    // If it is a PM proof photo, compress aggressively to ~800px at 0.6 quality to keep DB size minimal
+    // For general assets, use 1024px at 0.7 quality
+    const targetSize = path === 'pm_proofs' ? 800 : 1024;
+    const targetQuality = path === 'pm_proofs' ? 0.6 : 0.7;
+    processedFile = await compressImage(file, targetSize, targetSize, targetQuality);
   } catch (err) {
     console.error('Image compression failed, using original file:', err);
   }
@@ -160,11 +164,22 @@ export const uploadImage = async (file: File, path: string = 'assets'): Promise<
   if (isFirebase && storage && !forceBase64) {
     try {
       const storageRef = ref(storage, `${path}/${Date.now()}_${processedFile.name}`);
-      const snapshot = await uploadBytes(storageRef, processedFile);
+      
+      // Setup an 8-second timeout promise to prevent hanging on slow/blocked connections
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Firebase Storage upload timed out after 8s')), 8000)
+      );
+
+      // Race uploadBytes against the timeout
+      const snapshot = await Promise.race([
+        uploadBytes(storageRef, processedFile),
+        timeoutPromise
+      ]) as any;
+
       const url = await getDownloadURL(snapshot.ref);
       return url;
     } catch (e) {
-      console.error('Firebase Storage upload failed, falling back to base64:', e);
+      console.error('Firebase Storage upload failed or timed out, falling back to base64:', e);
     }
   }
 
