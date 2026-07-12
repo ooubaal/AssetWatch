@@ -209,15 +209,15 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   // Open PM form
   const handleOpenPMForm = (sched: PMSchedule) => {
     setSelectedSchedule(sched);
-    setCompletedDate(new Date().toISOString().split('T')[0]);
-    setPmDetails(getPresetChecklist(sched.assetName));
-    setPmNotes('');
-    setPmStatus('completed');
-    setNextPMNotes('');
+    setCompletedDate(sched.completedDate || new Date().toISOString().split('T')[0]);
+    setPmDetails(sched.details || getPresetChecklist(sched.assetName));
+    setPmNotes(sched.notes || '');
+    setPmStatus((sched.status === 'pending' ? 'completed' : sched.status) as any);
+    setNextPMNotes(sched.nextPMNotes || '');
     setShouldCreateCM(false);
     setCmSymptom('');
     setProofFile(null);
-    setProofPreview(null);
+    setProofPreview(sched.proofImageUrl || null);
     setIsPMFormOpen(true);
   };
 
@@ -1104,6 +1104,98 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                         ))}
                       </div>
                     </div>
+
+                    {/* PM Schedule Timeline for this specific Contract/Plan */}
+                    {(() => {
+                      const contractSchedules = schedules
+                        .filter(s => s.contractId === contract.id)
+                        .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
+                      
+                      return (
+                        <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.75rem', paddingTop: '0.75rem' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '0.5rem' }}>
+                            📅 กำหนดรอบตรวจเช็ค PM ({contractSchedules.length} รอบ):
+                          </span>
+                          
+                          {contractSchedules.length === 0 ? (
+                            <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                              ยังไม่มีรอบกำหนดการบำรุงรักษา
+                            </span>
+                          ) : (
+                            <div className="custom-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '160px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                              {contractSchedules.map(sched => {
+                                const todayStr = new Date().toISOString().split('T')[0];
+                                const isOverdue = sched.status === 'pending' && sched.plannedDate < todayStr;
+                                
+                                let statusColor = 'var(--warning)';
+                                let label = 'รอดำเนินการ';
+                                if (sched.status === 'completed') {
+                                  statusColor = 'var(--success)';
+                                  label = 'เสร็จสมบูรณ์';
+                                } else if (sched.status === 'postponed') {
+                                  statusColor = '#d97706';
+                                  label = 'เลื่อนการตรวจ';
+                                } else if (sched.status === 'awaiting_repair') {
+                                  statusColor = 'var(--danger)';
+                                  label = 'พบปัญหา/รอส่งซ่อม';
+                                } else if (isOverdue) {
+                                  statusColor = 'var(--danger)';
+                                  label = 'เลยกำหนดตรวจ';
+                                }
+
+                                return (
+                                  <div key={sched.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-primary)', padding: '0.45rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.725rem' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
+                                        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{getThaiDateFormatted(sched.plannedDate)}</span>
+                                        <span style={{ fontSize: '0.675rem', color: statusColor, fontWeight: 600 }}>({label})</span>
+                                      </div>
+                                      <div style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.7rem' }}>
+                                        <code>{sched.assetId}</code> - {sched.assetName}
+                                      </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
+                                      {sched.status === 'pending' || isOverdue ? (
+                                        <button 
+                                          onClick={() => handleOpenPMForm(sched)}
+                                          className="btn btn-primary btn-xs"
+                                          style={{ padding: '0.15rem 0.4rem', fontSize: '0.675rem', height: 'auto' }}
+                                        >
+                                          🔧 บันทึกผล
+                                        </button>
+                                      ) : (
+                                        <>
+                                          <button 
+                                            onClick={() => {
+                                              setSelectedSchedule(sched);
+                                              setIsPrintReportOpen(true);
+                                            }}
+                                            className="btn btn-secondary btn-xs"
+                                            style={{ padding: '0.15rem 0.4rem', fontSize: '0.675rem', height: 'auto', border: '1px solid var(--border)' }}
+                                            title="พิมพ์เอกสาร A4"
+                                          >
+                                            🖨️ พิมพ์
+                                          </button>
+                                          <button 
+                                            onClick={() => handleOpenPMForm(sched)}
+                                            className="btn btn-ghost btn-xs"
+                                            style={{ padding: '0.15rem 0.4rem', fontSize: '0.675rem', height: 'auto', border: '1px solid var(--border)' }}
+                                            title="แก้ไขข้อมูลผลการบำรุงรักษา"
+                                          >
+                                            ✏️ แก้ไข
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                   </div>
                 );
