@@ -296,12 +296,14 @@ export interface PMSchedule {
   assetId: string;
   assetName: string;
   plannedDate: string;
-  status: 'pending' | 'completed' | 'overdue';
+  status: 'pending' | 'completed' | 'postponed' | 'awaiting_repair' | 'overdue';
   completedDate?: string;
   details?: string;
   operator?: string;
   proofImageUrl?: string;
   notes?: string;
+  nextPMNotes?: string;
+  cmCaseCreatedId?: string;
 }
 
 export interface PMNotification {
@@ -310,7 +312,7 @@ export interface PMNotification {
   message: string;
   targetDate: string;
   isRead: boolean;
-  type: 'pm_upcoming' | 'pm_overdue' | 'repair_alert';
+  type: 'pm_upcoming' | 'pm_overdue' | 'repair_alert' | 'contract_expiring';
   linkTo: string;
 }
 

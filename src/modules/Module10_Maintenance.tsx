@@ -68,9 +68,14 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [submittingPM, setSubmittingPM] = useState(false);
+  const [pmStatus, setPmStatus] = useState<'completed' | 'postponed' | 'awaiting_repair'>('completed');
+  const [nextPMNotes, setNextPMNotes] = useState('');
+  const [shouldCreateCM, setShouldCreateCM] = useState(false);
+  const [cmSymptom, setCmSymptom] = useState('');
 
   // Add Contract Form States
   const [isContractFormOpen, setIsContractFormOpen] = useState(false);
+  const [contractType, setContractType] = useState<'outsource' | 'internal'>('outsource');
   const [contractNumber, setContractNumber] = useState('');
   const [contractTitle, setContractTitle] = useState('');
   const [vendorName, setVendorName] = useState('');
@@ -206,6 +211,10 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setCompletedDate(new Date().toISOString().split('T')[0]);
     setPmDetails(getPresetChecklist(sched.assetName));
     setPmNotes('');
+    setPmStatus('completed');
+    setNextPMNotes('');
+    setShouldCreateCM(false);
+    setCmSymptom('');
     setProofFile(null);
     setProofPreview(null);
     setIsPMFormOpen(true);
@@ -236,15 +245,48 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       }
 
       const operatorName = localStorage.getItem('assetwatch_operator') || 'เจ้าหน้าที่พัสดุ';
+      let spawnedRepairId: string | undefined = undefined;
+
+      // Check if CM should be opened automatically
+      if (shouldCreateCM && cmSymptom.trim()) {
+        spawnedRepairId = await onAddRepair({
+          assetId: selectedSchedule.assetId,
+          assetName: selectedSchedule.assetName,
+          symptom: `[สืบเนื่องจากแผน PM: ${selectedSchedule.id}] ${cmSymptom}`,
+          dateOpened: completedDate,
+          status: 'open',
+          operator: operatorName,
+          updatedAt: new Date().toISOString()
+        });
+
+        // Update Asset status to 'ชำรุด'
+        await onUpdateAssetStatus(selectedSchedule.assetId, 'ชำรุด');
+
+        // Log CM Audit Trail
+        await onLogAudit({
+          assetId: selectedSchedule.assetId,
+          assetName: selectedSchedule.assetName,
+          action: 'repair_open',
+          operator: operatorName,
+          details: `เปิดเคส CM แจ้งซ่อมต่อเนื่องจากแผนตรวจเช็คบำรุงรักษา PM รหัสแจ้งซ่อม: ${spawnedRepairId} อาการเสีย: ${cmSymptom}`
+        });
+      }
+
+      // Translate status label
+      let statusLabel = 'เสร็จสมบูรณ์';
+      if (pmStatus === 'postponed') statusLabel = 'เลื่อนการตรวจเช็ค';
+      else if (pmStatus === 'awaiting_repair') statusLabel = 'ตรวจพบอาการชำรุด/รอซ่อมต่อ';
 
       // 1. Update Schedule status and details
       await onUpdatePMSchedule(selectedSchedule.id, {
-        status: 'completed',
+        status: pmStatus,
         completedDate,
         details: pmDetails,
         operator: operatorName,
         proofImageUrl: finalImgUrl,
-        notes: pmNotes
+        notes: pmNotes,
+        nextPMNotes: nextPMNotes || undefined,
+        cmCaseCreatedId: spawnedRepairId || undefined
       });
 
       // 2. Log in Audit Trails
@@ -253,7 +295,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         assetName: selectedSchedule.assetName,
         action: 'survey', // PM is mapped under inspection/survey action
         operator: operatorName,
-        details: `ทำรายการบันทึก Preventive Maintenance (PM) เรียบร้อย เมื่อวันที่ ${completedDate} ผลลัพธ์: เสร็จสมบูรณ์`
+        details: `ทำรายการบันทึก Preventive Maintenance (PM) เรียบร้อย เมื่อวันที่ ${completedDate} ผลลัพธ์: ${statusLabel}${nextPMNotes ? ` (โน๊ตเตือนรอบถัดไป: ${nextPMNotes})` : ''}`
       });
 
       // Confetti!
@@ -285,17 +327,22 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setSubmittingContract(true);
     try {
       const contractId = `contract-${Date.now()}`;
+      const finalContractNumber = contractType === 'internal' ? `INT-PM-${Date.now().toString().slice(-6)}` : contractNumber;
+      const finalVendorName = contractType === 'internal' ? 'บำรุงรักษาภายในโดยฝ่ายพัสดุ' : vendorName;
+      const finalContactPerson = contractType === 'internal' ? 'เจ้าหน้าที่พัสดุประจำแผนก' : vendorContact;
+      const finalContactPhone = contractType === 'internal' ? '-' : vendorPhone;
+
       const newContract: PMContract = {
         id: contractId,
-        contractNumber,
+        contractNumber: finalContractNumber,
         title: contractTitle,
-        vendorName,
+        vendorName: finalVendorName,
         startDate: contractStart,
         endDate: contractEnd,
         pmFrequency,
         assetIds: selectedAssetIds,
-        contactPerson: vendorContact,
-        contactPhone: vendorPhone
+        contactPerson: finalContactPerson,
+        contactPhone: finalContactPhone
       };
 
       // 1. Save Contract to db
@@ -343,10 +390,12 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
       await onLogAudit({
         assetId: 'SYSTEM',
-        assetName: `สร้างสัญญาบำรุงรักษา: ${contractNumber}`,
+        assetName: `สร้างสัญญาบำรุงรักษา: ${finalContractNumber}`,
         action: 'create',
         operator: operatorName,
-        details: `สร้างสัญญา PM เลขที่ ${contractNumber} บริษัทคู่สัญญา: ${vendorName} และสร้างกำหนดการตรวจเช็คอัตโนมัติ`
+        details: contractType === 'internal' 
+          ? `สร้างแผนงาน PM ภายในชื่อ "${contractTitle}" รหัส ${finalContractNumber} และกำหนดวันเข้าตรวจเช็คตามรอบความถี่อัตโนมัติ`
+          : `สร้างสัญญา PM เลขที่ ${finalContractNumber} บริษัทคู่สัญญา: ${finalVendorName} และสร้างกำหนดการตรวจเช็คอัตโนมัติ`
       });
 
       confetti({
@@ -797,14 +846,35 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       {daySchedules.map(sched => {
                         const todayStr = new Date().toISOString().split('T')[0];
                         const isOverdue = sched.status === 'pending' && sched.plannedDate < todayStr;
-                        const statusColor = sched.status === 'completed' ? 'var(--success)' : (isOverdue ? 'var(--danger)' : 'var(--warning)');
+                        
+                        let statusColor = 'var(--warning)';
+                        let bgColor = 'var(--warning-light)';
+                        let labelPrefix = '🔧 ';
+                        
+                        if (sched.status === 'completed') {
+                          statusColor = 'var(--success)';
+                          bgColor = 'var(--success-light)';
+                          labelPrefix = '🟢 ';
+                        } else if (sched.status === 'postponed') {
+                          statusColor = '#d97706';
+                          bgColor = '#fef3c7';
+                          labelPrefix = '🟡 ';
+                        } else if (sched.status === 'awaiting_repair') {
+                          statusColor = '#b91c1c';
+                          bgColor = '#fee2e2';
+                          labelPrefix = '🔴 ';
+                        } else if (isOverdue) {
+                          statusColor = 'var(--danger)';
+                          bgColor = 'var(--danger-light)';
+                          labelPrefix = '⏰ ';
+                        }
                         
                         return (
                           <button 
                             key={sched.id} 
                             onClick={() => {
                               setSelectedSchedule(sched);
-                              if (sched.status === 'completed') {
+                              if (sched.status !== 'pending') {
                                 setIsPrintReportOpen(true);
                               } else {
                                 handleOpenPMForm(sched);
@@ -817,7 +887,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                               fontSize: '0.675rem',
                               padding: '0.15rem 0.35rem',
                               borderRadius: '4px',
-                              backgroundColor: sched.status === 'completed' ? 'var(--success-light)' : (isOverdue ? 'var(--danger-light)' : 'var(--warning-light)'),
+                              backgroundColor: bgColor,
                               color: statusColor,
                               border: `1.25px solid ${statusColor}`,
                               cursor: 'pointer',
@@ -829,7 +899,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                             }}
                             title={`${sched.assetName} (${sched.status})`}
                           >
-                            ⚙️ {sched.assetName}
+                            {labelPrefix} {sched.assetName}
                           </button>
                         );
                       })}
@@ -1067,81 +1137,140 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       {/* --- MODAL 1: PM RECORDING FORM --- */}
       {isPMFormOpen && selectedSchedule && (
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <form onSubmit={handlePMSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '580px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+          <form onSubmit={handlePMSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '580px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem', flexShrink: 0 }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}><Wrench size={18} style={{ display: 'inline', marginRight: '0.35rem', color: 'var(--primary)' }} /> บันทึกผลการบำรุงรักษา PM</h3>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsPMFormOpen(false)} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>
                 ✕
               </button>
             </div>
 
-            <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem' }}>
+            <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem', flexShrink: 0 }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>รหัสครุภัณฑ์: <code>{selectedSchedule.assetId}</code></div>
               <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{selectedSchedule.assetName}</h4>
               <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 650 }}>📅 วันที่ตามแผนบำรุงรักษา: {getThaiDateFormatted(selectedSchedule.plannedDate)}</span>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">📅 วันที่ดำเนินการตรวจ PM จริง</label>
-              <input 
-                type="date" 
-                className="form-input"
-                value={completedDate}
-                onChange={(e) => setCompletedDate(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">📋 เช็คลิสต์รายละเอียดดำเนินการ PM (เช็คลิสต์ตรวจสภาพ)</label>
-              <textarea 
-                className="form-input"
-                rows={4}
-                value={pmDetails}
-                onChange={(e) => setPmDetails(e.target.value)}
-                placeholder="ระบุสิ่งที่เช็คและทำไป เช่น ปัดฝุ่น ทำความสะอาดเครื่อง..."
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">📷 ถ่ายรูปแนบหลักฐาน (สภาพหลังบำรุงรักษา)</label>
-              <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.75rem' }}>
+            {/* Scrollable Form Fields */}
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+              <div className="form-group">
+                <label className="form-label">📅 วันที่ดำเนินการตรวจ PM จริง</label>
                 <input 
-                  type="file" 
-                  id="pm-proof-uploader" 
-                  accept="image/*"
-                  onChange={handleProofImageChange}
-                  className="file-hidden-input"
+                  type="date" 
+                  className="form-input"
+                  value={completedDate}
+                  onChange={(e) => setCompletedDate(e.target.value)}
+                  required
                 />
-                <label htmlFor="pm-proof-uploader" className="dropzone-label">
-                  {proofPreview ? (
-                    <div style={{ maxWidth: '100px', margin: '0 auto' }}>
-                      <img src={proofPreview} alt="PM proof preview" style={{ width: '100%', borderRadius: '4px' }} />
-                    </div>
-                  ) : (
-                    <>
-                      <Camera size={24} color="var(--text-muted)" />
-                      <span style={{ fontSize: '0.75rem' }}>คลิกเพื่ออัปโหลดภาพหลักฐานการทำ PM</span>
-                    </>
-                  )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">📋 เช็คลิสต์รายละเอียดดำเนินการ PM (เช็คลิสต์ตรวจสภาพ)</label>
+                <textarea 
+                  className="form-input"
+                  rows={4}
+                  value={pmDetails}
+                  onChange={(e) => setPmDetails(e.target.value)}
+                  placeholder="ระบุสิ่งที่เช็คและทำไป เช่น ปัดฝุ่น ทำความสะอาดเครื่อง..."
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">📷 ถ่ายรูปแนบหลักฐาน (สภาพหลังบำรุงรักษา)</label>
+                <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.75rem' }}>
+                  <input 
+                    type="file" 
+                    id="pm-proof-uploader" 
+                    accept="image/*"
+                    onChange={handleProofImageChange}
+                    className="file-hidden-input"
+                  />
+                  <label htmlFor="pm-proof-uploader" className="dropzone-label">
+                    {proofPreview ? (
+                      <div style={{ maxWidth: '100px', margin: '0 auto' }}>
+                        <img src={proofPreview} alt="PM proof preview" style={{ width: '100%', borderRadius: '4px' }} />
+                      </div>
+                    ) : (
+                      <>
+                        <Camera size={24} color="var(--text-muted)" />
+                        <span style={{ fontSize: '0.75rem' }}>คลิกเพื่ออัปโหลดภาพหลักฐานการทำ PM</span>
+                      </>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700 }}>🚦 สถานะการดำเนินการ PM รอบนี้</label>
+                <select
+                  className="form-select"
+                  value={pmStatus}
+                  onChange={(e) => setPmStatus(e.target.value as any)}
+                  required
+                >
+                  <option value="completed">เสร็จสมบูรณ์ตามแผน (Completed)</option>
+                  <option value="postponed">เลื่อนการบำรุงรักษา (Postponed)</option>
+                  <option value="awaiting_repair">ตรวจพบปัญหา/รอส่งซ่อมต่อ (Awaiting Repair)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">📝 โน๊ตแจ้งเตือน/ข้อพึงระวังสำหรับ PM รอบถัดไป</label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  value={nextPMNotes}
+                  onChange={(e) => setNextPMNotes(e.target.value)}
+                  placeholder="เช่น รอบหน้าต้องเปลี่ยนไส้กรองพัดลมระบายอากาศ..."
+                />
+              </div>
+
+              <div className="form-group" style={{ border: '1px solid var(--border)', padding: '0.85rem', borderRadius: 'var(--radius-sm)', background: 'rgba(239, 68, 68, 0.03)', marginTop: '0.25rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 650, fontSize: '0.85rem' }}>
+                  <input 
+                    type="checkbox"
+                    checked={shouldCreateCM}
+                    onChange={(e) => {
+                      setShouldCreateCM(e.target.checked);
+                      if (e.target.checked) {
+                        setPmStatus('awaiting_repair');
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span style={{ color: 'var(--danger)' }}>🚨 ตรวจพบปัญหาและต้องการแจ้งซ่อม CM ต่อเนื่องทันที</span>
                 </label>
+                
+                {shouldCreateCM && (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.775rem' }}>🚨 อาการเสีย/ชำรุดที่พบ (จะสร้างใบแจ้งซ่อม CM อัตโนมัติ)</label>
+                    <textarea 
+                      className="form-input"
+                      rows={2}
+                      value={cmSymptom}
+                      onChange={(e) => setCmSymptom(e.target.value)}
+                      placeholder="เช่น มอเตอร์เริ่มส่งเสียงดังผิดปกติ ลมไม่เย็น..."
+                      required={shouldCreateCM}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">📝 หมายเหตุเพิ่มเติม (Notes)</label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  value={pmNotes}
+                  onChange={(e) => setPmNotes(e.target.value)}
+                  placeholder="เช่น การทำงานปกติดี อุณหภูมิเครื่องลดลง..."
+                />
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">📝 หมายเหตุเพิ่มเติม (Notes)</label>
-              <input 
-                type="text" 
-                className="form-input"
-                value={pmNotes}
-                onChange={(e) => setPmNotes(e.target.value)}
-                placeholder="เช่น การทำงานปกติดี อุณหภูมิเครื่องลดลง..."
-              />
-            </div>
-
-            <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.25rem' }}>
+            <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.25rem', flexShrink: 0 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setIsPMFormOpen(false)}>
                 ยกเลิก
               </button>
@@ -1273,73 +1402,135 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       {/* --- MODAL 3: CONTRACT ENTRY FORM --- */}
       {isContractFormOpen && (
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <form onSubmit={handleContractSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '650px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+          <form onSubmit={handleContractSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '650px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem', flexShrink: 0 }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>📝 ทำสัญญาและวางกำหนดบำรุงรักษาใหม่</h3>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsContractFormOpen(false)} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>
                 ✕
               </button>
             </div>
 
-            <div className="form-row-double">
-              <div className="form-group flex-1">
-                <label className="form-label">🧾 เลขที่สัญญา/โครงการอ้างอิง</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  placeholder="เช่น PM-AC-2569-01"
-                  value={contractNumber}
-                  onChange={(e) => setContractNumber(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group flex-1">
-                <label className="form-label">ชื่อโครงการจ้างบำรุงรักษา</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  placeholder="เช่น สัญญาดูแลรักษาเครื่องปรับอากาศ 2569"
-                  value={contractTitle}
-                  onChange={(e) => setContractTitle(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-row-double">
-              <div className="form-group flex-1">
-                <label className="form-label">🏢 บริษัทผู้รับสัญญา/บจก.</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  placeholder="เช่น บริษัท ลมดีบริการแอร์ จำกัด"
-                  value={vendorName}
-                  onChange={(e) => setVendorName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group flex-1">
-                <label className="form-label">🔄 ความถี่รอบเข้าบำรุงรักษา (Frequency)</label>
-                <select 
-                  className="form-select"
-                  value={pmFrequency}
-                  onChange={(e) => setPmFrequency(e.target.value as PMContract['pmFrequency'])}
-                  required
-                >
-                  <option value="monthly">รายเดือน (Monthly)</option>
-                  <option value="quarterly">รายไตรมาส (Quarterly - 3 เดือน)</option>
-                  <option value="semi-annually">รายครึ่งปี (Semi-annually - 6 เดือน)</option>
-                  <option value="annually">รายปี (Annually)</option>
-                </select>
+            {/* Scrollable Form Fields */}
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+              {/* Plan Type Selection */}
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label className="form-label" style={{ fontWeight: 700 }}>🛠️ ลักษณะแผนบำรุงรักษา</label>
+              <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', cursor: 'pointer' }}>
+                  <input 
+                    type="radio" 
+                    name="contractType" 
+                    checked={contractType === 'outsource'} 
+                    onChange={() => setContractType('outsource')} 
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>จ้างเหมาคู่สัญญาภายนอก (Outsource Contract)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', cursor: 'pointer' }}>
+                  <input 
+                    type="radio" 
+                    name="contractType" 
+                    checked={contractType === 'internal'} 
+                    onChange={() => setContractType('internal')} 
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>บำรุงรักษาภายในโดยฝ่ายพัสดุเอง (Self-Maintenance)</span>
+                </label>
               </div>
             </div>
 
+            {contractType === 'outsource' ? (
+              <>
+                <div className="form-row-double">
+                  <div className="form-group flex-1">
+                    <label className="form-label">🧾 เลขที่สัญญา/โครงการอ้างอิง</label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      placeholder="เช่น PM-AC-2569-01"
+                      value={contractNumber}
+                      onChange={(e) => setContractNumber(e.target.value)}
+                      required={contractType === 'outsource'}
+                    />
+                  </div>
+
+                  <div className="form-group flex-1">
+                    <label className="form-label">ชื่อโครงการจ้างบำรุงรักษา</label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      placeholder="เช่น สัญญาดูแลรักษาเครื่องปรับอากาศ 2569"
+                      value={contractTitle}
+                      onChange={(e) => setContractTitle(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row-double">
+                  <div className="form-group flex-1">
+                    <label className="form-label">🏢 บริษัทผู้รับสัญญา/บจก.</label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      placeholder="เช่น บริษัท ลมดีบริการแอร์ จำกัด"
+                      value={vendorName}
+                      onChange={(e) => setVendorName(e.target.value)}
+                      required={contractType === 'outsource'}
+                    />
+                  </div>
+
+                  <div className="form-group flex-1">
+                    <label className="form-label">🔄 ความถี่รอบเข้าบำรุงรักษา (Frequency)</label>
+                    <select 
+                      className="form-select"
+                      value={pmFrequency}
+                      onChange={(e) => setPmFrequency(e.target.value as PMContract['pmFrequency'])}
+                      required
+                    >
+                      <option value="monthly">รายเดือน (Monthly)</option>
+                      <option value="quarterly">รายไตรมาส (Quarterly - 3 เดือน)</option>
+                      <option value="semi-annually">รายครึ่งปี (Semi-annually - 6 เดือน)</option>
+                      <option value="annually">รายปี (Annually)</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="form-row-double">
+                <div className="form-group flex-1">
+                  <label className="form-label">📝 ชื่อแผนงานบำรุงรักษาภายใน</label>
+                  <input 
+                    type="text" 
+                    className="form-input"
+                    placeholder="เช่น แผนตรวจเช็คสภาพเครื่องพิมพ์สำนักงานประจำปี"
+                    value={contractTitle}
+                    onChange={(e) => setContractTitle(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group flex-1">
+                  <label className="form-label">🔄 ความถี่รอบเข้าบำรุงรักษา (Frequency)</label>
+                  <select 
+                    className="form-select"
+                    value={pmFrequency}
+                    onChange={(e) => setPmFrequency(e.target.value as PMContract['pmFrequency'])}
+                    required
+                  >
+                    <option value="monthly">รายเดือน (Monthly)</option>
+                    <option value="quarterly">รายไตรมาส (Quarterly - 3 เดือน)</option>
+                    <option value="semi-annually">รายครึ่งปี (Semi-annually - 6 เดือน)</option>
+                    <option value="annually">รายปี (Annually)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             <div className="form-row-double">
               <div className="form-group flex-1">
-                <label className="form-label">📅 วันเริ่มต้นสัญญา</label>
+                <label className="form-label">📅 วันเริ่มต้นแผน/สัญญา</label>
                 <input 
                   type="date" 
                   className="form-input"
@@ -1350,7 +1541,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </div>
 
               <div className="form-group flex-1">
-                <label className="form-label">📅 วันสิ้นสุดสัญญา</label>
+                <label className="form-label">📅 วันสิ้นสุดแผน/สัญญา</label>
                 <input 
                   type="date" 
                   className="form-input"
@@ -1361,31 +1552,33 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </div>
             </div>
 
-            <div className="form-row-double">
-              <div className="form-group flex-1">
-                <label className="form-label">👤 ผู้ประสานงาน/ช่างประจำสัญญา</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  placeholder="เช่น ช่างสมเจตน์"
-                  value={vendorContact}
-                  onChange={(e) => setVendorContact(e.target.value)}
-                  required
-                />
-              </div>
+            {contractType === 'outsource' && (
+              <div className="form-row-double">
+                <div className="form-group flex-1">
+                  <label className="form-label">👤 ผู้ประสานงาน/ช่างประจำสัญญา</label>
+                  <input 
+                    type="text" 
+                    className="form-input"
+                    placeholder="เช่น ช่างสมเจตน์"
+                    value={vendorContact}
+                    onChange={(e) => setVendorContact(e.target.value)}
+                    required={contractType === 'outsource'}
+                  />
+                </div>
 
-              <div className="form-group flex-1">
-                <label className="form-label">📞 เบอร์โทรศัพท์โทรด่วนช่าง</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  placeholder="เช่น 081-XXX-XXXX"
-                  value={vendorPhone}
-                  onChange={(e) => setVendorPhone(e.target.value)}
-                  required
-                />
+                <div className="form-group flex-1">
+                  <label className="form-label">📞 เบอร์โทรศัพท์โทรด่วนช่าง</label>
+                  <input 
+                    type="text" 
+                    className="form-input"
+                    placeholder="เช่น 081-XXX-XXXX"
+                    value={vendorPhone}
+                    onChange={(e) => setVendorPhone(e.target.value)}
+                    required={contractType === 'outsource'}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Checkbox selector for assets */}
             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -1411,7 +1604,9 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </div>
             </div>
 
-            <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.25rem' }}>
+          </div>
+
+          <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.25rem', flexShrink: 0 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setIsContractFormOpen(false)}>
                 ยกเลิก
               </button>

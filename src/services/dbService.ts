@@ -78,7 +78,7 @@ const initLocalStorageIfNeeded = () => {
 initLocalStorageIfNeeded();
 
 // --- DYNAMIC IMAGE COMPRESSION HELPER (PREVENTS MOBILE OUT-OF-MEMORY ERRORS) ---
-export const compressImage = (file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.75): Promise<File> => {
+export const compressImage = (file: File, maxWidth = 1280, maxHeight = 1280, quality = 0.75): Promise<File> => {
   return new Promise((resolve) => {
     if (!file.type.startsWith('image/')) {
       resolve(file);

@@ -126,7 +126,7 @@ function App() {
   }, [theme]);
 
   // Automated PM/CM alert check
-  const checkAndGeneratePMNotifications = async (scheds: PMSchedule[], notifs: PMNotification[]) => {
+  const checkAndGeneratePMNotifications = async (scheds: PMSchedule[], notifs: PMNotification[], contractsList: PMContract[]) => {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     
@@ -134,6 +134,7 @@ function App() {
     warningLimit.setDate(warningLimit.getDate() + 7);
     const warningLimitStr = warningLimit.toISOString().split('T')[0];
 
+    // 1. Check PM schedules
     for (const s of scheds) {
       if (s.status === 'pending') {
         const isOverdue = s.plannedDate < todayStr;
@@ -157,6 +158,29 @@ function App() {
             };
             await addPMNotification(newNotif);
           }
+        }
+      }
+    }
+
+    // 2. Check PM contracts expiring in 3 months (90 days)
+    const ninetyDaysLimit = new Date();
+    ninetyDaysLimit.setDate(ninetyDaysLimit.getDate() + 90);
+    const ninetyDaysLimitStr = ninetyDaysLimit.toISOString().split('T')[0];
+
+    for (const c of contractsList) {
+      if (c.endDate >= todayStr && c.endDate <= ninetyDaysLimitStr) {
+        const exists = notifs.some(n => n.type === 'contract_expiring' && n.message.includes(c.contractNumber));
+        if (!exists) {
+          const newNotif: PMNotification = {
+            id: `notif-${Date.now()}-${c.id}`,
+            title: `⚠️ สัญญา PM ใกล้หมดอายุ (${c.contractNumber})`,
+            message: `สัญญาบำรุงรักษาโครงการ "${c.title}" เลขที่ ${c.contractNumber} กำลังจะหมดอายุในวันที่ ${c.endDate} (กรุณาดำเนินการจัดทำสัญญาใหม่ล่วงหน้า 3 เดือน)`,
+            targetDate: todayStr,
+            isRead: false,
+            type: 'contract_expiring',
+            linkTo: 'module10_pm'
+          };
+          await addPMNotification(newNotif);
         }
       }
     }
@@ -188,7 +212,7 @@ function App() {
       setPmNotifications(allPMNotifs);
 
       // Automated check and notification generation
-      await checkAndGeneratePMNotifications(allSchedules, allPMNotifs);
+      await checkAndGeneratePMNotifications(allSchedules, allPMNotifs, allContracts);
       const updatedPMNotifs = await getPMNotifications();
       setPmNotifications(updatedPMNotifs);
 
