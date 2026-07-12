@@ -309,22 +309,23 @@ export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<
   initLocalStorageIfNeeded();
   const assets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
   const index = assets.findIndex(a => a.id === id);
-  let updatedAssetData: Asset | null = null;
   if (index !== -1) {
     assets[index] = { ...assets[index], ...updates, updatedAt: new Date().toISOString() };
     localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
-    updatedAssetData = assets[index];
   } else {
-    throw new Error('ไม่พบข้อมูลครุภัณฑ์ที่ต้องการแก้ไข');
+    const newAsset = { id, ...updates, updatedAt: new Date().toISOString() } as Asset;
+    assets.push(newAsset);
+    localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
   }
 
   // 2. Synchronize to Firestore using setDoc with merge: true to avoid "document not found" errors
   const { isFirebase, db } = getServices();
-  if (isFirebase && db && updatedAssetData) {
+  if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'assets', id), updatedAssetData, { merge: true });
+      await setDoc(doc(db, 'assets', id), updates, { merge: true });
     } catch (e) {
       console.error('Firebase updateAsset failed:', e);
+      throw e;
     }
   }
 };
@@ -518,22 +519,23 @@ export const updateRepair = async (id: string, updates: Partial<RepairCase>): Pr
   initLocalStorageIfNeeded();
   const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
   const index = repairs.findIndex(r => r.id === id);
-  let updatedRepairData: RepairCase | null = null;
   if (index !== -1) {
     repairs[index] = { ...repairs[index], ...updates, updatedAt: new Date().toISOString() };
     localStorage.setItem('assetwatch_repairs', JSON.stringify(repairs));
-    updatedRepairData = repairs[index];
   } else {
-    throw new Error('ไม่พบประวัติการซ่อมที่ต้องการอัปเดต');
+    const newRepair = { id, ...updates, updatedAt: new Date().toISOString() } as RepairCase;
+    repairs.push(newRepair);
+    localStorage.setItem('assetwatch_repairs', JSON.stringify(repairs));
   }
 
   // 2. Sync to Firestore using setDoc with merge
   const { isFirebase, db } = getServices();
-  if (isFirebase && db && updatedRepairData) {
+  if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'repairs', id), updatedRepairData, { merge: true });
+      await setDoc(doc(db, 'repairs', id), updates, { merge: true });
     } catch (e) {
       console.error('Firebase updateRepair failed:', e);
+      throw e;
     }
   }
 };
@@ -598,22 +600,23 @@ export const updateSurveyRound = async (id: string, updates: Partial<SurveyRound
   initLocalStorageIfNeeded();
   const rounds: SurveyRound[] = JSON.parse(localStorage.getItem('assetwatch_survey_rounds') || '[]');
   const index = rounds.findIndex(r => r.id === id);
-  let updatedRoundData: SurveyRound | null = null;
   if (index !== -1) {
     rounds[index] = { ...rounds[index], ...updates };
     localStorage.setItem('assetwatch_survey_rounds', JSON.stringify(rounds));
-    updatedRoundData = rounds[index];
   } else {
-    throw new Error('ไม่พบรอบการสำรวจที่ต้องการอัปเดต');
+    const newRound = { id, ...updates } as SurveyRound;
+    rounds.push(newRound);
+    localStorage.setItem('assetwatch_survey_rounds', JSON.stringify(rounds));
   }
 
   // 2. Sync to Firestore using setDoc with merge
   const { isFirebase, db } = getServices();
-  if (isFirebase && db && updatedRoundData) {
+  if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'survey_rounds', id), updatedRoundData, { merge: true });
+      await setDoc(doc(db, 'survey_rounds', id), updates, { merge: true });
     } catch (e) {
       console.error('Firebase updateSurveyRound failed:', e);
+      throw e;
     }
   }
 };
@@ -942,20 +945,23 @@ export const updatePMContract = async (id: string, updates: Partial<PMContract>)
   initLocalStorageIfNeeded();
   const contracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
   const index = contracts.findIndex(c => c.id === id);
-  let updatedContract: PMContract | null = null;
   if (index !== -1) {
     contracts[index] = { ...contracts[index], ...updates };
     localStorage.setItem('assetwatch_contracts', JSON.stringify(contracts));
-    updatedContract = contracts[index];
+  } else {
+    const newContract = { id, ...updates } as PMContract;
+    contracts.push(newContract);
+    localStorage.setItem('assetwatch_contracts', JSON.stringify(contracts));
   }
 
   // 2. Sync to Firestore using setDoc with merge
   const { isFirebase, db } = getServices();
-  if (isFirebase && db && updatedContract) {
+  if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'pm_contracts', id), updatedContract, { merge: true });
+      await setDoc(doc(db, 'pm_contracts', id), updates, { merge: true });
     } catch (e) {
       console.error('Firebase updatePMContract failed:', e);
+      throw e;
     }
   }
 };
@@ -1032,20 +1038,23 @@ export const updatePMSchedule = async (id: string, updates: Partial<PMSchedule>)
   initLocalStorageIfNeeded();
   const schedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
   const index = schedules.findIndex(s => s.id === id);
-  let updatedSchedule: PMSchedule | null = null;
   if (index !== -1) {
     schedules[index] = { ...schedules[index], ...updates };
     localStorage.setItem('assetwatch_schedules', JSON.stringify(schedules));
-    updatedSchedule = schedules[index];
+  } else {
+    const newSched = { id, ...updates } as PMSchedule;
+    schedules.push(newSched);
+    localStorage.setItem('assetwatch_schedules', JSON.stringify(schedules));
   }
 
   // 2. Sync to Firestore using setDoc with merge
   const { isFirebase, db } = getServices();
-  if (isFirebase && db && updatedSchedule) {
+  if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'pm_schedules', id), updatedSchedule, { merge: true });
+      await setDoc(doc(db, 'pm_schedules', id), updates, { merge: true });
     } catch (e) {
       console.error('Firebase updatePMSchedule failed:', e);
+      throw e;
     }
   }
 };
@@ -1104,20 +1113,23 @@ export const updatePMNotification = async (id: string, updates: Partial<PMNotifi
   initLocalStorageIfNeeded();
   const notifications: PMNotification[] = JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
   const index = notifications.findIndex(n => n.id === id);
-  let updatedNotif: PMNotification | null = null;
   if (index !== -1) {
     notifications[index] = { ...notifications[index], ...updates };
     localStorage.setItem('assetwatch_pm_notifications', JSON.stringify(notifications));
-    updatedNotif = notifications[index];
+  } else {
+    const newNotif = { id, ...updates } as PMNotification;
+    notifications.push(newNotif);
+    localStorage.setItem('assetwatch_pm_notifications', JSON.stringify(notifications));
   }
 
   // 2. Sync to Firestore using setDoc with merge
   const { isFirebase, db } = getServices();
-  if (isFirebase && db && updatedNotif) {
+  if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'pm_notifications', id), updatedNotif, { merge: true });
+      await setDoc(doc(db, 'pm_notifications', id), updates, { merge: true });
     } catch (e) {
       console.error('Firebase updatePMNotification failed:', e);
+      throw e;
     }
   }
 };

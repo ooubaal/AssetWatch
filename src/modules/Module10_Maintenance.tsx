@@ -315,7 +315,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       await onRefreshData();
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล PM');
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล PM: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSubmittingPM(false);
     }
@@ -549,7 +549,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       await onRefreshData();
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการสร้างสัญญาบำรุงรักษา');
+      alert('เกิดข้อผิดพลาดในการสร้าง/แก้ไขแผนบำรุงรักษา: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSubmittingContract(false);
     }
@@ -632,7 +632,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       await onRefreshData();
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการลงบันทึกการแจ้งซ่อมครั้งคราว');
+      alert('เกิดข้อผิดพลาดในการลงบันทึกการแจ้งซ่อมครั้งคราว: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSubmittingRepair(false);
     }
@@ -698,7 +698,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       await onRefreshData();
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการส่งร้านซ่อม');
+      alert('เกิดข้อผิดพลาดในการส่งร้านซ่อม: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSubmittingSend(false);
     }
@@ -747,7 +747,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       await onRefreshData();
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการตรวจรับพัสดุคืนคลัง');
+      alert('เกิดข้อผิดพลาดในการตรวจรับพัสดุคืนคลัง: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSubmittingReceive(false);
     }
@@ -761,7 +761,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       await onRefreshData();
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการลบสัญญาบำรุงรักษา');
+      alert('เกิดข้อผิดพลาดในการลบสัญญาบำรุงรักษา: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 
