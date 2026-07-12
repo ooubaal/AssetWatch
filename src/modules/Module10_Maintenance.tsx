@@ -283,16 +283,19 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       else if (pmStatus === 'awaiting_repair') statusLabel = 'ตรวจพบอาการชำรุด/รอซ่อมต่อ';
 
       // 1. Update Schedule status and details
-      await onUpdatePMSchedule(selectedSchedule.id, {
+      // Build update object without undefined values (Firestore rejects undefined)
+      const scheduleUpdates: Record<string, any> = {
         status: pmStatus,
         completedDate,
         details: pmDetails,
         operator: operatorName,
         proofImageUrl: finalImgUrl,
         notes: pmNotes,
-        nextPMNotes: nextPMNotes || undefined,
-        cmCaseCreatedId: spawnedRepairId || undefined
-      });
+      };
+      if (nextPMNotes) scheduleUpdates.nextPMNotes = nextPMNotes;
+      if (spawnedRepairId) scheduleUpdates.cmCaseCreatedId = spawnedRepairId;
+
+      await onUpdatePMSchedule(selectedSchedule.id, scheduleUpdates);
 
       // 2. Log in Audit Trails
       await onLogAudit({

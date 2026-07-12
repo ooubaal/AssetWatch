@@ -256,6 +256,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           repairs={repairs}
           surveys={surveys}
           schedules={schedules}
+          currentUser={currentUser}
         />
       )}
 

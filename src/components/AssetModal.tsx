@@ -14,7 +14,7 @@ import {
   Download,
   AlertCircle
 } from 'lucide-react';
-import { Asset, AuditTrail, SurveyRecord, RepairCase, PMSchedule } from '../utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, PMSchedule, UserAccount } from '../utils/mockData';
 
 interface AssetModalProps {
   asset: Asset;
@@ -24,6 +24,7 @@ interface AssetModalProps {
   repairs: RepairCase[];
   surveys: SurveyRecord[];
   schedules?: PMSchedule[];
+  currentUser?: UserAccount | null;
 }
 
 export const AssetModal: React.FC<AssetModalProps> = ({
@@ -33,7 +34,8 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   audits,
   repairs,
   surveys,
-  schedules = []
+  schedules = [],
+  currentUser = null
 }) => {
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'repairs' | 'surveys'>('info');
 
@@ -217,7 +219,8 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                   />
                 </div>
                 
-                {/* Barcode Sticker Label (Like the physical one) */}
+                {/* Barcode Sticker Label (Like the physical one) - Admin Only */}
+                {currentUser?.role === 'admin' && (
                 <div className="barcode-badge-card" style={{ background: '#ffffff', color: '#000000', padding: '1rem', border: '1px solid #cbd5e1', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%', maxWidth: '320px', margin: '0.5rem auto 0 auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                   
                   {/* Top: Plus sign and asset name */}
@@ -247,6 +250,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                     <Download size={12} /> ดาวน์โหลดฉลากบาร์โค้ด
                   </button>
                 </div>
+                )}
               </div>
 
               {/* Data Properties List */}

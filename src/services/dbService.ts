@@ -24,6 +24,18 @@ const getServices = () => {
   return { isFirebase: false, db: null, storage: null };
 };
 
+// Utility to strip undefined values from objects before sending to Firestore
+// Firestore rejects undefined values in setDoc/updateDoc calls
+const sanitizeForFirestore = (obj: Record<string, any>): Record<string, any> => {
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      clean[key] = value;
+    }
+  }
+  return clean;
+};
+
 // --- INITIALIZE LOCAL STORAGE MOCK DATA IF EMPTY ---
 const initLocalStorageIfNeeded = () => {
   if (!localStorage.getItem('assetwatch_assets')) {
@@ -322,7 +334,7 @@ export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'assets', id), updates, { merge: true });
+      await setDoc(doc(db, 'assets', id), sanitizeForFirestore(updates), { merge: true });
     } catch (e) {
       console.error('Firebase updateAsset failed:', e);
       throw e;
@@ -532,7 +544,7 @@ export const updateRepair = async (id: string, updates: Partial<RepairCase>): Pr
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'repairs', id), updates, { merge: true });
+      await setDoc(doc(db, 'repairs', id), sanitizeForFirestore(updates), { merge: true });
     } catch (e) {
       console.error('Firebase updateRepair failed:', e);
       throw e;
@@ -613,7 +625,7 @@ export const updateSurveyRound = async (id: string, updates: Partial<SurveyRound
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'survey_rounds', id), updates, { merge: true });
+      await setDoc(doc(db, 'survey_rounds', id), sanitizeForFirestore(updates), { merge: true });
     } catch (e) {
       console.error('Firebase updateSurveyRound failed:', e);
       throw e;
@@ -958,7 +970,7 @@ export const updatePMContract = async (id: string, updates: Partial<PMContract>)
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'pm_contracts', id), updates, { merge: true });
+      await setDoc(doc(db, 'pm_contracts', id), sanitizeForFirestore(updates), { merge: true });
     } catch (e) {
       console.error('Firebase updatePMContract failed:', e);
       throw e;
@@ -1051,7 +1063,7 @@ export const updatePMSchedule = async (id: string, updates: Partial<PMSchedule>)
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'pm_schedules', id), updates, { merge: true });
+      await setDoc(doc(db, 'pm_schedules', id), sanitizeForFirestore(updates), { merge: true });
     } catch (e) {
       console.error('Firebase updatePMSchedule failed:', e);
       throw e;
@@ -1126,7 +1138,7 @@ export const updatePMNotification = async (id: string, updates: Partial<PMNotifi
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'pm_notifications', id), updates, { merge: true });
+      await setDoc(doc(db, 'pm_notifications', id), sanitizeForFirestore(updates), { merge: true });
     } catch (e) {
       console.error('Firebase updatePMNotification failed:', e);
       throw e;
