@@ -284,7 +284,7 @@ export interface PMContract {
   vendorName: string;
   startDate: string;
   endDate: string;
-  pmFrequency: 'monthly' | 'quarterly' | 'semi-annually' | 'annually';
+  pmFrequency: 'monthly' | 'quarterly' | 'semi-annually' | 'annually' | 'custom';
   assetIds: string[];
   contactPerson: string;
   contactPhone: string;

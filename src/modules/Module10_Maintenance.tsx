@@ -91,6 +91,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [vendorPhone, setVendorPhone] = useState('');
   const [submittingContract, setSubmittingContract] = useState(false);
   const [editingContract, setEditingContract] = useState<PMContract | null>(null);
+  const [customDates, setCustomDates] = useState<string[]>([]);
+  const [newCustomDate, setNewCustomDate] = useState('');
 
   // Add Ad-hoc Repair Modal States
   const [isRepairFormOpen, setIsRepairFormOpen] = useState(false);
@@ -349,39 +351,95 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         // 1. Update contract in db
         await onUpdateContract(editingContract.id, updates);
 
-        // 2. Generate schedules for newly added assets
-        const newlyAddedAssetIds = selectedAssetIds.filter(id => !editingContract.assetIds.includes(id));
-        if (newlyAddedAssetIds.length > 0) {
-          const start = new Date(contractStart);
-          const end = new Date(contractEnd);
-          let intervalMonths = 3;
-          if (pmFrequency === 'monthly') intervalMonths = 1;
-          else if (pmFrequency === 'semi-annually') intervalMonths = 6;
-          else if (pmFrequency === 'annually') intervalMonths = 12;
+        // 2. Generate schedules for newly added assets / custom dates
+        if (pmFrequency === 'custom') {
+          if (customDates.length === 0) {
+            alert('กรุณาเลือกวันนัดหมายบำรุงรักษาอย่างน้อย 1 วัน สำหรับแผนแบบกำหนดเอง');
+            setSubmittingContract(false);
+            return;
+          }
 
-          for (const assetId of newlyAddedAssetIds) {
-            const asset = assets.find(a => a.id === assetId);
-            if (!asset) continue;
+          // 2a. For newly added assets, generate schedules on all customDates
+          const newlyAddedAssetIds = selectedAssetIds.filter(id => !editingContract.assetIds.includes(id));
+          if (newlyAddedAssetIds.length > 0) {
+            for (const assetId of newlyAddedAssetIds) {
+              const asset = assets.find(a => a.id === assetId);
+              if (!asset) continue;
+              let count = 1;
+              for (const dateStr of customDates) {
+                const schedId = `sched-${Date.now()}-${assetId}-${count}`;
+                await onAddPMSchedule({
+                  id: schedId,
+                  contractId: editingContract.id,
+                  assetId: assetId,
+                  assetName: asset.name,
+                  plannedDate: dateStr,
+                  status: 'pending'
+                });
+                count++;
+              }
+            }
+          }
 
-            let currentDate = new Date(start);
-            currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+          // 2b. For newly added custom dates, generate schedules for all selected assets
+          const existingSchedules = schedules.filter(s => s.contractId === editingContract.id);
+          const existingDates = existingSchedules.map(s => s.plannedDate);
+          const newlyAddedDates = customDates.filter(d => !existingDates.includes(d));
 
-            let count = 1;
-            while (currentDate <= end) {
-              const schedId = `sched-${Date.now()}-${assetId}-${count}`;
-              const plannedDateStr = currentDate.toISOString().split('T')[0];
+          if (newlyAddedDates.length > 0) {
+            for (const assetId of selectedAssetIds) {
+              const asset = assets.find(a => a.id === assetId);
+              if (!asset) continue;
+              let count = 1;
+              for (const dateStr of newlyAddedDates) {
+                const schedId = `sched-${Date.now()}-${assetId}-new-${count}`;
+                await onAddPMSchedule({
+                  id: schedId,
+                  contractId: editingContract.id,
+                  assetId: assetId,
+                  assetName: asset.name,
+                  plannedDate: dateStr,
+                  status: 'pending'
+                });
+                count++;
+              }
+            }
+          }
+        } else {
+          // Standard periodic frequency logic
+          const newlyAddedAssetIds = selectedAssetIds.filter(id => !editingContract.assetIds.includes(id));
+          if (newlyAddedAssetIds.length > 0) {
+            const start = new Date(contractStart);
+            const end = new Date(contractEnd);
+            let intervalMonths = 3;
+            if (pmFrequency === 'monthly') intervalMonths = 1;
+            else if (pmFrequency === 'semi-annually') intervalMonths = 6;
+            else if (pmFrequency === 'annually') intervalMonths = 12;
 
-              await onAddPMSchedule({
-                id: schedId,
-                contractId: editingContract.id,
-                assetId: assetId,
-                assetName: asset.name,
-                plannedDate: plannedDateStr,
-                status: 'pending'
-              });
+            for (const assetId of newlyAddedAssetIds) {
+              const asset = assets.find(a => a.id === assetId);
+              if (!asset) continue;
 
+              let currentDate = new Date(start);
               currentDate.setMonth(currentDate.getMonth() + intervalMonths);
-              count++;
+
+              let count = 1;
+              while (currentDate <= end) {
+                const schedId = `sched-${Date.now()}-${assetId}-${count}`;
+                const plannedDateStr = currentDate.toISOString().split('T')[0];
+
+                await onAddPMSchedule({
+                  id: schedId,
+                  contractId: editingContract.id,
+                  assetId: assetId,
+                  assetName: asset.name,
+                  plannedDate: plannedDateStr,
+                  status: 'pending'
+                });
+
+                currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+                count++;
+              }
             }
           }
         }
@@ -393,7 +451,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           assetName: `แก้ไขสัญญาบำรุงรักษา: ${finalContractNumber}`,
           action: 'update',
           operator: operatorName,
-          details: `แก้ไขข้อมูลแผน/สัญญา PM รหัส ${finalContractNumber} (เพิ่มครุภัณฑ์ใหม่: ${newlyAddedAssetIds.length} รายการ)`
+          details: `แก้ไขข้อมูลแผน/สัญญา PM รหัส ${finalContractNumber}`
         });
 
       } else {
@@ -416,39 +474,65 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         await onAddContract(newContract);
 
         // 2. Generate PMSchedule entries dynamically
-        const start = new Date(contractStart);
-        const end = new Date(contractEnd);
-        
-        let intervalMonths = 3; // default quarterly
-        if (pmFrequency === 'monthly') intervalMonths = 1;
-        else if (pmFrequency === 'semi-annually') intervalMonths = 6;
-        else if (pmFrequency === 'annually') intervalMonths = 12;
+        if (pmFrequency === 'custom') {
+          if (customDates.length === 0) {
+            alert('กรุณาเลือกวันนัดหมายบำรุงรักษาอย่างน้อย 1 วัน สำหรับแผนแบบกำหนดเอง');
+            setSubmittingContract(false);
+            return;
+          }
+          for (const assetId of selectedAssetIds) {
+            const asset = assets.find(a => a.id === assetId);
+            if (!asset) continue;
+            let count = 1;
+            for (const dateStr of customDates) {
+              const schedId = `sched-${Date.now()}-${assetId}-${count}`;
+              await onAddPMSchedule({
+                id: schedId,
+                contractId: contractId,
+                assetId: assetId,
+                assetName: asset.name,
+                plannedDate: dateStr,
+                status: 'pending'
+              });
+              count++;
+            }
+          }
+        } else {
+          // Standard periodic frequency logic
+          const start = new Date(contractStart);
+          const end = new Date(contractEnd);
+          
+          let intervalMonths = 3; // default quarterly
+          if (pmFrequency === 'monthly') intervalMonths = 1;
+          else if (pmFrequency === 'semi-annually') intervalMonths = 6;
+          else if (pmFrequency === 'annually') intervalMonths = 12;
 
-        for (const assetId of selectedAssetIds) {
-          const asset = assets.find(a => a.id === assetId);
-          if (!asset) continue;
+          for (const assetId of selectedAssetIds) {
+            const asset = assets.find(a => a.id === assetId);
+            if (!asset) continue;
 
-          let currentDate = new Date(start);
-          // Move first PM check forward
-          currentDate.setMonth(currentDate.getMonth() + intervalMonths);
-
-          let count = 1;
-          while (currentDate <= end) {
-            const schedId = `sched-${Date.now()}-${assetId}-${count}`;
-            const plannedDateStr = currentDate.toISOString().split('T')[0];
-
-            await onAddPMSchedule({
-              id: schedId,
-              contractId: contractId,
-              assetId: assetId,
-              assetName: asset.name,
-              plannedDate: plannedDateStr,
-              status: 'pending'
-            });
-
-            // Move to next interval
+            let currentDate = new Date(start);
+            // Move first PM check forward
             currentDate.setMonth(currentDate.getMonth() + intervalMonths);
-            count++;
+
+            let count = 1;
+            while (currentDate <= end) {
+              const schedId = `sched-${Date.now()}-${assetId}-${count}`;
+              const plannedDateStr = currentDate.toISOString().split('T')[0];
+
+              await onAddPMSchedule({
+                id: schedId,
+                contractId: contractId,
+                assetId: assetId,
+                assetName: asset.name,
+                plannedDate: plannedDateStr,
+                status: 'pending'
+              });
+
+              // Move to next interval
+              currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+              count++;
+            }
           }
         }
 
@@ -472,6 +556,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       setIsContractFormOpen(false);
       setEditingContract(null);
+      setCustomDates([]);
+      setNewCustomDate('');
       // Reset form
       setContractNumber('');
       setContractTitle('');
@@ -507,6 +593,16 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setSelectedAssetIds(contract.assetIds);
     setVendorContact(contract.contactPerson);
     setVendorPhone(contract.contactPhone);
+    
+    // Load custom dates if frequency is custom
+    if (contract.pmFrequency === 'custom') {
+      const contractSchedules = schedules.filter(s => s.contractId === contract.id);
+      const uniqueDates = Array.from(new Set(contractSchedules.map(s => s.plannedDate))).sort();
+      setCustomDates(uniqueDates);
+    } else {
+      setCustomDates([]);
+    }
+    setNewCustomDate('');
     
     setIsContractFormOpen(true);
   };
@@ -1075,7 +1171,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                           <div>🔄 <strong>ความถี่รอบตรวจเช็ค PM:</strong> {
                             contract.pmFrequency === 'monthly' ? 'รายเดือน' : 
                             (contract.pmFrequency === 'quarterly' ? 'รายไตรมาส (3 เดือน)' : 
-                            (contract.pmFrequency === 'semi-annually' ? 'รายครึ่งปี (6 เดือน)' : 'รายปี'))
+                            (contract.pmFrequency === 'semi-annually' ? 'รายครึ่งปี (6 เดือน)' : 
+                            (contract.pmFrequency === 'custom' ? 'กำหนดเอง / เลือกวันนัดเอง' : 'รายปี')))
                           }</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><User size={13} /> <strong>ผู้รับผิดชอบแผน:</strong> {contract.contactPerson}</div>
                         </>
@@ -1086,7 +1183,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                           <div>🔄 <strong>ความถี่รอบตรวจเช็ค PM:</strong> {
                             contract.pmFrequency === 'monthly' ? 'รายเดือน' : 
                             (contract.pmFrequency === 'quarterly' ? 'รายไตรมาส (3 เดือน)' : 
-                            (contract.pmFrequency === 'semi-annually' ? 'รายครึ่งปี (6 เดือน)' : 'รายปี'))
+                            (contract.pmFrequency === 'semi-annually' ? 'รายครึ่งปี (6 เดือน)' : 
+                            (contract.pmFrequency === 'custom' ? 'กำหนดเอง / เลือกวันนัดเอง' : 'รายปี')))
                           }</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><User size={13} /> <strong>ผู้ประสานงาน:</strong> {contract.contactPerson}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Phone size={13} /> <strong>ติดต่อโทรศัพท์:</strong> <code>{contract.contactPhone}</code></div>
@@ -1711,6 +1809,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       <option value="quarterly">รายไตรมาส (Quarterly - 3 เดือน)</option>
                       <option value="semi-annually">รายครึ่งปี (Semi-annually - 6 เดือน)</option>
                       <option value="annually">รายปี (Annually)</option>
+                      <option value="custom">กำหนดเอง / เลือกวันนัดหมายเอง (Custom)</option>
                     </select>
                   </div>
                 </div>
@@ -1741,6 +1840,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                     <option value="quarterly">รายไตรมาส (Quarterly - 3 เดือน)</option>
                     <option value="semi-annually">รายครึ่งปี (Semi-annually - 6 เดือน)</option>
                     <option value="annually">รายปี (Annually)</option>
+                    <option value="custom">กำหนดเอง / เลือกวันนัดหมายเอง (Custom)</option>
                   </select>
                 </div>
               </div>
@@ -1795,6 +1895,61 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                     required={contractType === 'outsource'}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* Custom Dates Input Section (Visible only when custom frequency is selected) */}
+            {pmFrequency === 'custom' && (
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid var(--border)', padding: '1rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-primary)', marginBottom: '0.5rem' }}>
+                <label className="form-label" style={{ fontWeight: 700, margin: 0 }}>📅 เลือกวันนัดหมายเข้าบำรุงรักษา PM (กำหนดเอง)</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input 
+                    type="date" 
+                    className="form-input" 
+                    value={newCustomDate} 
+                    onChange={(e) => setNewCustomDate(e.target.value)} 
+                    style={{ flex: 1 }}
+                  />
+                  <button 
+                    type="button" 
+                    className="btn btn-primary" 
+                    onClick={() => {
+                      if (!newCustomDate) return;
+                      if (customDates.includes(newCustomDate)) {
+                        alert('วันที่นี้อยู่ในรายการเรียบร้อยแล้ว');
+                        return;
+                      }
+                      setCustomDates(prev => [...prev, newCustomDate].sort());
+                      setNewCustomDate('');
+                    }}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                  >
+                    + เพิ่มวันนัด
+                  </button>
+                </div>
+                
+                <span style={{ fontSize: '0.725rem', fontWeight: 650, color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
+                  รายการนัดหมายที่เพิ่มแล้ว ({customDates.length} วัน):
+                </span>
+                {customDates.length === 0 ? (
+                  <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>ยังไม่มีการระบุวันนัดหมาย</span>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxHeight: '110px', overflowY: 'auto', padding: '0.25rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-secondary)' }}>
+                    {customDates.map(d => (
+                      <span key={d} className="badge badge-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.725rem', padding: '0.2rem 0.5rem', border: '1px solid var(--border)', background: 'var(--bg-primary)' }}>
+                        {getThaiDateFormatted(d)}
+                        <button 
+                          type="button" 
+                          onClick={() => setCustomDates(prev => prev.filter(x => x !== d))}
+                          style={{ border: 'none', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.8rem', padding: 0, display: 'flex', alignItems: 'center' }}
+                          title="ลบวันนัดนี้"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
