@@ -90,6 +90,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [vendorContact, setVendorContact] = useState('');
   const [vendorPhone, setVendorPhone] = useState('');
   const [submittingContract, setSubmittingContract] = useState(false);
+  const [editingContract, setEditingContract] = useState<PMContract | null>(null);
 
   // Add Ad-hoc Repair Modal States
   const [isRepairFormOpen, setIsRepairFormOpen] = useState(false);
@@ -326,77 +327,143 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
     setSubmittingContract(true);
     try {
-      const contractId = `contract-${Date.now()}`;
-      const finalContractNumber = contractType === 'internal' ? `INT-PM-${Date.now().toString().slice(-6)}` : contractNumber;
+      const finalContractNumber = contractType === 'internal' ? (editingContract ? editingContract.contractNumber : `INT-PM-${Date.now().toString().slice(-6)}`) : contractNumber;
       const finalVendorName = contractType === 'internal' ? 'บำรุงรักษาภายในโดยฝ่ายพัสดุ' : vendorName;
       const finalContactPerson = contractType === 'internal' ? 'เจ้าหน้าที่พัสดุประจำแผนก' : vendorContact;
       const finalContactPhone = contractType === 'internal' ? '-' : vendorPhone;
 
-      const newContract: PMContract = {
-        id: contractId,
-        contractNumber: finalContractNumber,
-        title: contractTitle,
-        vendorName: finalVendorName,
-        startDate: contractStart,
-        endDate: contractEnd,
-        pmFrequency,
-        assetIds: selectedAssetIds,
-        contactPerson: finalContactPerson,
-        contactPhone: finalContactPhone
-      };
+      if (editingContract) {
+        // --- EDIT MODE ---
+        const updates: Partial<PMContract> = {
+          contractNumber: finalContractNumber,
+          title: contractTitle,
+          vendorName: finalVendorName,
+          startDate: contractStart,
+          endDate: contractEnd,
+          pmFrequency,
+          assetIds: selectedAssetIds,
+          contactPerson: finalContactPerson,
+          contactPhone: finalContactPhone
+        };
 
-      // 1. Save Contract to db
-      await onAddContract(newContract);
+        // 1. Update contract in db
+        await onUpdateContract(editingContract.id, updates);
 
-      // 2. Generate PMSchedule entries dynamically
-      // Let's calculate planned dates within contract range
-      const start = new Date(contractStart);
-      const end = new Date(contractEnd);
-      
-      let intervalMonths = 3; // default quarterly
-      if (pmFrequency === 'monthly') intervalMonths = 1;
-      else if (pmFrequency === 'semi-annually') intervalMonths = 6;
-      else if (pmFrequency === 'annually') intervalMonths = 12;
+        // 2. Generate schedules for newly added assets
+        const newlyAddedAssetIds = selectedAssetIds.filter(id => !editingContract.assetIds.includes(id));
+        if (newlyAddedAssetIds.length > 0) {
+          const start = new Date(contractStart);
+          const end = new Date(contractEnd);
+          let intervalMonths = 3;
+          if (pmFrequency === 'monthly') intervalMonths = 1;
+          else if (pmFrequency === 'semi-annually') intervalMonths = 6;
+          else if (pmFrequency === 'annually') intervalMonths = 12;
 
-      for (const assetId of selectedAssetIds) {
-        const asset = assets.find(a => a.id === assetId);
-        if (!asset) continue;
+          for (const assetId of newlyAddedAssetIds) {
+            const asset = assets.find(a => a.id === assetId);
+            if (!asset) continue;
 
-        let currentDate = new Date(start);
-        // Move first PM check forward
-        currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+            let currentDate = new Date(start);
+            currentDate.setMonth(currentDate.getMonth() + intervalMonths);
 
-        let count = 1;
-        while (currentDate <= end) {
-          const schedId = `sched-${Date.now()}-${assetId}-${count}`;
-          const plannedDateStr = currentDate.toISOString().split('T')[0];
+            let count = 1;
+            while (currentDate <= end) {
+              const schedId = `sched-${Date.now()}-${assetId}-${count}`;
+              const plannedDateStr = currentDate.toISOString().split('T')[0];
 
-          await onAddPMSchedule({
-            id: schedId,
-            contractId: contractId,
-            assetId: assetId,
-            assetName: asset.name,
-            plannedDate: plannedDateStr,
-            status: 'pending'
-          });
+              await onAddPMSchedule({
+                id: schedId,
+                contractId: editingContract.id,
+                assetId: assetId,
+                assetName: asset.name,
+                plannedDate: plannedDateStr,
+                status: 'pending'
+              });
 
-          // Move to next interval
-          currentDate.setMonth(currentDate.getMonth() + intervalMonths);
-          count++;
+              currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+              count++;
+            }
+          }
         }
-      }
 
-      // Log in Audit Trail
-      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
-      await onLogAudit({
-        assetId: 'SYSTEM',
-        assetName: `สร้างสัญญาบำรุงรักษา: ${finalContractNumber}`,
-        action: 'create',
-        operator: operatorName,
-        details: contractType === 'internal' 
-          ? `สร้างแผนงาน PM ภายในชื่อ "${contractTitle}" รหัส ${finalContractNumber} และกำหนดวันเข้าตรวจเช็คตามรอบความถี่อัตโนมัติ`
-          : `สร้างสัญญา PM เลขที่ ${finalContractNumber} บริษัทคู่สัญญา: ${finalVendorName} และสร้างกำหนดการตรวจเช็คอัตโนมัติ`
-      });
+        // Log in Audit Trail
+        const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
+        await onLogAudit({
+          assetId: 'SYSTEM',
+          assetName: `แก้ไขสัญญาบำรุงรักษา: ${finalContractNumber}`,
+          action: 'update',
+          operator: operatorName,
+          details: `แก้ไขข้อมูลแผน/สัญญา PM รหัส ${finalContractNumber} (เพิ่มครุภัณฑ์ใหม่: ${newlyAddedAssetIds.length} รายการ)`
+        });
+
+      } else {
+        // --- CREATE MODE ---
+        const contractId = `contract-${Date.now()}`;
+        const newContract: PMContract = {
+          id: contractId,
+          contractNumber: finalContractNumber,
+          title: contractTitle,
+          vendorName: finalVendorName,
+          startDate: contractStart,
+          endDate: contractEnd,
+          pmFrequency,
+          assetIds: selectedAssetIds,
+          contactPerson: finalContactPerson,
+          contactPhone: finalContactPhone
+        };
+
+        // 1. Save Contract to db
+        await onAddContract(newContract);
+
+        // 2. Generate PMSchedule entries dynamically
+        const start = new Date(contractStart);
+        const end = new Date(contractEnd);
+        
+        let intervalMonths = 3; // default quarterly
+        if (pmFrequency === 'monthly') intervalMonths = 1;
+        else if (pmFrequency === 'semi-annually') intervalMonths = 6;
+        else if (pmFrequency === 'annually') intervalMonths = 12;
+
+        for (const assetId of selectedAssetIds) {
+          const asset = assets.find(a => a.id === assetId);
+          if (!asset) continue;
+
+          let currentDate = new Date(start);
+          // Move first PM check forward
+          currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+
+          let count = 1;
+          while (currentDate <= end) {
+            const schedId = `sched-${Date.now()}-${assetId}-${count}`;
+            const plannedDateStr = currentDate.toISOString().split('T')[0];
+
+            await onAddPMSchedule({
+              id: schedId,
+              contractId: contractId,
+              assetId: assetId,
+              assetName: asset.name,
+              plannedDate: plannedDateStr,
+              status: 'pending'
+            });
+
+            // Move to next interval
+            currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+            count++;
+          }
+        }
+
+        // Log in Audit Trail
+        const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
+        await onLogAudit({
+          assetId: 'SYSTEM',
+          assetName: `สร้างสัญญาบำรุงรักษา: ${finalContractNumber}`,
+          action: 'create',
+          operator: operatorName,
+          details: contractType === 'internal' 
+            ? `สร้างแผนงาน PM ภายในชื่อ "${contractTitle}" รหัส ${finalContractNumber} และกำหนดวันเข้าตรวจเช็คตามรอบความถี่อัตโนมัติ`
+            : `สร้างสัญญา PM เลขที่ ${finalContractNumber} บริษัทคู่สัญญา: ${finalVendorName} และสร้างกำหนดการตรวจเช็คอัตโนมัติ`
+        });
+      }
 
       confetti({
         particleCount: 100,
@@ -404,6 +471,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       });
 
       setIsContractFormOpen(false);
+      setEditingContract(null);
       // Reset form
       setContractNumber('');
       setContractTitle('');
@@ -420,6 +488,27 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     } finally {
       setSubmittingContract(false);
     }
+  };
+
+  // Populate form states to edit contract
+  const handleEditContractClick = (contract: PMContract) => {
+    setEditingContract(contract);
+    
+    // Check if contract is internal
+    const isInternal = contract.contractNumber.startsWith('INT-PM-');
+    setContractType(isInternal ? 'internal' : 'outsource');
+    
+    setContractNumber(contract.contractNumber);
+    setContractTitle(contract.title);
+    setVendorName(contract.vendorName);
+    setContractStart(contract.startDate);
+    setContractEnd(contract.endDate);
+    setPmFrequency(contract.pmFrequency);
+    setSelectedAssetIds(contract.assetIds);
+    setVendorContact(contract.contactPerson);
+    setVendorPhone(contract.contactPhone);
+    
+    setIsContractFormOpen(true);
   };
 
   // Submit ad-hoc repair
@@ -917,11 +1006,12 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         <div className="contracts-pm-tab animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
           {/* Contracts Manager Header */}
+          {/* Contracts Manager Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>รายการจ้างบำรุงรักษาครุภัณฑ์ประจำปี</h3>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>รายการแผนงานและสัญญาบำรุงรักษาครุภัณฑ์</h3>
             {currentUser?.role !== 'user' && (
-              <button className="btn btn-primary" onClick={() => setIsContractFormOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Plus size={16} /> ทำสัญญาบำรุงรักษาใหม่
+              <button className="btn btn-primary" onClick={() => { setIsContractFormOpen(true); setEditingContract(null); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Plus size={16} /> สร้างแผน/สัญญาบำรุงรักษาใหม่
               </button>
             )}
           </div>
@@ -930,15 +1020,28 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           <div className="contracts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
             {contracts.length === 0 ? (
               <div className="glass-panel text-center" style={{ gridColumn: 'span 12', padding: '3rem' }}>
-                ไม่มีรายการสัญญาบำรุงรักษาในขณะนี้
+                ไม่มีรายการแผนงานหรือสัญญาบำรุงรักษาในขณะนี้
               </div>
             ) : (
               contracts.map(contract => {
                 // Filter assets belonging to this contract
                 const contractAssets = assets.filter(a => contract.assetIds.includes(a.id));
+                const isInternal = contract.contractNumber.startsWith('INT-PM-');
+                
                 return (
                   <div key={contract.id} className="contract-card glass-panel" style={{ padding: '1.25rem', position: 'relative' }}>
                     
+                    {currentUser?.role !== 'user' && (
+                      <button 
+                        onClick={() => handleEditContractClick(contract)} 
+                        className="btn btn-ghost btn-sm" 
+                        style={{ position: 'absolute', top: '0.75rem', right: currentUser?.role === 'admin' ? '2.5rem' : '0.75rem', color: 'var(--primary)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', height: 'auto', padding: '0.25rem' }}
+                        title="แก้ไขแผน/สัญญานี้"
+                      >
+                        <Wrench size={14} />
+                      </button>
+                    )}
+
                     {currentUser?.role === 'admin' && (
                       <button 
                         onClick={() => handleDeleteContract(contract.id)} 
@@ -950,24 +1053,45 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       </button>
                     )}
 
-                    <span className="badge badge-primary" style={{ fontFamily: 'monospace', fontSize: '0.725rem', marginBottom: '0.5rem' }}>
-                      🧾 เลขที่: {contract.contractNumber}
-                    </span>
+                    {isInternal ? (
+                      <span className="badge badge-success" style={{ fontFamily: 'monospace', fontSize: '0.725rem', marginBottom: '0.5rem' }}>
+                        📌 แผนภายใน: {contract.contractNumber}
+                      </span>
+                    ) : (
+                      <span className="badge badge-primary" style={{ fontFamily: 'monospace', fontSize: '0.725rem', marginBottom: '0.5rem' }}>
+                        🧾 เลขที่สัญญา: {contract.contractNumber}
+                      </span>
+                    )}
 
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.15rem 0 0.5rem 0', color: 'var(--text-primary)', lineHeight: 1.4, paddingRight: '1.5rem' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.15rem 0 0.5rem 0', color: 'var(--text-primary)', lineHeight: 1.4, paddingRight: '3.5rem' }}>
                       {contract.title}
                     </h4>
 
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: '0.5rem 0 1rem 0' }}>
-                      <div>🏢 <strong>บริษัทผู้รับจ้าง:</strong> {contract.vendorName}</div>
-                      <div>📅 <strong>ระยะเวลารอบสัญญา:</strong> {getThaiDateFormatted(contract.startDate)} ถึง {getThaiDateFormatted(contract.endDate)}</div>
-                      <div>🔄 <strong>ความถี่รอบตรวจเช็ค PM:</strong> {
-                        contract.pmFrequency === 'monthly' ? 'รายเดือน' : 
-                        (contract.pmFrequency === 'quarterly' ? 'รายไตรมาส (3 เดือน)' : 
-                        (contract.pmFrequency === 'semi-annually' ? 'รายครึ่งปี (6 เดือน)' : 'รายปี'))
-                      }</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><User size={13} /> <strong>ผู้ประสานงาน:</strong> {contract.contactPerson}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Phone size={13} /> <strong>ติดต่อโทรศัพท์:</strong> <code>{contract.contactPhone}</code></div>
+                      {isInternal ? (
+                        <>
+                          <div>🛠️ <strong>ลักษณะแผน:</strong> บำรุงรักษาภายในโดยฝ่ายพัสดุเอง (Self-Maintenance)</div>
+                          <div>📅 <strong>ระยะเวลารอบแผนงาน:</strong> {getThaiDateFormatted(contract.startDate)} ถึง {getThaiDateFormatted(contract.endDate)}</div>
+                          <div>🔄 <strong>ความถี่รอบตรวจเช็ค PM:</strong> {
+                            contract.pmFrequency === 'monthly' ? 'รายเดือน' : 
+                            (contract.pmFrequency === 'quarterly' ? 'รายไตรมาส (3 เดือน)' : 
+                            (contract.pmFrequency === 'semi-annually' ? 'รายครึ่งปี (6 เดือน)' : 'รายปี'))
+                          }</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><User size={13} /> <strong>ผู้รับผิดชอบแผน:</strong> {contract.contactPerson}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div>🏢 <strong>บริษัทผู้รับจ้าง:</strong> {contract.vendorName}</div>
+                          <div>📅 <strong>ระยะเวลารอบสัญญา:</strong> {getThaiDateFormatted(contract.startDate)} ถึง {getThaiDateFormatted(contract.endDate)}</div>
+                          <div>🔄 <strong>ความถี่รอบตรวจเช็ค PM:</strong> {
+                            contract.pmFrequency === 'monthly' ? 'รายเดือน' : 
+                            (contract.pmFrequency === 'quarterly' ? 'รายไตรมาส (3 เดือน)' : 
+                            (contract.pmFrequency === 'semi-annually' ? 'รายครึ่งปี (6 เดือน)' : 'รายปี'))
+                          }</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><User size={13} /> <strong>ผู้ประสานงาน:</strong> {contract.contactPerson}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Phone size={13} /> <strong>ติดต่อโทรศัพท์:</strong> <code>{contract.contactPhone}</code></div>
+                        </>
+                      )}
                     </div>
 
                     <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem' }}>
@@ -1405,8 +1529,10 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           <form onSubmit={handleContractSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '650px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem', flexShrink: 0 }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>📝 ทำสัญญาและวางกำหนดบำรุงรักษาใหม่</h3>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsContractFormOpen(false)} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>
+                {editingContract ? '✏️ แก้ไขรายละเอียดแผน/สัญญาบำรุงรักษา' : '📝 ทำสัญญาและวางกำหนดบำรุงรักษาใหม่'}
+              </h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setIsContractFormOpen(false); setEditingContract(null); }} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>
                 ✕
               </button>
             </div>
@@ -1607,11 +1733,11 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           </div>
 
           <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.25rem', flexShrink: 0 }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setIsContractFormOpen(false)}>
+              <button type="button" className="btn btn-secondary" onClick={() => { setIsContractFormOpen(false); setEditingContract(null); }}>
                 ยกเลิก
               </button>
               <button type="submit" className="btn btn-primary" disabled={submittingContract}>
-                {submittingContract ? 'กำลังบันทึกและสร้างกำหนดการ...' : '💾 สร้างสัญญากลุ่มและแผนบำรุงรักษา'}
+                {submittingContract ? 'กำลังบันทึก...' : (editingContract ? '💾 บันทึกการแก้ไขแผน/สัญญา' : '💾 สร้างสัญญากลุ่มและแผนบำรุงรักษา')}
               </button>
             </div>
 
