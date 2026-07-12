@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import JsBarcode from 'jsbarcode';
 import { 
   X, 
   Calendar, 
@@ -14,7 +15,6 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, PMSchedule } from '../utils/mockData';
-import { QRCodeSVG } from 'qrcode.react';
 
 interface AssetModalProps {
   asset: Asset;
@@ -53,8 +53,8 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     'อื่นๆ': 'badge-muted'
   };
 
-  const handleDownloadQR = () => {
-    const svg = document.getElementById(`qr-svg-${asset.id}`);
+  const handleDownloadBarcode = () => {
+    const svg = document.getElementById(`barcode-svg-${asset.id}`);
     if (svg) {
       const svgString = new XMLSerializer().serializeToString(svg);
       const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
@@ -64,52 +64,93 @@ export const AssetModal: React.FC<AssetModalProps> = ({
       const image = new Image();
       image.onload = () => {
         const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 450;
+        canvas.width = 450;
+        canvas.height = 200;
         const context = canvas.getContext('2d');
         
         if (context) {
           // Draw white card background
           context.fillStyle = '#ffffff';
-          context.fillRect(0, 0, 400, 450);
+          context.fillRect(0, 0, 450, 200);
           
-          // Draw header
-          context.fillStyle = '#1e293b';
-          context.font = 'bold 20px "Inter", "Noto Sans Thai"';
-          context.textAlign = 'center';
-          context.fillText('AssetWatch Program', 200, 40);
-          
-          // Draw asset name
-          context.fillStyle = '#64748b';
-          context.font = '14px "Inter", "Noto Sans Thai"';
-          context.fillText(asset.name.substring(0, 40) + (asset.name.length > 40 ? '...' : ''), 200, 70);
+          // Draw border
+          context.strokeStyle = '#cbd5e1';
+          context.lineWidth = 4;
+          context.strokeRect(4, 4, 442, 192);
 
-          // Draw the QR Image
-          context.drawImage(image, 75, 100, 250, 250);
+          // Draw plus sign (+) and asset name
+          context.fillStyle = '#0f172a';
+          context.font = 'bold 24px "Inter", "Noto Sans Thai", sans-serif';
+          context.textAlign = 'left';
+          context.fillText('+', 20, 40);
+
+          context.font = 'bold 16px "Inter", "Noto Sans Thai", sans-serif';
+          const maxNameWidth = 380;
+          let displayName = asset.name;
+          if (context.measureText(displayName).width > maxNameWidth) {
+            while (context.measureText(displayName + '...').width > maxNameWidth && displayName.length > 0) {
+              displayName = displayName.substring(0, displayName.length - 1);
+            }
+            displayName += '...';
+          }
+          context.fillText(displayName, 45, 38);
+
+          // Draw dotted separator line
+          context.strokeStyle = '#94a3b8';
+          context.lineWidth = 1;
+          context.setLineDash([4, 4]);
+          context.beginPath();
+          context.moveTo(20, 52);
+          context.lineTo(430, 52);
+          context.stroke();
+          context.setLineDash([]); // Reset line dash
+
+          // Draw Barcode Image (centered)
+          context.drawImage(image, 35, 65, 380, 85);
           
-          // Draw Barcode Text ID
+          // Draw Asset ID under barcode (centered)
           context.fillStyle = '#0f172a';
           context.font = 'bold 18px monospace';
-          context.fillText(asset.id, 200, 390);
+          context.textAlign = 'center';
+          context.fillText(asset.id, 225, 175);
 
-          // Draw Footer Note
-          context.fillStyle = '#94a3b8';
-          context.font = '11px "Inter", "Noto Sans Thai"';
-          context.fillText('สแกนผ่านเบราว์เซอร์มือถือเพื่อสำรวจข้อมูลครุภัณฑ์', 200, 420);
-
-          // Trigger download
+          // Trigger Download
           const pngURL = canvas.toDataURL('image/png');
           const downloadLink = document.createElement('a');
           downloadLink.href = pngURL;
-          downloadLink.download = `AssetLabel_${asset.id}.png`;
+          downloadLink.download = `BarcodeLabel_${asset.id}.png`;
           document.body.appendChild(downloadLink);
           downloadLink.click();
           document.body.removeChild(downloadLink);
         }
+        URL.revokeObjectURL(blobURL);
       };
       image.src = blobURL;
     }
   };
+
+  useEffect(() => {
+    if (activeTab === 'info') {
+      const svgEl = document.getElementById(`barcode-svg-${asset.id}`);
+      if (svgEl) {
+        try {
+          JsBarcode(svgEl, asset.id, {
+            format: 'CODE128',
+            displayValue: false,
+            height: 45,
+            width: 1.6,
+            margin: 5,
+            background: '#ffffff',
+            lineColor: '#000000'
+          });
+        } catch (err) {
+          console.error('Barcode generation failed:', err);
+        }
+      }
+    }
+  }, [asset.id, activeTab]);
+
+
 
   return (
     <div className="modal-backdrop">
@@ -176,30 +217,35 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                   />
                 </div>
                 
-                {/* Embedded dynamic label containing asset ID QR */}
-                <div className="qr-badge-card">
-                  <div style={{ display: 'none' }}>
-                    {/* Hidden SVG wrapper used for canvas export download */}
-                    <QRCodeSVG 
-                      id={`qr-svg-${asset.id}`} 
-                      value={asset.id} 
-                      size={250} 
-                      level="H"
-                      includeMargin={false}
-                    />
-                  </div>
+                {/* Barcode Sticker Label (Like the physical one) */}
+                <div className="barcode-badge-card" style={{ background: '#ffffff', color: '#000000', padding: '1rem', border: '1px solid #cbd5e1', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%', maxWidth: '320px', margin: '0.5rem auto 0 auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                   
-                  <div className="visible-qr">
-                    <QRCodeSVG value={asset.id} size={110} level="M" />
+                  {/* Top: Plus sign and asset name */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.35rem', width: '100%' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>+</span>
+                    <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }} title={asset.name}>
+                      {asset.name}
+                    </span>
                   </div>
-                  
-                  <div className="qr-card-details">
-                    <span>ฉลากบาร์โค้ดประจำทรัพย์สิน</span>
-                    <h4>{asset.id}</h4>
-                    <button className="btn btn-secondary btn-xs" onClick={handleDownloadQR}>
-                      <Download size={12} /> ดาวน์โหลดฉลาก
-                    </button>
+
+                  {/* Middle: Barcode SVG rendered by JsBarcode */}
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#ffffff', padding: '0.2rem 0' }}>
+                    <svg id={`barcode-svg-${asset.id}`} style={{ maxHeight: '55px', width: '100%' }}></svg>
                   </div>
+
+                  {/* Bottom: Asset ID */}
+                  <div style={{ textAlign: 'center', fontSize: '0.85rem', fontWeight: 800, fontFamily: 'monospace', color: '#0f172a', letterSpacing: '0.05em' }}>
+                    {asset.id}
+                  </div>
+
+                  {/* Download Button */}
+                  <button 
+                    className="btn btn-secondary btn-xs" 
+                    onClick={handleDownloadBarcode} 
+                    style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', height: 'auto', padding: '0.35rem 0.5rem' }}
+                  >
+                    <Download size={12} /> ดาวน์โหลดฉลากบาร์โค้ด
+                  </button>
                 </div>
               </div>
 
