@@ -119,6 +119,14 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [receiveProofPreview, setReceiveProofPreview] = useState<string | null>(null);
   const [submittingReceive, setSubmittingReceive] = useState(false);
 
+  // Reschedule (change planned date) states
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = useState<PMSchedule | null>(null);
+  const [rescheduleNewDate, setRescheduleNewDate] = useState('');
+
+  // Drag-and-Drop calendar state
+  const [draggedSchedule, setDraggedSchedule] = useState<PMSchedule | null>(null);
+
   // Sync Operator department
   useEffect(() => {
     if (currentUser?.role === 'user') {
@@ -775,6 +783,54 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     return testDate.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  // Reschedule handler: change planned date of a pending schedule
+  const handleOpenReschedule = (sched: PMSchedule) => {
+    setRescheduleTarget(sched);
+    setRescheduleNewDate(sched.plannedDate);
+    setIsRescheduleOpen(true);
+  };
+
+  const handleRescheduleSubmit = async () => {
+    if (!rescheduleTarget || !rescheduleNewDate) return;
+    try {
+      await onUpdatePMSchedule(rescheduleTarget.id, { plannedDate: rescheduleNewDate });
+      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
+      await onLogAudit({
+        assetId: rescheduleTarget.assetId,
+        assetName: rescheduleTarget.assetName,
+        action: 'update',
+        operator: operatorName,
+        details: `เลื่อนวันนัด PM จาก ${getThaiDateFormatted(rescheduleTarget.plannedDate)} เป็น ${getThaiDateFormatted(rescheduleNewDate)}`
+      });
+      setIsRescheduleOpen(false);
+      setRescheduleTarget(null);
+      await onRefreshData();
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการเลื่อนวันนัดบำรุงรักษา: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
+  // Calendar drag-and-drop handler
+  const handleCalendarDrop = async (sched: PMSchedule, newDateStr: string) => {
+    if (sched.status !== 'pending' || sched.plannedDate === newDateStr) return;
+    try {
+      await onUpdatePMSchedule(sched.id, { plannedDate: newDateStr });
+      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
+      await onLogAudit({
+        assetId: sched.assetId,
+        assetName: sched.assetName,
+        action: 'update',
+        operator: operatorName,
+        details: `ย้ายวันนัด PM (ลากจากปฏิทิน) จาก ${getThaiDateFormatted(sched.plannedDate)} เป็น ${getThaiDateFormatted(newDateStr)}`
+      });
+      await onRefreshData();
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการย้ายวันนัด PM: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
   return (
     <div className="module-container animate-fade-in">
       <div className="module-title-section">
@@ -990,6 +1046,17 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                   <div 
                     key={`cell-${index}`} 
                     className={`calendar-day-cell ${dayNum === null ? 'empty' : ''} ${isToday ? 'today' : ''}`}
+                    onDragOver={(e) => { if (dayNum !== null) { e.preventDefault(); e.currentTarget.style.outline = '2px dashed var(--primary)'; } }}
+                    onDragLeave={(e) => { e.currentTarget.style.outline = 'none'; }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.style.outline = 'none';
+                      if (dayNum === null || !draggedSchedule) return;
+                      const dayStr = String(dayNum).padStart(2, '0');
+                      const newDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${dayStr}`;
+                      handleCalendarDrop(draggedSchedule, newDateStr);
+                      setDraggedSchedule(null);
+                    }}
                     style={{
                       minHeight: '100px',
                       background: dayNum === null ? 'transparent' : 'var(--bg-primary)',
@@ -1000,7 +1067,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       flexDirection: 'column',
                       gap: '0.25rem',
                       position: 'relative',
-                      boxShadow: isToday ? '0 0 0 2px var(--primary)' : 'none'
+                      boxShadow: isToday ? '0 0 0 2px var(--primary)' : 'none',
+                      transition: 'outline 0.15s ease'
                     }}
                   >
                     {dayNum && (
@@ -1013,6 +1081,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       {daySchedules.map(sched => {
                         const todayStr = new Date().toISOString().split('T')[0];
                         const isOverdue = sched.status === 'pending' && sched.plannedDate < todayStr;
+                        const isDraggable = sched.status === 'pending';
                         
                         let statusColor = 'var(--warning)';
                         let bgColor = 'var(--warning-light)';
@@ -1039,6 +1108,20 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                         return (
                           <button 
                             key={sched.id} 
+                            draggable={isDraggable}
+                            onDragStart={(e) => {
+                              if (!isDraggable) { e.preventDefault(); return; }
+                              setDraggedSchedule(sched);
+                              e.dataTransfer.effectAllowed = 'move';
+                              // Make ghost slightly transparent
+                              if (e.currentTarget) {
+                                setTimeout(() => { (e.target as HTMLElement).style.opacity = '0.4'; }, 0);
+                              }
+                            }}
+                            onDragEnd={(e) => {
+                              (e.target as HTMLElement).style.opacity = '1';
+                              setDraggedSchedule(null);
+                            }}
                             onClick={() => {
                               setSelectedSchedule(sched);
                               if (sched.status !== 'pending') {
@@ -1057,14 +1140,15 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                               backgroundColor: bgColor,
                               color: statusColor,
                               border: `1.25px solid ${statusColor}`,
-                              cursor: 'pointer',
+                              cursor: isDraggable ? 'grab' : 'pointer',
                               fontWeight: 650,
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
-                              outline: 'none'
+                              outline: 'none',
+                              transition: 'opacity 0.2s ease'
                             }}
-                            title={`${sched.assetName} (${sched.status})`}
+                            title={isDraggable ? `${sched.assetName} — ลากเพื่อเลื่อนวันนัด` : `${sched.assetName} (${sched.status})`}
                           >
                             {labelPrefix} {sched.assetName}
                           </button>
@@ -1237,13 +1321,23 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
                                       {sched.status === 'pending' || isOverdue ? (
-                                        <button 
-                                          onClick={() => handleOpenPMForm(sched)}
-                                          className="btn btn-primary btn-xs"
-                                          style={{ padding: '0.15rem 0.4rem', fontSize: '0.675rem', height: 'auto' }}
-                                        >
-                                          🔧 บันทึกผล
-                                        </button>
+                                        <>
+                                          <button 
+                                            onClick={() => handleOpenReschedule(sched)}
+                                            className="btn btn-ghost btn-xs"
+                                            style={{ padding: '0.15rem 0.4rem', fontSize: '0.675rem', height: 'auto', border: '1px solid var(--border)' }}
+                                            title="เลื่อนวันนัดบำรุงรักษา"
+                                          >
+                                            📅 เลื่อนวัน
+                                          </button>
+                                          <button 
+                                            onClick={() => handleOpenPMForm(sched)}
+                                            className="btn btn-primary btn-xs"
+                                            style={{ padding: '0.15rem 0.4rem', fontSize: '0.675rem', height: 'auto' }}
+                                          >
+                                            🔧 บันทึกผล
+                                          </button>
+                                        </>
                                       ) : (
                                         <>
                                           <button 
@@ -1426,6 +1520,57 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                 })()}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL: RESCHEDULE DATE PICKER --- */}
+      {isRescheduleOpen && rescheduleTarget && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="glass-panel animate-scale-up" style={{ maxWidth: '420px', width: '100%', padding: '1.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>📅 เลื่อนวันนัดบำรุงรักษา</h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setIsRescheduleOpen(false); setRescheduleTarget(null); }} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>✕</button>
+            </div>
+
+            <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>รหัสครุภัณฑ์: <code>{rescheduleTarget.assetId}</code></div>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{rescheduleTarget.assetName}</h4>
+              <span style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 650 }}>📅 วันที่เดิม: {getThaiDateFormatted(rescheduleTarget.plannedDate)}</span>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label className="form-label" style={{ fontWeight: 700 }}>📅 เลือกวันที่ใหม่</label>
+              <input 
+                type="date" 
+                className="form-input"
+                value={rescheduleNewDate}
+                onChange={(e) => setRescheduleNewDate(e.target.value)}
+                required
+              />
+              {rescheduleNewDate && rescheduleNewDate !== rescheduleTarget.plannedDate && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600 }}>
+                  ➡️ จะเลื่อนเป็น: <strong>{getThaiDateFormatted(rescheduleNewDate)}</strong>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button 
+                className="btn btn-ghost" 
+                onClick={() => { setIsRescheduleOpen(false); setRescheduleTarget(null); }}
+                style={{ border: '1px solid var(--border)' }}
+              >
+                ยกเลิก
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleRescheduleSubmit}
+                disabled={!rescheduleNewDate || rescheduleNewDate === rescheduleTarget.plannedDate}
+              >
+                💾 บันทึกวันนัดใหม่
+              </button>
+            </div>
           </div>
         </div>
       )}
