@@ -18,6 +18,7 @@ interface Module10MaintenanceProps {
   onDeleteContract: (id: string) => Promise<void>;
   onAddPMSchedule: (schedule: PMSchedule) => Promise<void>;
   onUpdatePMSchedule: (id: string, updates: Partial<PMSchedule>) => Promise<void>;
+  onDeletePMSchedule: (id: string) => Promise<void>;
   onAddRepair: (repair: Omit<RepairCase, 'id'>) => Promise<string>;
   onUpdateRepair: (id: string, updates: Partial<RepairCase>) => Promise<void>;
   onUpdateAssetStatus: (id: string, status: Asset['status']) => Promise<void>;
@@ -37,6 +38,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   onDeleteContract,
   onAddPMSchedule,
   onUpdatePMSchedule,
+  onDeletePMSchedule,
   onAddRepair,
   onUpdateRepair,
   onUpdateAssetStatus,
@@ -351,96 +353,73 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         // 1. Update contract in db
         await onUpdateContract(editingContract.id, updates);
 
-        // 2. Generate schedules for newly added assets / custom dates
+        // 2. Synchronize schedule entries dynamically based on new settings
+        let targetDates: string[] = [];
         if (pmFrequency === 'custom') {
           if (customDates.length === 0) {
             alert('กรุณาเลือกวันนัดหมายบำรุงรักษาอย่างน้อย 1 วัน สำหรับแผนแบบกำหนดเอง');
             setSubmittingContract(false);
             return;
           }
-
-          // 2a. For newly added assets, generate schedules on all customDates
-          const newlyAddedAssetIds = selectedAssetIds.filter(id => !editingContract.assetIds.includes(id));
-          if (newlyAddedAssetIds.length > 0) {
-            for (const assetId of newlyAddedAssetIds) {
-              const asset = assets.find(a => a.id === assetId);
-              if (!asset) continue;
-              let count = 1;
-              for (const dateStr of customDates) {
-                const schedId = `sched-${Date.now()}-${assetId}-${count}`;
-                await onAddPMSchedule({
-                  id: schedId,
-                  contractId: editingContract.id,
-                  assetId: assetId,
-                  assetName: asset.name,
-                  plannedDate: dateStr,
-                  status: 'pending'
-                });
-                count++;
-              }
-            }
-          }
-
-          // 2b. For newly added custom dates, generate schedules for all selected assets
-          const existingSchedules = schedules.filter(s => s.contractId === editingContract.id);
-          const existingDates = existingSchedules.map(s => s.plannedDate);
-          const newlyAddedDates = customDates.filter(d => !existingDates.includes(d));
-
-          if (newlyAddedDates.length > 0) {
-            for (const assetId of selectedAssetIds) {
-              const asset = assets.find(a => a.id === assetId);
-              if (!asset) continue;
-              let count = 1;
-              for (const dateStr of newlyAddedDates) {
-                const schedId = `sched-${Date.now()}-${assetId}-new-${count}`;
-                await onAddPMSchedule({
-                  id: schedId,
-                  contractId: editingContract.id,
-                  assetId: assetId,
-                  assetName: asset.name,
-                  plannedDate: dateStr,
-                  status: 'pending'
-                });
-                count++;
-              }
-            }
-          }
+          targetDates = [...customDates];
         } else {
-          // Standard periodic frequency logic
-          const newlyAddedAssetIds = selectedAssetIds.filter(id => !editingContract.assetIds.includes(id));
-          if (newlyAddedAssetIds.length > 0) {
-            const start = new Date(contractStart);
-            const end = new Date(contractEnd);
-            let intervalMonths = 3;
-            if (pmFrequency === 'monthly') intervalMonths = 1;
-            else if (pmFrequency === 'semi-annually') intervalMonths = 6;
-            else if (pmFrequency === 'annually') intervalMonths = 12;
+          const start = new Date(contractStart);
+          const end = new Date(contractEnd);
+          let intervalMonths = 3;
+          if (pmFrequency === 'monthly') intervalMonths = 1;
+          else if (pmFrequency === 'semi-annually') intervalMonths = 6;
+          else if (pmFrequency === 'annually') intervalMonths = 12;
 
-            for (const assetId of newlyAddedAssetIds) {
-              const asset = assets.find(a => a.id === assetId);
-              if (!asset) continue;
+          let currentDate = new Date(start);
+          currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+          while (currentDate <= end) {
+            targetDates.push(currentDate.toISOString().split('T')[0]);
+            currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+          }
+        }
 
-              let currentDate = new Date(start);
-              currentDate.setMonth(currentDate.getMonth() + intervalMonths);
+        const existingSchedules = schedules.filter(s => s.contractId === editingContract.id);
 
-              let count = 1;
-              while (currentDate <= end) {
-                const schedId = `sched-${Date.now()}-${assetId}-${count}`;
-                const plannedDateStr = currentDate.toISOString().split('T')[0];
+        // A. Update/Sync selected assets
+        for (const assetId of selectedAssetIds) {
+          const asset = assets.find(a => a.id === assetId);
+          if (!asset) continue;
 
-                await onAddPMSchedule({
-                  id: schedId,
-                  contractId: editingContract.id,
-                  assetId: assetId,
-                  assetName: asset.name,
-                  plannedDate: plannedDateStr,
-                  status: 'pending'
-                });
+          const assetScheds = existingSchedules.filter(s => s.assetId === assetId);
 
-                currentDate.setMonth(currentDate.getMonth() + intervalMonths);
-                count++;
-              }
+          // Delete pending schedules that are no longer in targetDates
+          const pendingToUpdateOrDelete = assetScheds.filter(s => s.status === 'pending');
+          for (const sched of pendingToUpdateOrDelete) {
+            if (!targetDates.includes(sched.plannedDate)) {
+              await onDeletePMSchedule(sched.id);
             }
+          }
+
+          // Add new pending schedules for new targetDates
+          let count = 1;
+          for (const dateStr of targetDates) {
+            const hasSchedule = assetScheds.some(s => s.plannedDate === dateStr);
+            if (!hasSchedule) {
+              const schedId = `sched-${Date.now()}-${assetId}-${count}`;
+              await onAddPMSchedule({
+                id: schedId,
+                contractId: editingContract.id,
+                assetId: assetId,
+                assetName: asset.name,
+                plannedDate: dateStr,
+                status: 'pending'
+              });
+              count++;
+            }
+          }
+        }
+
+        // B. Handle deleted assets: delete pending schedules for assets removed from the contract
+        const removedAssetIds = editingContract.assetIds.filter(id => !selectedAssetIds.includes(id));
+        for (const assetId of removedAssetIds) {
+          const assetScheds = existingSchedules.filter(s => s.assetId === assetId && s.status === 'pending');
+          for (const sched of assetScheds) {
+            await onDeletePMSchedule(sched.id);
           }
         }
 

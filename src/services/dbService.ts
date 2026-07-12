@@ -1139,3 +1139,20 @@ export const deletePMNotification = async (id: string): Promise<void> => {
   const filtered = notifications.filter(n => n.id !== id);
   localStorage.setItem('assetwatch_pm_notifications', JSON.stringify(filtered));
 };
+
+export const deletePMSchedule = async (id: string): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  
+  if (isFirebase && db) {
+    try {
+      await deleteDoc(doc(db, 'pm_schedules', id));
+    } catch (e) {
+      console.error('Firebase deletePMSchedule failed, falling back to localStorage:', e);
+    }
+  }
+
+  initLocalStorageIfNeeded();
+  const schedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
+  const filtered = schedules.filter(s => s.id !== id);
+  localStorage.setItem('assetwatch_schedules', JSON.stringify(filtered));
+};

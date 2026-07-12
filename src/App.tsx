@@ -34,6 +34,7 @@ import {
   getPMSchedules,
   addPMSchedule,
   updatePMSchedule,
+  deletePMSchedule,
   getPMNotifications,
   addPMNotification,
   updatePMNotification,
@@ -345,6 +346,11 @@ function App() {
 
   const handleUpdatePMSchedule = async (id: string, updates: Partial<PMSchedule>) => {
     await updatePMSchedule(id, updates);
+    await fetchAllData();
+  };
+
+  const handleDeletePMSchedule = async (id: string) => {
+    await deletePMSchedule(id);
     await fetchAllData();
   };
 
@@ -1109,6 +1115,7 @@ function App() {
                 onDeleteContract={handleDeleteContract}
                 onAddPMSchedule={handleAddPMSchedule}
                 onUpdatePMSchedule={handleUpdatePMSchedule}
+                onDeletePMSchedule={handleDeletePMSchedule}
                 onAddRepair={handleAddRepair}
                 onUpdateRepair={handleUpdateRepair}
                 onUpdateAssetStatus={handleUpdateAssetStatus}
