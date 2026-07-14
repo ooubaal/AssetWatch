@@ -54,7 +54,7 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
   const [importing, setImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [hideDemoBypass, setHideDemoBypass] = useState(localStorage.getItem('assetwatch_hide_demo_bypass') === 'true');
-  const [forceBase64, setForceBase64] = useState(localStorage.getItem('assetwatch_force_base64_images') === 'true');
+  const [forceBase64, setForceBase64] = useState(localStorage.getItem('assetwatch_force_base64_images') !== 'false');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [githubRepoSizeKb, setGithubRepoSizeKb] = useState<number | null>(null);
   const [loadingGithubSize, setLoadingGithubSize] = useState(false);

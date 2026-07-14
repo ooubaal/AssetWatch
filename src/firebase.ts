@@ -34,6 +34,8 @@ export const getStoredFirebaseConfig = (): FirebaseConfig | null => {
 export const saveFirebaseConfig = (config: FirebaseConfig): boolean => {
   try {
     localStorage.setItem('assetwatch_firebase_config', JSON.stringify(config));
+    // Default to forcing Base64 Fast Mode when connecting to Firebase to avoid slow uploads
+    localStorage.setItem('assetwatch_force_base64_images', 'true');
     // Test if we can initialize
     return initializeFirebase(config);
   } catch (e) {
@@ -45,6 +47,7 @@ export const saveFirebaseConfig = (config: FirebaseConfig): boolean => {
 // Clear config from localStorage
 export const clearFirebaseConfig = () => {
   localStorage.removeItem('assetwatch_firebase_config');
+  localStorage.removeItem('assetwatch_force_base64_images');
   app = null;
   db = null;
   storage = null;
@@ -72,6 +75,10 @@ export const initializeFirebase = (config: FirebaseConfig): boolean => {
 // Auto initialize on load if config exists
 const initialConfig = getStoredFirebaseConfig();
 if (initialConfig) {
+  // If config exists, make sure force_base64_images defaults to true if not set
+  if (localStorage.getItem('assetwatch_force_base64_images') === null) {
+    localStorage.setItem('assetwatch_force_base64_images', 'true');
+  }
   initializeFirebase(initialConfig);
 }
 

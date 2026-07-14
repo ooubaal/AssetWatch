@@ -171,7 +171,7 @@ export const uploadImage = async (file: File, path: string = 'assets'): Promise<
     console.error('Image compression failed, using original file:', err);
   }
 
-  const forceBase64 = localStorage.getItem('assetwatch_force_base64_images') === 'true';
+  const forceBase64 = localStorage.getItem('assetwatch_force_base64_images') !== 'false';
 
   if (isFirebase && storage && !forceBase64) {
     try {
