@@ -114,6 +114,53 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     });
   }, [assets, currentUser, modalAssetSearch]);
 
+  // Asset-Based PM Tab States
+  const [assetPMSearch, setAssetPMSearch] = useState('');
+  const [assetPMTypeFilter, setAssetPMTypeFilter] = useState<'all' | 'has_plan' | 'no_plan' | 'outsource' | 'internal'>('all');
+  
+  // Logbook Modal States
+  const [selectedLogbookAsset, setSelectedLogbookAsset] = useState<Asset | null>(null);
+  const [isLogbookOpen, setIsLogbookOpen] = useState(false);
+
+  // Filtered asset list for Tab 3 (Asset-Based Maintenance & Logbook)
+  const filteredAssetPMList = useMemo(() => {
+    return assets.filter(asset => {
+      if (asset.status === 'รอจำหน่าย') return false;
+      
+      // Dept filter
+      if (selectedDeptFilter !== 'all' && asset.department !== selectedDeptFilter) {
+        return false;
+      }
+
+      // Asset PM plan check
+      const assetContracts = contracts.filter(c => c.assetIds.includes(asset.id));
+      const hasPlan = assetContracts.length > 0;
+      const latestContract = hasPlan ? assetContracts[assetContracts.length - 1] : null;
+      const isInternal = latestContract ? latestContract.contractNumber.startsWith('INT-PM-') : false;
+
+      if (assetPMTypeFilter === 'has_plan' && !hasPlan) return false;
+      if (assetPMTypeFilter === 'no_plan' && hasPlan) return false;
+      if (assetPMTypeFilter === 'outsource' && (!hasPlan || isInternal)) return false;
+      if (assetPMTypeFilter === 'internal' && (!hasPlan || !isInternal)) return false;
+
+      if (!assetPMSearch.trim()) return true;
+      const term = assetPMSearch.toLowerCase().trim();
+      const vendor = latestContract ? latestContract.vendorName.toLowerCase() : '';
+      const contractNo = latestContract ? latestContract.contractNumber.toLowerCase() : '';
+      const contractTitle = latestContract ? latestContract.title.toLowerCase() : '';
+
+      return (
+        asset.id.toLowerCase().includes(term) ||
+        asset.name.toLowerCase().includes(term) ||
+        (asset.location && asset.location.toLowerCase().includes(term)) ||
+        (asset.department && asset.department.toLowerCase().includes(term)) ||
+        vendor.includes(term) ||
+        contractNo.includes(term) ||
+        contractTitle.includes(term)
+      );
+    });
+  }, [assets, contracts, selectedDeptFilter, assetPMTypeFilter, assetPMSearch]);
+
   // Add Ad-hoc Repair Modal States
   const [isRepairFormOpen, setIsRepairFormOpen] = useState(false);
   const [repairAssetId, setRepairAssetId] = useState('');
@@ -887,7 +934,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           className={`sub-tab ${activeTab === 'contracts' ? 'active' : ''}`}
           onClick={() => setActiveTab('contracts')}
         >
-          📝 การจัดการสัญญาบำรุงรักษา (Contracts)
+          📦 แผนบำรุงรักษาและ Logbook ครุภัณฑ์ (Asset PM & Logbook)
         </button>
         <button 
           className={`sub-tab ${activeTab === 'repairs' ? 'active' : ''}`}
@@ -1194,233 +1241,276 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         </div>
       )}
 
-      {/* Tab 3: Contract Manager */}
+      {/* Tab 3: Asset-Based Maintenance & Logbook (ครุภัณฑ์ Base) */}
       {activeTab === 'contracts' && (
-        <div className="contracts-pm-tab animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="contracts-pm-tab animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
-          {/* Contracts Manager Header */}
-          {/* Contracts Manager Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>รายการแผนงานและสัญญาบำรุงรักษาครุภัณฑ์</h3>
-            {currentUser?.role !== 'user' && (
-              <button 
-                className="btn btn-primary" 
-                onClick={() => { 
-                  setIsContractFormOpen(true); 
-                  setEditingContract(null); 
-                  setHasNoEndDate(false);
-                  setModalAssetSearch('');
-                  setContractStart(new Date().toISOString().split('T')[0]);
-                  const d = new Date(); d.setFullYear(d.getFullYear() + 1);
-                  setContractEnd(d.toISOString().split('T')[0]);
-                  setSelectedAssetIds([]);
-                  setCustomDates([]);
-                }} 
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-              >
-                <Plus size={16} /> สร้างแผน/สัญญาบำรุงรักษาใหม่
-              </button>
-            )}
+          {/* Header & Controls */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  📦 รายการแผนบำรุงรักษาและ Logbook สัญญาแยกตามรายครุภัณฑ์ (Asset-Based PM & Logbook)
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  เลือกครุภัณฑ์เพื่อตั้งค่าความถี่ในการดูแล (ทุกกี่เดือน) กำหนดรูปแบบบำรุงรักษาเองหรือจ้าง Outsource พร้อมดู Logbook ประวัติย้อนหลัง
+                </span>
+              </div>
+
+              {currentUser?.role !== 'user' && (
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => { 
+                    setIsContractFormOpen(true); 
+                    setEditingContract(null); 
+                    setHasNoEndDate(false);
+                    setModalAssetSearch('');
+                    setContractStart(new Date().toISOString().split('T')[0]);
+                    const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+                    setContractEnd(d.toISOString().split('T')[0]);
+                    setSelectedAssetIds([]);
+                    setCustomDates([]);
+                  }} 
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+                >
+                  <Plus size={16} /> + วางกำหนดบำรุงรักษา / สัญญาใหม่
+                </button>
+              )}
+            </div>
+
+            {/* Filter & Search Toolbar */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px dashed var(--border)' }}>
+              {/* Search Box */}
+              <div style={{ flex: '1 1 280px', position: 'relative' }}>
+                <input 
+                  type="text"
+                  className="form-input"
+                  placeholder="🔍 ค้นหารหัสครุภัณฑ์, ชื่อ, ห้องจัดเก็บ, เลขสัญญา, บริษัทผู้รับจ้าง..."
+                  value={assetPMSearch}
+                  onChange={(e) => setAssetPMSearch(e.target.value)}
+                  style={{ paddingLeft: '2.2rem', fontSize: '0.85rem', height: '38px' }}
+                />
+                <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.6, pointerEvents: 'none' }}>🔍</span>
+                {assetPMSearch && (
+                  <button 
+                    type="button" 
+                    onClick={() => setAssetPMSearch('')}
+                    style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter */}
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>กรองครุภัณฑ์:</span>
+                <button 
+                  onClick={() => setAssetPMTypeFilter('all')} 
+                  className={`btn btn-xs ${assetPMTypeFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ border: '1px solid var(--border)', fontSize: '0.75rem' }}
+                >
+                  ทั้งหมด ({assets.filter(a => a.status !== 'รอจำหน่าย' && (selectedDeptFilter === 'all' || a.department === selectedDeptFilter)).length})
+                </button>
+                <button 
+                  onClick={() => setAssetPMTypeFilter('has_plan')} 
+                  className={`btn btn-xs ${assetPMTypeFilter === 'has_plan' ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ border: '1px solid var(--border)', fontSize: '0.75rem' }}
+                >
+                  ☑️ มีแผน PM แล้ว
+                </button>
+                <button 
+                  onClick={() => setAssetPMTypeFilter('no_plan')} 
+                  className={`btn btn-xs ${assetPMTypeFilter === 'no_plan' ? 'btn-warning' : 'btn-ghost'}`}
+                  style={{ border: '1px solid var(--border)', fontSize: '0.75rem' }}
+                >
+                  ⚠️ ยังไม่มีแผน PM
+                </button>
+                <button 
+                  onClick={() => setAssetPMTypeFilter('outsource')} 
+                  className={`btn btn-xs ${assetPMTypeFilter === 'outsource' ? 'btn-secondary' : 'btn-ghost'}`}
+                  style={{ border: '1px solid var(--border)', fontSize: '0.75rem' }}
+                >
+                  🧾 จ้าง Outsource
+                </button>
+                <button 
+                  onClick={() => setAssetPMTypeFilter('internal')} 
+                  className={`btn btn-xs ${assetPMTypeFilter === 'internal' ? 'btn-secondary' : 'btn-ghost'}`}
+                  style={{ border: '1px solid var(--border)', fontSize: '0.75rem' }}
+                >
+                  📌 บำรุงรักษาเอง
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Contracts List Grid */}
-          <div className="contracts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
-            {contracts.length === 0 ? (
-              <div className="glass-panel text-center" style={{ gridColumn: 'span 12', padding: '3rem' }}>
-                ไม่มีรายการแผนงานหรือสัญญาบำรุงรักษาในขณะนี้
+          {/* Asset PM Cards Grid */}
+          <div className="contracts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
+            {filteredAssetPMList.length === 0 ? (
+              <div className="glass-panel text-center" style={{ gridColumn: 'span 12', padding: '3rem', color: 'var(--text-muted)' }}>
+                🔍 ไม่พบข้อมูลครุภัณฑ์ตามเงื่อนไขการค้นหาที่ระบุ
               </div>
             ) : (
-              contracts.map(contract => {
-                // Filter assets belonging to this contract
-                const contractAssets = assets.filter(a => contract.assetIds.includes(a.id));
-                const isInternal = contract.contractNumber.startsWith('INT-PM-');
+              filteredAssetPMList.map(asset => {
+                const assetContracts = contracts.filter(c => c.assetIds.includes(asset.id));
+                const hasPlan = assetContracts.length > 0;
+                const activeContract = hasPlan ? assetContracts[assetContracts.length - 1] : null;
+                const isInternal = activeContract ? activeContract.contractNumber.startsWith('INT-PM-') : false;
+
+                const assetSchedules = schedules
+                  .filter(s => s.assetId === asset.id)
+                  .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
                 
+                const pendingSched = assetSchedules.find(s => s.status === 'pending');
+                const completedCount = assetSchedules.filter(s => s.status === 'completed').length;
+                const assetRepairs = repairs.filter(r => r.assetId === asset.id);
+
                 return (
-                  <div key={contract.id} className="contract-card glass-panel" style={{ padding: '1.25rem', position: 'relative' }}>
-                    
-                    {currentUser?.role !== 'user' && (
-                      <button 
-                        onClick={() => handleEditContractClick(contract)} 
-                        className="btn btn-ghost btn-sm" 
-                        style={{ position: 'absolute', top: '0.75rem', right: currentUser?.role === 'admin' ? '2.5rem' : '0.75rem', color: 'var(--primary)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', height: 'auto', padding: '0.25rem' }}
-                        title="แก้ไขแผน/สัญญานี้"
-                      >
-                        <Wrench size={14} />
-                      </button>
-                    )}
-
-                    {currentUser?.role === 'admin' && (
-                      <button 
-                        onClick={() => handleDeleteContract(contract.id)} 
-                        className="btn btn-ghost btn-sm" 
-                        style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', color: 'var(--danger)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', height: 'auto', padding: '0.25rem' }}
-                        title="ลบสัญญานี้"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-
-                    {isInternal ? (
-                      <span className="badge badge-success" style={{ fontFamily: 'monospace', fontSize: '0.725rem', marginBottom: '0.5rem' }}>
-                        📌 แผนภายใน: {contract.contractNumber}
-                      </span>
-                    ) : (
-                      <span className="badge badge-primary" style={{ fontFamily: 'monospace', fontSize: '0.725rem', marginBottom: '0.5rem' }}>
-                        🧾 เลขที่สัญญา: {contract.contractNumber}
-                      </span>
-                    )}
-
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.15rem 0 0.5rem 0', color: 'var(--text-primary)', lineHeight: 1.4, paddingRight: '3.5rem' }}>
-                      {contract.title}
-                    </h4>
-
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: '0.5rem 0 1rem 0' }}>
-                      {isInternal ? (
-                        <>
-                          <div>🛠️ <strong>ลักษณะแผน:</strong> บำรุงรักษาภายในโดยฝ่ายพัสดุเอง (Self-Maintenance)</div>
-                          <div>📅 <strong>ระยะเวลารอบแผนงาน:</strong> {getThaiDateFormatted(contract.startDate)} ถึง {contract.hasNoEndDate || !contract.endDate ? 'ไม่มีกำหนดสิ้นสุด (ถาวร ♾️)' : getThaiDateFormatted(contract.endDate)}</div>
-                          <div>🔄 <strong>ความถี่รอบตรวจเช็ค PM:</strong> {
-                            contract.pmFrequency === 'monthly' ? 'รายเดือน' : 
-                            (contract.pmFrequency === 'quarterly' ? 'รายไตรมาส (3 เดือน)' : 
-                            (contract.pmFrequency === 'semi-annually' ? 'รายครึ่งปี (6 เดือน)' : 
-                            (contract.pmFrequency === 'custom' ? 'กำหนดเอง / เลือกวันนัดเอง' : 'รายปี')))
-                          }</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><User size={13} /> <strong>ผู้รับผิดชอบแผน:</strong> {contract.contactPerson}</div>
-                        </>
-                      ) : (
-                        <>
-                          <div>🏢 <strong>บริษัทผู้รับจ้าง:</strong> {contract.vendorName}</div>
-                          <div>📅 <strong>ระยะเวลารอบสัญญา:</strong> {getThaiDateFormatted(contract.startDate)} ถึง {contract.hasNoEndDate || !contract.endDate ? 'ไม่มีกำหนดสิ้นสุด (ถาวร ♾️)' : getThaiDateFormatted(contract.endDate)}</div>
-                          <div>🔄 <strong>ความถี่รอบตรวจเช็ค PM:</strong> {
-                            contract.pmFrequency === 'monthly' ? 'รายเดือน' : 
-                            (contract.pmFrequency === 'quarterly' ? 'รายไตรมาส (3 เดือน)' : 
-                            (contract.pmFrequency === 'semi-annually' ? 'รายครึ่งปี (6 เดือน)' : 
-                            (contract.pmFrequency === 'custom' ? 'กำหนดเอง / เลือกวันนัดเอง' : 'รายปี')))
-                          }</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><User size={13} /> <strong>ผู้ประสานงาน:</strong> {contract.contactPerson}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Phone size={13} /> <strong>ติดต่อโทรศัพท์:</strong> <code>{contract.contactPhone}</code></div>
-                        </>
-                      )}
-                    </div>
-
-                    <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>📦 ครุภัณฑ์ควบคุม ({contractAssets.length} ชิ้น):</span>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                        {contractAssets.map(asset => (
-                          <span key={asset.id} className="badge badge-muted" style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', border: '1px solid var(--border)' }}>
-                            {asset.name}
+                  <div key={asset.id} className="contract-card glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: hasPlan ? '1px solid var(--border)' : '1px dashed var(--warning)' }}>
+                    <div>
+                      {/* Top Header Row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          <span className="badge badge-primary" style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                            {asset.id}
                           </span>
-                        ))}
+                          <span className="badge badge-muted" style={{ fontSize: '0.7rem' }}>
+                            📍 {asset.location || asset.department}
+                          </span>
+                        </div>
+
+                        {/* Status Pointers */}
+                        {hasPlan ? (
+                          isInternal ? (
+                            <span className="badge badge-success" style={{ fontSize: '0.675rem' }}>📌 บำรุงรักษาเอง</span>
+                          ) : (
+                            <span className="badge badge-primary" style={{ fontSize: '0.675rem' }}>🧾 จ้าง Outsource</span>
+                          )
+                        ) : (
+                          <span className="badge badge-warning" style={{ fontSize: '0.675rem' }}>⚠️ ยังไม่ตั้งค่า PM</span>
+                        )}
+                      </div>
+
+                      {/* Asset Title */}
+                      <h4 style={{ fontSize: '0.975rem', fontWeight: 800, margin: '0.2rem 0 0.5rem 0', color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                        {asset.name}
+                      </h4>
+
+                      {/* Maintenance Configuration Info Box */}
+                      <div style={{ background: 'var(--bg-primary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.775rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', margin: '0.5rem 0' }}>
+                        {activeContract ? (
+                          <>
+                            <div>
+                              <strong>📋 สัญญา/แผนงาน:</strong> <span style={{ fontWeight: 700 }}>{activeContract.title}</span> ({activeContract.contractNumber})
+                            </div>
+                            {!isInternal && (
+                              <div>
+                                🏢 <strong>บริษัทผู้รับจ้าง:</strong> {activeContract.vendorName} ({activeContract.contactPhone || '-'})
+                              </div>
+                            )}
+                            <div>
+                              🔄 <strong>ความถี่รอบตรวจเช็ค:</strong> <span style={{ color: 'var(--primary)', fontWeight: 700 }}>
+                                {activeContract.pmFrequency === 'monthly' ? 'ทุกๆ 1 เดือน (รายเดือน)' :
+                                 activeContract.pmFrequency === 'quarterly' ? 'ทุกๆ 3 เดือน (รายไตรมาส)' :
+                                 activeContract.pmFrequency === 'semi-annually' ? 'ทุกๆ 6 เดือน (รายครึ่งปี)' :
+                                 activeContract.pmFrequency === 'custom' ? 'กำหนดวันนัดเอง' : 'ทุกๆ 12 เดือน (รายปี)'}
+                              </span>
+                            </div>
+                            <div>
+                              📅 <strong>ระยะเวลาสัญญา:</strong> {getThaiDateFormatted(activeContract.startDate)} ถึง {activeContract.hasNoEndDate || !activeContract.endDate ? 'ไม่มีกำหนดสิ้นสุด (ถาวร ♾️)' : getThaiDateFormatted(activeContract.endDate)}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '0.35rem 0' }}>
+                            ยังไม่มีการกำหนดความถี่หรือผูกเข้ากับสัญญาบำรุงรักษา
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Schedule Summary Bar */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', margin: '0.65rem 0 0.25rem 0', color: 'var(--text-secondary)' }}>
+                        <div>
+                          <strong>📅 รอบ PM ถัดไป:</strong>{' '}
+                          {pendingSched ? (
+                            <span style={{ color: 'var(--primary)', fontWeight: 700 }}>
+                              {getThaiDateFormatted(pendingSched.plannedDate)}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--success)', fontWeight: 650 }}>
+                              {hasPlan ? '✅ ครบถ้วนทุกรอบ' : '-'}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <span className="badge badge-muted" style={{ fontSize: '0.675rem' }}>PM แล้ว: {completedCount} รอบ</span>
+                          {assetRepairs.length > 0 && (
+                            <span className="badge badge-danger" style={{ fontSize: '0.675rem' }}>ซ่อม CM: {assetRepairs.length} ครั้ง</span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    {/* PM Schedule Timeline for this specific Contract/Plan */}
-                    {(() => {
-                      const contractSchedules = schedules
-                        .filter(s => s.contractId === contract.id)
-                        .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
-                      
-                      return (
-                        <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.75rem', paddingTop: '0.75rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '0.5rem' }}>
-                            📅 กำหนดรอบตรวจเช็ค PM ({contractSchedules.length} รอบ):
-                          </span>
-                          
-                          {contractSchedules.length === 0 ? (
-                            <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                              ยังไม่มีรอบกำหนดการบำรุงรักษา
-                            </span>
-                          ) : (
-                            <div className="custom-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '160px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                              {contractSchedules.map(sched => {
-                                const todayStr = new Date().toISOString().split('T')[0];
-                                const isOverdue = sched.status === 'pending' && sched.plannedDate < todayStr;
-                                
-                                let statusColor = 'var(--warning)';
-                                let label = 'รอดำเนินการ';
-                                if (sched.status === 'completed') {
-                                  statusColor = 'var(--success)';
-                                  label = 'เสร็จสมบูรณ์';
-                                } else if (sched.status === 'postponed') {
-                                  statusColor = '#d97706';
-                                  label = 'เลื่อนการตรวจ';
-                                } else if (sched.status === 'awaiting_repair') {
-                                  statusColor = 'var(--danger)';
-                                  label = 'พบปัญหา/รอส่งซ่อม';
-                                } else if (isOverdue) {
-                                  statusColor = 'var(--danger)';
-                                  label = 'เลยกำหนดตรวจ';
-                                }
+                    {/* Asset Card Actions Bar */}
+                    <div style={{ display: 'flex', gap: '0.4rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.75rem' }}>
+                      {/* Button 1: Open Logbook */}
+                      <button 
+                        onClick={() => {
+                          setSelectedLogbookAsset(asset);
+                          setIsLogbookOpen(true);
+                        }}
+                        className="btn btn-secondary btn-xs flex-1"
+                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                        title="ดูประวัติสัญญา การบำรุงรักษา PM และเคสส่งซ่อม CM ทั้งหมดของครุภัณฑ์นี้"
+                      >
+                        📖 Logbook ประวัติเต็ม
+                      </button>
 
-                                return (
-                                  <div key={sched.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-primary)', padding: '0.45rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.725rem' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
-                                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
-                                        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{getThaiDateFormatted(sched.plannedDate)}</span>
-                                        <span style={{ fontSize: '0.675rem', color: statusColor, fontWeight: 600 }}>({label})</span>
-                                      </div>
-                                      <div style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.7rem' }}>
-                                        <code>{sched.assetId}</code> - {sched.assetName}
-                                      </div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
-                                      {sched.status === 'pending' || isOverdue ? (
-                                        <>
-                                          <button 
-                                            onClick={() => handleOpenReschedule(sched)}
-                                            className="btn btn-ghost btn-xs"
-                                            style={{ padding: '0.15rem 0.4rem', fontSize: '0.675rem', height: 'auto', border: '1px solid var(--border)' }}
-                                            title="เลื่อนวันนัดบำรุงรักษา"
-                                          >
-                                            📅 เลื่อนวัน
-                                          </button>
-                                          <button 
-                                            onClick={() => handleOpenPMForm(sched)}
-                                            className="btn btn-primary btn-xs"
-                                            style={{ padding: '0.15rem 0.4rem', fontSize: '0.675rem', height: 'auto' }}
-                                          >
-                                            🔧 บันทึกผล
-                                          </button>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <button 
-                                            onClick={() => {
-                                              setSelectedSchedule(sched);
-                                              setIsPrintReportOpen(true);
-                                            }}
-                                            className="btn btn-secondary btn-xs"
-                                            style={{ padding: '0.15rem 0.4rem', fontSize: '0.675rem', height: 'auto', border: '1px solid var(--border)' }}
-                                            title="พิมพ์เอกสาร A4"
-                                          >
-                                            🖨️ พิมพ์
-                                          </button>
-                                          <button 
-                                            onClick={() => handleOpenPMForm(sched)}
-                                            className="btn btn-ghost btn-xs"
-                                            style={{ padding: '0.15rem 0.4rem', fontSize: '0.675rem', height: 'auto', border: '1px solid var(--border)' }}
-                                            title="แก้ไขข้อมูลผลการบำรุงรักษา"
-                                          >
-                                            ✏️ แก้ไข
-                                          </button>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
+                      {/* Button 2: Setup / Edit PM Plan */}
+                      {currentUser?.role !== 'user' && (
+                        <button 
+                          onClick={() => {
+                            if (activeContract) {
+                              handleEditContractClick(activeContract);
+                            } else {
+                              // Open new contract pre-filled for this asset
+                              setIsContractFormOpen(true);
+                              setEditingContract(null);
+                              setHasNoEndDate(false);
+                              setModalAssetSearch('');
+                              setContractTitle(`แผนงานบำรุงรักษา - ${asset.name}`);
+                              setContractStart(new Date().toISOString().split('T')[0]);
+                              const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+                              setContractEnd(d.toISOString().split('T')[0]);
+                              setSelectedAssetIds([asset.id]);
+                              setCustomDates([]);
+                            }
+                          }}
+                          className="btn btn-primary btn-xs flex-1"
+                          style={{ padding: '0.4rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                        >
+                          ⚙️ {activeContract ? 'แก้ไขแผน PM' : '+ ตั้งค่าแผน PM'}
+                        </button>
+                      )}
+
+                      {/* Button 3: Quick Execute PM */}
+                      {pendingSched && (
+                        <button 
+                          onClick={() => handleOpenPMForm(pendingSched)}
+                          className="btn btn-success btn-xs"
+                          style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                          title="บันทึกผลการเข้าตรวจบำรุงรักษา PM สำหรับรอบนี้"
+                        >
+                          🔧 บันทึกผล PM
+                        </button>
+                      )}
+                    </div>
 
                   </div>
                 );
               })
             )}
           </div>
+
         </div>
       )}
 
