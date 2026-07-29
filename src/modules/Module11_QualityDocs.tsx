@@ -524,7 +524,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                   setEditingProc(null);
                   setFormAssetId(assets[0]?.id || '');
                   setFormProcedure('');
-                  setFormFrequency('วันที่ใช้งาน');
+                  setFormFrequency('');
                   setFormFreqType('daily');
                   setFormPerson('');
                   setFormContractId('');
@@ -938,7 +938,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                 <textarea 
                   className="form-input"
                   rows={3}
-                  placeholder="เช่น - เช็ดทำความสะอาดเครื่องด้วย alcohol 95% หรือ - บำรุงรักษาโดยบริษัท Getinge"
+                  placeholder="ป้อนวิธีบำรุงรักษา..."
                   value={formProcedure}
                   onChange={(e) => setFormProcedure(e.target.value)}
                   required
