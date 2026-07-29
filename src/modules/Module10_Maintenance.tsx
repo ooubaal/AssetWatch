@@ -2687,6 +2687,275 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         </div>
       )}
 
+      {/* --- MODAL 5: ASSET LOGBOOK VIEWER --- */}
+      {isLogbookOpen && selectedLogbookAsset && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '920px', width: '100%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+            
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem', flexShrink: 0 }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  📖 Maintenance Logbook — สมุดประวัติครุภัณฑ์
+                </h3>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  <code style={{ color: 'var(--primary)', fontWeight: 700 }}>{selectedLogbookAsset.id}</code> — {selectedLogbookAsset.name}
+                </div>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setIsLogbookOpen(false); setSelectedLogbookAsset(null); }} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              {/* Asset Info Card Summary */}
+              <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', padding: '1rem', borderRadius: 'var(--radius-sm)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.8rem' }}>
+                <div>📍 <strong>สถานที่จัดเก็บ:</strong> {selectedLogbookAsset.location || '-'}</div>
+                <div>🏢 <strong>หน่วยงาน/ฝ่าย:</strong> {selectedLogbookAsset.department}</div>
+                <div>👤 <strong>ผู้รับผิดชอบ:</strong> {selectedLogbookAsset.responsiblePerson || '-'}</div>
+                <div>🟢 <strong>สถานะปัจจุบัน:</strong> <span className={`badge ${selectedLogbookAsset.status === 'ใช้งานได้' ? 'badge-success' : 'badge-danger'}`}>{selectedLogbookAsset.status}</span></div>
+                <div>💰 <strong>ที่มา/งบประมาณ:</strong> {selectedLogbookAsset.source || '-'}</div>
+                <div>📝 <strong>หมายเหตุ:</strong> {selectedLogbookAsset.note || '-'}</div>
+              </div>
+
+              {/* SECTION 1: CONTRACT HISTORY */}
+              {(() => {
+                const assetContracts = contracts.filter(c => c.assetIds.includes(selectedLogbookAsset.id));
+                return (
+                  <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: 'var(--primary)' }}>
+                        📜 ประวัติสัญญาและการจัดทำแผนบำรุงรักษา ({assetContracts.length} ฉบับ)
+                      </h4>
+                      {currentUser?.role !== 'user' && (
+                        <button 
+                          type="button"
+                          className="btn btn-primary btn-xs"
+                          onClick={() => {
+                            setIsLogbookOpen(false);
+                            setIsContractFormOpen(true);
+                            setEditingContract(null);
+                            setHasNoEndDate(false);
+                            setModalAssetSearch('');
+                            setContractTitle(`ต่อสัญญาบำรุงรักษา - ${selectedLogbookAsset.name}`);
+                            setContractStart(new Date().toISOString().split('T')[0]);
+                            const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+                            setContractEnd(d.toISOString().split('T')[0]);
+                            setSelectedAssetIds([selectedLogbookAsset.id]);
+                            setCustomDates([]);
+                          }}
+                          style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem' }}
+                        >
+                          + ต่อสัญญาใหม่ / ทำสัญญาฉบับใหม่
+                        </button>
+                      )}
+                    </div>
+
+                    {assetContracts.length === 0 ? (
+                      <div style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '0.75rem' }}>
+                        ยังไม่มีประวัติการทำสัญญาหรือตั้งค่าแผนบำรุงรักษาสำหรับครุภัณฑ์นี้
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        {assetContracts.map((c, idx) => {
+                          const isInternal = c.contractNumber.startsWith('INT-PM-');
+                          const isLatest = idx === assetContracts.length - 1;
+                          return (
+                            <div key={c.id} style={{ border: '1px solid var(--border)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: isLatest ? 'rgba(59, 130, 246, 0.05)' : 'var(--bg-secondary)', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                                  {isInternal ? '📌 [แผนภายใน]' : '🧾 [สัญญา Outsource]'} {c.title}
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                                  {isLatest ? (
+                                    <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>สัญญาปัจจุบัน</span>
+                                  ) : (
+                                    <span className="badge badge-muted" style={{ fontSize: '0.65rem' }}>สัญญาในอดีต (หมดอายุแล้ว)</span>
+                                  )}
+                                  {currentUser?.role !== 'user' && (
+                                    <button 
+                                      onClick={() => { setIsLogbookOpen(false); handleEditContractClick(c); }}
+                                      className="btn btn-ghost btn-xs"
+                                      style={{ padding: '0.1rem 0.35rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                    >
+                                      ✏️ แก้ไข
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{ color: 'var(--text-secondary)' }}>
+                                <strong>เลขที่สัญญา:</strong> <code>{c.contractNumber}</code> | <strong>บริษัท:</strong> {c.vendorName} | <strong>ติดต่อ:</strong> {c.contactPerson} ({c.contactPhone})
+                              </div>
+                              <div style={{ color: 'var(--text-secondary)' }}>
+                                📅 <strong>ระยะเวลา:</strong> {getThaiDateFormatted(c.startDate)} ถึง {c.hasNoEndDate || !c.endDate ? 'ไม่มีกำหนดสิ้นสุด (ถาวร ♾️)' : getThaiDateFormatted(c.endDate)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* SECTION 2: PM EXECUTION LOGBOOK */}
+              {(() => {
+                const assetSchedules = schedules
+                  .filter(s => s.assetId === selectedLogbookAsset.id)
+                  .sort((a, b) => b.plannedDate.localeCompare(a.plannedDate));
+
+                return (
+                  <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.75rem 0', color: 'var(--primary)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                      🛠️ ประวัติการเข้าตรวจบำรุงรักษา PM ทั้งหมด ({assetSchedules.length} รอบ)
+                    </h4>
+
+                    {assetSchedules.length === 0 ? (
+                      <div style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '0.75rem' }}>
+                        ยังไม่มีประวัติรอบการเข้าตรวจบำรุงรักษา PM
+                      </div>
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', fontSize: '0.775rem', borderCollapse: 'collapse', textAlign: 'left' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                              <th style={{ padding: '0.4rem' }}>วันที่นัด (Planned)</th>
+                              <th style={{ padding: '0.4rem' }}>วันที่ทำจริง (Completed)</th>
+                              <th style={{ padding: '0.4rem' }}>สถานะ</th>
+                              <th style={{ padding: '0.4rem' }}>ผู้ตรวจ/ช่าง</th>
+                              <th style={{ padding: '0.4rem' }}>รายละเอียด / หมายเหตุ</th>
+                              <th style={{ padding: '0.4rem' }}>หลักฐาน (Proof)</th>
+                              <th style={{ padding: '0.4rem', textAlign: 'center' }}>จัดการ (Actions)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {assetSchedules.map(sched => (
+                              <tr key={sched.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <td style={{ padding: '0.4rem', fontWeight: 650 }}>{getThaiDateFormatted(sched.plannedDate)}</td>
+                                <td style={{ padding: '0.4rem' }}>{sched.completedDate ? getThaiDateFormatted(sched.completedDate) : '-'}</td>
+                                <td style={{ padding: '0.4rem' }}>
+                                  <span className={`badge ${sched.status === 'completed' ? 'badge-success' : sched.status === 'pending' ? 'badge-warning' : 'badge-danger'}`} style={{ fontSize: '0.675rem' }}>
+                                    {sched.status === 'completed' ? 'เสร็จสมบูรณ์' : sched.status === 'pending' ? 'รอดำเนินการ' : 'พบอาการชำรุด/เลื่อน'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '0.4rem' }}>{sched.operator || '-'}</td>
+                                <td style={{ padding: '0.4rem', maxWidth: '180px' }}>
+                                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sched.details || sched.notes || '-'}</div>
+                                </td>
+                                <td style={{ padding: '0.4rem' }}>
+                                  {sched.proofImageUrl ? (
+                                    <a href={sched.proofImageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>
+                                      📷 ดูรูปภาพ
+                                    </a>
+                                  ) : '-'}
+                                </td>
+                                <td style={{ padding: '0.4rem', textAlign: 'center' }}>
+                                  <div style={{ display: 'flex', gap: '0.2rem', justifyContent: 'center' }}>
+                                    <button 
+                                      onClick={() => { setSelectedSchedule(sched); setIsPrintReportOpen(true); }}
+                                      className="btn btn-ghost btn-xs"
+                                      style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                      title="ดู / พิมพ์ใบรายงาน A4"
+                                    >
+                                      🖨️ พิมพ์
+                                    </button>
+                                    <button 
+                                      onClick={() => handleOpenPMForm(sched)}
+                                      className="btn btn-ghost btn-xs"
+                                      style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                      title="แก้ไขบันทึก PM นี้"
+                                    >
+                                      ✏️ แก้ไข
+                                    </button>
+                                    {currentUser?.role === 'admin' && (
+                                      <button 
+                                        onClick={() => handleDeleteSchedule(sched.id)}
+                                        className="btn btn-ghost btn-xs text-danger"
+                                        style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                        title="ลบบันทึกนี้"
+                                      >
+                                        🗑️ ลบ
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* SECTION 3: CM REPAIR LOGBOOK */}
+              {(() => {
+                const assetRepairs = repairs
+                  .filter(r => r.assetId === selectedLogbookAsset.id)
+                  .sort((a, b) => b.dateOpened.localeCompare(a.dateOpened));
+
+                return (
+                  <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.75rem 0', color: 'var(--danger)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                      🚨 ประวัติการแจ้งซ่อมแซม CM ทั้งหมด ({assetRepairs.length} ครั้ง)
+                    </h4>
+
+                    {assetRepairs.length === 0 ? (
+                      <div style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '0.75rem' }}>
+                        ไม่มีประวัติการส่งซ่อมแซมครั้งคราว (ไม่เคยชำรุด)
+                      </div>
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', fontSize: '0.775rem', borderCollapse: 'collapse', textAlign: 'left' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                              <th style={{ padding: '0.4rem' }}>วันที่แจ้งซ่อม</th>
+                              <th style={{ padding: '0.4rem' }}>อาการเสีย / ปัญหา</th>
+                              <th style={{ padding: '0.4rem' }}>บริษัทผู้รับซ่อม</th>
+                              <th style={{ padding: '0.4rem' }}>วันส่งซ่อม</th>
+                              <th style={{ padding: '0.4rem' }}>วันรับคืน</th>
+                              <th style={{ padding: '0.4rem' }}>สถานะ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {assetRepairs.map(rep => (
+                              <tr key={rep.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <td style={{ padding: '0.4rem', fontWeight: 650 }}>{getThaiDateFormatted(rep.dateOpened)}</td>
+                                <td style={{ padding: '0.4rem' }}>{rep.symptom}</td>
+                                <td style={{ padding: '0.4rem' }}>{rep.repairCompany || '-'}</td>
+                                <td style={{ padding: '0.4rem' }}>{rep.dateSent ? getThaiDateFormatted(rep.dateSent) : '-'}</td>
+                                <td style={{ padding: '0.4rem' }}>{rep.dateReceived ? getThaiDateFormatted(rep.dateReceived) : '-'}</td>
+                                <td style={{ padding: '0.4rem' }}>
+                                  <span className={`badge ${rep.status === 'completed' ? 'badge-success' : rep.status === 'sent' ? 'badge-primary' : 'badge-warning'}`} style={{ fontSize: '0.675rem' }}>
+                                    {rep.status === 'completed' ? 'ซ่อมเสร็จสิ้น' : rep.status === 'sent' ? 'ส่งซ่อมภายนอก' : 'รอดำเนินการ'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.25rem', flexShrink: 0 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => { setIsLogbookOpen(false); setSelectedLogbookAsset(null); }}>
+                ปิดหน้าต่าง Logbook
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
