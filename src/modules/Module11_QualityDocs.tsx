@@ -1307,27 +1307,38 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                   size: A4 portrait;
                   margin: 8mm;
                 }
-                body {
-                  background: #fff !important;
-                  color: #000 !important;
+                html, body, #root, .app-layout, .main-content, .module-container {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  width: 100% !important;
+                  height: auto !important;
+                  min-height: auto !important;
+                  overflow: visible !important;
+                  position: static !important;
+                  background: #ffffff !important;
+                  color: #000000 !important;
                 }
-                .print-actions-bar, sidebar, header, button, nav {
+                .print-actions-bar, .sidebar, .top-bar, header, button, nav {
                   display: none !important;
                 }
                 .print-preview-overlay {
                   position: static !important;
-                  background: none !important;
+                  background: #ffffff !important;
                   padding: 0 !important;
                   margin: 0 !important;
                   overflow: visible !important;
+                  display: block !important;
                 }
                 .a4-page-preview {
+                  position: static !important;
                   width: 100% !important;
                   max-width: 100% !important;
                   box-shadow: none !important;
                   border: none !important;
                   padding: 0 !important;
                   margin: 0 !important;
+                  background: #ffffff !important;
+                  color: #000000 !important;
                 }
               }
             `}</style>
@@ -1480,27 +1491,38 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                   size: A4 landscape;
                   margin: 5mm;
                 }
-                body {
-                  background: #fff !important;
-                  color: #000 !important;
+                html, body, #root, .app-layout, .main-content, .module-container {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  width: 100% !important;
+                  height: auto !important;
+                  min-height: auto !important;
+                  overflow: visible !important;
+                  position: static !important;
+                  background: #ffffff !important;
+                  color: #000000 !important;
                 }
-                .print-actions-bar, sidebar, header, button, nav {
+                .print-actions-bar, .sidebar, .top-bar, header, button, nav {
                   display: none !important;
                 }
                 .print-preview-overlay {
                   position: static !important;
-                  background: none !important;
+                  background: #ffffff !important;
                   padding: 0 !important;
                   margin: 0 !important;
                   overflow: visible !important;
+                  display: block !important;
                 }
                 .a4-page-preview {
+                  position: static !important;
                   width: 100% !important;
                   max-width: 100% !important;
                   box-shadow: none !important;
                   border: none !important;
                   padding: 0 !important;
                   margin: 0 !important;
+                  background: #ffffff !important;
+                  color: #000000 !important;
                 }
               }
             `}</style>
@@ -1671,27 +1693,38 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                   size: A4 landscape;
                   margin: 5mm;
                 }
-                body {
-                  background: #fff !important;
-                  color: #000 !important;
+                html, body, #root, .app-layout, .main-content, .module-container {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  width: 100% !important;
+                  height: auto !important;
+                  min-height: auto !important;
+                  overflow: visible !important;
+                  position: static !important;
+                  background: #ffffff !important;
+                  color: #000000 !important;
                 }
-                .print-actions-bar, sidebar, header, button, nav {
+                .print-actions-bar, .sidebar, .top-bar, header, button, nav {
                   display: none !important;
                 }
                 .print-preview-overlay {
                   position: static !important;
-                  background: none !important;
+                  background: #ffffff !important;
                   padding: 0 !important;
                   margin: 0 !important;
                   overflow: visible !important;
+                  display: block !important;
                 }
                 .a4-page-preview {
+                  position: static !important;
                   width: 100% !important;
                   max-width: 100% !important;
                   box-shadow: none !important;
                   border: none !important;
                   padding: 0 !important;
                   margin: 0 !important;
+                  background: #ffffff !important;
+                  color: #000000 !important;
                 }
               }
             `}</style>
