@@ -11,7 +11,7 @@ export interface QualityProcedure {
   department: string;
   procedure: string;
   frequency: string; // e.g. "วันที่ใช้งาน", "1 สัปดาห์", "1 เดือน", "3 เดือน", "1 ปี"
-  frequencyType: 'daily' | 'period'; // daily = BWT 021/002, period = BWT 021/003
+  frequencyType: 'daily' | 'period'; // daily = BWI 021/002, period = BWI 021/003
   responsiblePerson: string; // e.g. "ชาตินีย์", "เจ้าหน้าที่ที่ใช้งาน", "บริษัท Getinge"
   linkedContractId?: string; // Optional link to Module 10 contract
 }
@@ -468,7 +468,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             <FileText color="var(--primary)" size={26} /> เอกสารคุณภาพและแผนบำรุงรักษาเครื่องมือ/ห้องสะอาด (Module 11)
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            ควบคุมบัญชีมาตรฐานเครื่องมือและห้องสะอาด (Form BWT 021/001) พร้อมออกรายงานตารางแผนบันทึกบำรุงรักษาประจำวัน (BWT 021/002) และประจำสัปดาห์/เดือน/ปี (BWT 021/003)
+            ควบคุมบัญชีมาตรฐานเครื่องมือและห้องสะอาด (Form BWI 021/001) พร้อมออกรายงานตารางแผนบันทึกบำรุงรักษาประจำวัน (BWI 021/002) และประจำสัปดาห์/เดือน/ปี (BWI 021/003)
           </p>
         </div>
 
@@ -479,26 +479,26 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             className={`btn btn-sm ${activeTab === 'master' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
           >
-            📋 บัญชีรายชื่อ (BWT 021/001)
+            📋 บัญชีรายชื่อ (BWI 021/001)
           </button>
           <button 
             onClick={() => setActiveTab('daily_log')}
             className={`btn btn-sm ${activeTab === 'daily_log' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
           >
-            📅 บันทึกประจำวัน (BWT 021/002)
+            📅 บันทึกประจำวัน (BWI 021/002)
           </button>
           <button 
             onClick={() => setActiveTab('period_log')}
             className={`btn btn-sm ${activeTab === 'period_log' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
           >
-            🗓️ บันทึกสัปดาห์/เดือน/ปี (BWT 021/003)
+            🗓️ บันทึกสัปดาห์/เดือน/ปี (BWI 021/003)
           </button>
         </div>
       </div>
 
-      {/* --- TAB 1: MASTER LIST (BWT 021/001) --- */}
+      {/* --- TAB 1: MASTER LIST (BWI 021/001) --- */}
       {activeTab === 'master' && (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
@@ -541,7 +541,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                 className="btn btn-secondary btn-sm"
                 style={{ fontSize: '0.8rem', border: '1px solid var(--border)' }}
               >
-                <Printer size={15} /> 🖨️ พิมพ์แบบฟอร์ม BWT 021/001 (A4)
+                <Printer size={15} /> 🖨️ พิมพ์แบบฟอร์ม BWI 021/001 (A4)
               </button>
             </div>
           </div>
@@ -630,7 +630,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
         </div>
       )}
 
-      {/* --- TAB 2: DAILY LOG MATRIX (BWT 021/002) --- */}
+      {/* --- TAB 2: DAILY LOG MATRIX (BWI 021/002) --- */}
       {activeTab === 'daily_log' && (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
@@ -665,7 +665,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
               className="btn btn-primary btn-sm"
               style={{ fontSize: '0.8rem' }}
             >
-              <Printer size={15} /> 🖨️ พิมพ์ใบบันทึกประจำวัน BWT 021/002 (A4)
+              <Printer size={15} /> 🖨️ พิมพ์ใบบันทึกประจำวัน BWI 021/002 (A4)
             </button>
           </div>
 
@@ -688,7 +688,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
               if (dailyProcs.length === 0) {
                 return (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำวันสำหรับเครื่องมือนี้ (สามารถเพิ่มได้ในแถบ BWT 021/001)
+                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำวันสำหรับเครื่องมือนี้ (สามารถเพิ่มได้ในแถบ BWI 021/001)
                   </div>
                 );
               }
@@ -762,7 +762,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
         </div>
       )}
 
-      {/* --- TAB 3: PERIOD LOG MATRIX (BWT 021/003) --- */}
+      {/* --- TAB 3: PERIOD LOG MATRIX (BWI 021/003) --- */}
       {activeTab === 'period_log' && (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
@@ -797,7 +797,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
               className="btn btn-primary btn-sm"
               style={{ fontSize: '0.8rem' }}
             >
-              <Printer size={15} /> 🖨️ พิมพ์ใบบันทึกสัปดาห์/เดือน/ปี BWT 021/003 (A4)
+              <Printer size={15} /> 🖨️ พิมพ์ใบบันทึกสัปดาห์/เดือน/ปี BWI 021/003 (A4)
             </button>
           </div>
 
@@ -965,8 +965,8 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                     value={formFreqType}
                     onChange={(e) => setFormFreqType(e.target.value as 'daily' | 'period')}
                   >
-                    <option value="daily">ประจำวัน (Form BWT 021/002)</option>
-                    <option value="period">ประจำสัปดาห์/เดือน/ปี (Form BWT 021/003)</option>
+                    <option value="daily">ประจำวัน (Form BWI 021/002)</option>
+                    <option value="period">ประจำสัปดาห์/เดือน/ปี (Form BWI 021/003)</option>
                   </select>
                 </div>
               </div>
@@ -1006,14 +1006,14 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
         </div>
       )}
 
-      {/* --- PRINT A4 MODAL 1: FORM BWT 021/001 (EXACT MATCH IMAGE 1) --- */}
+      {/* --- PRINT A4 MODAL 1: FORM BWI 021/001 (EXACT MATCH IMAGE 1) --- */}
       {isPrintMasterOpen && (
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
           
           {/* Action Bar */}
           <div className="print-actions-bar glass-panel" style={{ maxWidth: '900px', width: '100%', margin: '0 auto 1rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
             <div>
-              <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์แบบฟอร์ม BWT 021/001 (A4)</h4>
+              <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์แบบฟอร์ม BWI 021/001 (A4)</h4>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>บัญชีรายชื่อเครื่องมือและห้องสะอาดที่ต้องบำรุงรักษา</p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1079,7 +1079,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
 
             {/* Form Code Footer */}
             <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#555', borderTop: '1px solid #ccc', paddingTop: '5px' }}>
-              <div>แบบฟอร์มเลขที่ BWT 021/001</div>
+              <div>แบบฟอร์มเลขที่ BWI 021/001</div>
               <div>แก้ไขครั้งที่ 01/0150</div>
             </div>
 
@@ -1087,12 +1087,12 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
         </div>
       )}
 
-      {/* --- PRINT A4 MODAL 2: FORM BWT 021/002 (EXACT MATCH IMAGE 2) --- */}
+      {/* --- PRINT A4 MODAL 2: FORM BWI 021/002 (EXACT MATCH IMAGE 2) --- */}
       {isPrintDailyOpen && (
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
           <div className="print-actions-bar glass-panel" style={{ maxWidth: '1050px', width: '100%', margin: '0 auto 1rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
             <div>
-              <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์ใบบันทึกประจำวัน BWT 021/002 (A4 Landscape)</h4>
+              <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์ใบบันทึกประจำวัน BWI 021/002 (A4 Landscape)</h4>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (วัน)</p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1169,19 +1169,19 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             </div>
 
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#555', borderTop: '1px solid #ccc', paddingTop: '4px' }}>
-              <div>แบบฟอร์มเลขที่ BWT 021/002</div>
+              <div>แบบฟอร์มเลขที่ BWI 021/002</div>
               <div>แก้ไขครั้งที่ 01/0150</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- PRINT A4 MODAL 3: FORM BWT 021/003 (EXACT MATCH IMAGE 3) --- */}
+      {/* --- PRINT A4 MODAL 3: FORM BWI 021/003 (EXACT MATCH IMAGE 3) --- */}
       {isPrintPeriodOpen && (
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
           <div className="print-actions-bar glass-panel" style={{ maxWidth: '1050px', width: '100%', margin: '0 auto 1rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
             <div>
-              <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์ใบบันทึกสัปดาห์/เดือน/ปี BWT 021/003 (A4 Landscape)</h4>
+              <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์ใบบันทึกสัปดาห์/เดือน/ปี BWI 021/003 (A4 Landscape)</h4>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (สัปดาห์/เดือน/ปี)</p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1267,7 +1267,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             </div>
 
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#555', borderTop: '1px solid #ccc', paddingTop: '4px' }}>
-              <div>แบบฟอร์มเลขที่ BWT 021/003</div>
+              <div>แบบฟอร์มเลขที่ BWI 021/003</div>
               <div>แก้ไขครั้งที่ 01/0150</div>
             </div>
           </div>

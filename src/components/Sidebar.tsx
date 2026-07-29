@@ -68,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   menuItems.push(
     { id: 'module10_pm', label: 'บำรุงรักษา (PM/CM)', icon: Calendar },
-    { id: 'module11_quality', label: 'เอกสารคุณภาพ (BWT Forms)', icon: FileText },
+    { id: 'module11_quality', label: 'เอกสารคุณภาพ', icon: FileText },
     { id: 'module6', label: 'ประวัติกิจกรรม (Audit)', icon: History }
   );
 
