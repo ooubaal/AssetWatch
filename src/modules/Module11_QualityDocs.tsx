@@ -1,3 +1,28 @@
+
+export interface MonthDef {
+  name: string;
+  monthNum: number;
+  weeks: string[];
+}
+
+export const BWI_021_003_UPPER_MONTHS: MonthDef[] = [
+  { name: 'ม.ค.', monthNum: 1, weeks: ['1-5', '6-12', '13-19', '20-26', '27-31'] },
+  { name: 'ก.พ.', monthNum: 2, weeks: ['1-9', '10-16', '17-23', '24-28'] },
+  { name: 'มี.ค.', monthNum: 3, weeks: ['1-9', '10-16', '17-23', '24-31'] },
+  { name: 'เม.ย.', monthNum: 4, weeks: ['1-6', '7-13', '14-20', '21-27', '28-30'] },
+  { name: 'พ.ค.', monthNum: 5, weeks: ['1-4', '5-11', '12-18', '19-25', '26-31'] },
+  { name: 'มิ.ย.', monthNum: 6, weeks: ['1-8', '9-15', '16-22', '23-30'] }
+];
+
+export const BWI_021_003_LOWER_MONTHS: MonthDef[] = [
+  { name: 'ก.ค.', monthNum: 7, weeks: ['1-6', '7-13', '14-20', '21-27', '28-31'] },
+  { name: 'ส.ค.', monthNum: 8, weeks: ['1-10', '11-17', '18-24', '25-31'] },
+  { name: 'ก.ย.', monthNum: 9, weeks: ['1-7', '8-14', '15-21', '22-30'] },
+  { name: 'ต.ค.', monthNum: 10, weeks: ['1-5', '6-12', '13-19', '20-26', '27-31'] },
+  { name: 'พ.ย.', monthNum: 11, weeks: ['1-9', '10-16', '17-23', '24-30'] },
+  { name: 'ธ.ค.', monthNum: 12, weeks: ['1-7', '8-14', '15-21', '22-28', '29-31'] }
+];
+
 import React, { useState, useMemo } from 'react';
 import { Asset, UserAccount, PMContract } from '../utils/mockData';
 import { FileText, Printer, Plus, Edit, Trash2, CheckCircle, Calendar, ShieldCheck, Filter, Search, Building2, Wrench, ChevronRight, Bookmark } from 'lucide-react';
@@ -822,15 +847,15 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             </h4>
 
             {(() => {
-              const periodProcs = procedures.filter(p => {
+              const rawPeriodProcs = procedures.filter(p => {
                 if (p.assetId !== selectedAssetId) return false;
-                if (p.frequencyType === 'daily') return false; // Strictly exclude daily items
+                if (p.frequencyType === 'daily') return false;
                 if (p.frequencyType === 'period') return true;
                 const f = (p.frequency || '').toLowerCase();
                 return f.includes('สัปดาห์') || f.includes('เดือน') || f.includes('ปี');
               });
 
-              if (periodProcs.length === 0) {
+              if (rawPeriodProcs.length === 0) {
                 return (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                     ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำสัปดาห์/เดือน/ปีสำหรับเครื่องมือนี้ (ข้อกำหนดที่ตั้งไว้เป็นประจำวัน จะแสดงในแถบ BWI 021/002)
@@ -838,94 +863,106 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                 );
               }
 
-              const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+              const periodSlots = [0, 1, 2].map(i => rawPeriodProcs[i] || null);
 
-              return (
-                <table style={{ width: '100%', fontSize: '0.725rem', borderCollapse: 'collapse', textAlign: 'center' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
-                      <th style={{ width: '220px', textAlign: 'left', padding: '0.4rem' }}>รายการวิธีบำรุงรักษา</th>
-                      <th style={{ width: '50px', padding: '0.4rem' }}>ประเภท</th>
-                      {months.map(m => (
-                        <th key={m} colSpan={4} style={{ padding: '0.3rem', borderLeft: '1px solid var(--border)' }}>{m}</th>
-                      ))}
-                    </tr>
-                    <tr style={{ background: 'rgba(255,255,255,0.02)', fontSize: '0.65rem' }}>
-                      <th></th>
-                      <th></th>
-                      {months.map((m, idx) => (
-                        <React.Fragment key={idx}>
-                          <th style={{ borderLeft: '1px solid var(--border)' }}>W1</th>
-                          <th>W2</th>
-                          <th>W3</th>
-                          <th>W4</th>
+              const renderInteractiveHalf = (monthsList: MonthDef[], title: string) => (
+                <div style={{ marginBottom: '2rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--primary)' }}>
+                    {title}
+                  </div>
+                  <table style={{ width: '100%', fontSize: '0.7rem', borderCollapse: 'collapse', textAlign: 'center' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+                        <th style={{ width: '200px', textAlign: 'left', padding: '0.4rem' }}>รายการวิธีบำรุงรักษา</th>
+                        <th style={{ width: '50px', padding: '0.4rem' }}>ประเภท</th>
+                        {monthsList.map(m => (
+                          <th key={m.name} colSpan={m.weeks.length} style={{ padding: '0.3rem', borderLeft: '1px solid var(--border)' }}>{m.name}</th>
+                        ))}
+                      </tr>
+                      <tr style={{ background: 'rgba(255,255,255,0.02)', fontSize: '0.625rem' }}>
+                        <th></th>
+                        <th>วันที่</th>
+                        {monthsList.map(m => (
+                          m.weeks.map((w, wIdx) => (
+                            <th key={`${m.name}-${w}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none', padding: '0.2rem' }}>{w}</th>
+                          ))
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {periodSlots.map((proc, slotIdx) => (
+                        <React.Fragment key={proc?.id || `empty-${slotIdx}`}>
+                          {/* Plan Row */}
+                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                            <td rowSpan={3} style={{ textAlign: 'left', padding: '0.4rem', fontWeight: 650, borderRight: '1px solid var(--border)' }}>
+                              {proc ? `${proc.procedure} (${proc.frequency})` : '-'}
+                            </td>
+                            <td style={{ background: 'rgba(59, 130, 246, 0.05)', fontWeight: 700, color: 'var(--primary)' }}>แผน</td>
+                            {monthsList.map(m => (
+                              m.weeks.map((w, wIdx) => {
+                                if (!proc) return <td key={`${m.monthNum}-${wIdx}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}></td>;
+                                const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                                const cell = matrixData[cellKey];
+                                return (
+                                  <td 
+                                    key={`${m.monthNum}-${wIdx}`}
+                                    onClick={() => toggleMatrixCell(proc.id, `${m.monthNum}-w${wIdx + 1}`)}
+                                    style={{ cursor: 'pointer', borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none', background: cell?.isPlanned ? 'rgba(234, 179, 8, 0.15)' : 'transparent', fontWeight: 700 }}
+                                  >
+                                    {cell?.isPlanned ? 'O' : ''}
+                                  </td>
+                                );
+                              })
+                            ))}
+                          </tr>
+                          {/* Execute Row */}
+                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                            <td style={{ background: 'rgba(34, 197, 94, 0.05)', fontWeight: 700, color: 'var(--success)' }}>ผู้ปฏิบัติ</td>
+                            {monthsList.map(m => (
+                              m.weeks.map((w, wIdx) => {
+                                if (!proc) return <td key={`${m.monthNum}-${wIdx}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}></td>;
+                                const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                                const cell = matrixData[cellKey];
+                                return (
+                                  <td 
+                                    key={`${m.monthNum}-${wIdx}`}
+                                    onClick={() => toggleMatrixCell(proc.id, `${m.monthNum}-w${wIdx + 1}`)}
+                                    style={{ cursor: 'pointer', borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none', background: cell?.isCompleted ? 'rgba(34, 197, 94, 0.2)' : 'transparent', fontWeight: 800, color: 'var(--success)' }}
+                                  >
+                                    {cell?.isCompleted ? '✓' : ''}
+                                  </td>
+                                );
+                              })
+                            ))}
+                          </tr>
+                          {/* Date Row */}
+                          <tr style={{ borderBottom: '1.5px solid var(--border)' }}>
+                            <td style={{ background: 'var(--bg-secondary)', fontSize: '0.625rem' }}>วันที่ทำ</td>
+                            {monthsList.map(m => (
+                              m.weeks.map((w, wIdx) => {
+                                if (!proc) return <td key={`${m.monthNum}-${wIdx}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}></td>;
+                                const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                                const cell = matrixData[cellKey];
+                                return (
+                                  <td key={`${m.monthNum}-${wIdx}`} style={{ fontSize: '0.55rem', borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}>
+                                    {cell?.completedDate ? cell.completedDate.slice(0, 5) : ''}
+                                  </td>
+                                );
+                              })
+                            ))}
+                          </tr>
                         </React.Fragment>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {periodProcs.map(proc => (
-                      <React.Fragment key={proc.id}>
-                        {/* Plan Row */}
-                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                          <td rowSpan={3} style={{ textAlign: 'left', padding: '0.4rem', fontWeight: 650, borderRight: '1px solid var(--border)' }}>
-                            {proc.procedure} <span style={{ color: 'var(--warning)', fontSize: '0.65rem' }}>({proc.frequency})</span>
-                          </td>
-                          <td style={{ background: 'rgba(59, 130, 246, 0.05)', fontWeight: 700, color: 'var(--primary)' }}>แผน</td>
-                          {months.map((m, mIdx) => (
-                            [1, 2, 3, 4].map(w => {
-                              const cellKey = `${proc.id}_${mIdx + 1}-w${w}`;
-                              const cell = matrixData[cellKey];
-                              return (
-                                <td 
-                                  key={`${mIdx}-${w}`}
-                                  onClick={() => toggleMatrixCell(proc.id, `${mIdx + 1}-w${w}`)}
-                                  style={{ cursor: 'pointer', borderLeft: w === 1 ? '1px solid var(--border)' : 'none', background: cell?.isPlanned ? 'rgba(234, 179, 8, 0.15)' : 'transparent', fontWeight: 700 }}
-                                >
-                                  {cell?.isPlanned ? 'O' : ''}
-                                </td>
-                              );
-                            })
-                          ))}
-                        </tr>
-                        {/* Execute Row */}
-                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                          <td style={{ background: 'rgba(34, 197, 94, 0.05)', fontWeight: 700, color: 'var(--success)' }}>ผู้ปฏิบัติ</td>
-                          {months.map((m, mIdx) => (
-                            [1, 2, 3, 4].map(w => {
-                              const cellKey = `${proc.id}_${mIdx + 1}-w${w}`;
-                              const cell = matrixData[cellKey];
-                              return (
-                                <td 
-                                  key={`${mIdx}-${w}`}
-                                  onClick={() => toggleMatrixCell(proc.id, `${mIdx + 1}-w${w}`)}
-                                  style={{ cursor: 'pointer', borderLeft: w === 1 ? '1px solid var(--border)' : 'none', background: cell?.isCompleted ? 'rgba(34, 197, 94, 0.2)' : 'transparent', fontWeight: 800, color: 'var(--success)' }}
-                                >
-                                  {cell?.isCompleted ? '✓' : ''}
-                                </td>
-                              );
-                            })
-                          ))}
-                        </tr>
-                        {/* Date Row */}
-                        <tr style={{ borderBottom: '1.5px solid var(--border)' }}>
-                          <td style={{ background: 'var(--bg-secondary)', fontSize: '0.65rem' }}>วันที่ทำ</td>
-                          {months.map((m, mIdx) => (
-                            [1, 2, 3, 4].map(w => {
-                              const cellKey = `${proc.id}_${mIdx + 1}-w${w}`;
-                              const cell = matrixData[cellKey];
-                              return (
-                                <td key={`${mIdx}-${w}`} style={{ fontSize: '0.55rem', borderLeft: w === 1 ? '1px solid var(--border)' : 'none' }}>
-                                  {cell?.completedDate ? cell.completedDate.slice(0, 5) : ''}
-                                </td>
-                              );
-                            })
-                          ))}
-                        </tr>
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
+              );
+
+              return (
+                <div>
+                  {renderInteractiveHalf(BWI_021_003_UPPER_MONTHS, '📅 ครึ่งปีแรก (มกราคม - มิถุนายน)')}
+                  {renderInteractiveHalf(BWI_021_003_LOWER_MONTHS, '📅 ครึ่งปีหลัง (กรกฎาคม - ธันวาคม)')}
+                </div>
               );
             })()}
           </div>
@@ -1206,7 +1243,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
         </div>
       )}
 
-      {/* --- PRINT A4 MODAL 3: FORM BWI 021/003 (EXACT MATCH IMAGE 3) --- */}
+      {/* --- PRINT A4 MODAL 3: FORM BWI 021/003 (EXACT MATCH IMAGE 2) --- */}
       {isPrintPeriodOpen && (
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
           <div className="print-actions-bar glass-panel" style={{ maxWidth: '1050px', width: '100%', margin: '0 auto 1rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
@@ -1220,83 +1257,145 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             </div>
           </div>
 
-          <div className="a4-page-preview" style={{ background: '#fff', color: '#000', fontFamily: "'Sarabun', 'TH Sarabun PSK', sans-serif", width: '297mm', minHeight: '210mm', padding: '10mm', margin: '0 auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', fontSize: '11px', lineHeight: 1.2 }}>
-            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '15px', marginBottom: '10px' }}>
+          <div className="a4-page-preview" style={{ background: '#fff', color: '#000', fontFamily: "'Sarabun', 'TH Sarabun PSK', sans-serif", width: '297mm', minHeight: '210mm', padding: '8mm 10mm', margin: '0 auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', fontSize: '10px', lineHeight: 1.2 }}>
+            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginBottom: '8px' }}>
               แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (สัปดาห์/เดือน/ปี)
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '12px', fontWeight: 'bold' }}>
-              <div>ชื่อเครื่องมือ: {selectedAsset.name}</div>
-              <div>รหัส: {selectedAsset.id}</div>
-              <div>สถานที่: {selectedAsset.location || selectedAsset.department}</div>
-              <div>ปี: {selectedYear}</div>
-              <div>ผู้รับผิดชอบ: {selectedAsset.responsiblePerson || 'ชาตินีย์'}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '11px', fontWeight: 'bold' }}>
+              <div>ชื่อเครื่องมือ &nbsp;&nbsp;&nbsp;&nbsp;{selectedAsset.name}</div>
+              <div>รหัส &nbsp;{selectedAsset.id}</div>
+              <div>สถานที่ &nbsp;&nbsp;{selectedAsset.location || selectedAsset.department}</div>
+              <div>ปี &nbsp;&nbsp;{selectedYear}</div>
+              <div>ผู้รับผิดชอบ &nbsp;&nbsp;{selectedAsset.responsiblePerson || 'ชาตินีย์'}</div>
             </div>
 
-            {/* Jan - Jun Matrix */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '10px', textAlign: 'center', marginBottom: '15px' }}>
-              <thead>
-                <tr style={{ background: '#f5f5f5' }}>
-                  <th style={{ border: '1px solid #000', width: '180px', textAlign: 'left', padding: '3px' }}>รายการ (ความถี่)</th>
-                  <th style={{ border: '1px solid #000', width: '40px' }}>เดือน</th>
-                  {['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'].map(m => (
-                    <th key={m} colSpan={4} style={{ border: '1px solid #000' }}>{m}</th>
-                  ))}
-                </tr>
-                <tr style={{ background: '#fafafa', fontSize: '9px' }}>
-                  <th></th>
-                  <th>วันที่</th>
-                  {Array.from({ length: 6 }).map((_, mIdx) => (
-                    <React.Fragment key={mIdx}>
-                      <th style={{ border: '1px solid #000' }}>1-5</th>
-                      <th style={{ border: '1px solid #000' }}>6-12</th>
-                      <th style={{ border: '1px solid #000' }}>13-19</th>
-                      <th style={{ border: '1px solid #000' }}>20-26</th>
-                    </React.Fragment>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {procedures.filter(p => p.assetId === selectedAssetId && p.frequencyType === 'period').map(proc => (
-                  <React.Fragment key={proc.id}>
-                    <tr>
-                      <td rowSpan={3} style={{ border: '1px solid #000', textAlign: 'left', padding: '3px' }}>{proc.procedure} ({proc.frequency})</td>
-                      <td style={{ border: '1px solid #000' }}>แผน</td>
-                      {Array.from({ length: 6 }).map((_, mIdx) => (
-                        [1, 2, 3, 4].map(w => (
-                          <td key={`${mIdx}-${w}`} style={{ border: '1px solid #000' }}>{matrixData[`${proc.id}_${mIdx + 1}-w${w}`]?.isPlanned ? 'O' : ''}</td>
-                        ))
-                      ))}
-                    </tr>
-                    <tr>
-                      <td style={{ border: '1px solid #000' }}>ผู้ปฏิบัติ</td>
-                      {Array.from({ length: 6 }).map((_, mIdx) => (
-                        [1, 2, 3, 4].map(w => (
-                          <td key={`${mIdx}-${w}`} style={{ border: '1px solid #000' }}>{matrixData[`${proc.id}_${mIdx + 1}-w${w}`]?.isCompleted ? '/' : ''}</td>
-                        ))
-                      ))}
-                    </tr>
-                    <tr>
-                      <td style={{ border: '1px solid #000', fontSize: '8px' }}>วันที่</td>
-                      {Array.from({ length: 6 }).map((_, mIdx) => (
-                        [1, 2, 3, 4].map(w => (
-                          <td key={`${mIdx}-${w}`} style={{ border: '1px solid #000', fontSize: '8px' }}>{matrixData[`${proc.id}_${mIdx + 1}-w${w}`]?.completedDate || ''}</td>
-                        ))
-                      ))}
-                    </tr>
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+            {(() => {
+              const rawPeriodProcs = procedures.filter(p => {
+                if (p.assetId !== selectedAssetId) return false;
+                if (p.frequencyType === 'daily') return false;
+                if (p.frequencyType === 'period') return true;
+                const f = (p.frequency || '').toLowerCase();
+                return f.includes('สัปดาห์') || f.includes('เดือน') || f.includes('ปี');
+              });
 
-            {/* Footer Signatures */}
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <div>จัดทำโดย: ____________________ (ทิวัตถ์)</div>
-              <div>อนุมัติโดย: ____________________ (วรพงศ์)</div>
-              <div>วันที่: 30/12/2025</div>
+              // Pad to exactly 3 slots for official form layout
+              const periodSlots = [0, 1, 2].map(i => rawPeriodProcs[i] || null);
+
+              const renderPrintHalfTable = (monthsList: MonthDef[]) => (
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '9px', textAlign: 'center', marginBottom: '10px' }}>
+                  <thead>
+                    <tr style={{ background: '#ffffff' }}>
+                      <th style={{ border: '1px solid #000', width: '140px', padding: '2px' }}>รายการ</th>
+                      <th style={{ border: '1px solid #000', width: '35px' }}>เดือน</th>
+                      {monthsList.map(m => (
+                        <th key={m.name} colSpan={m.weeks.length} style={{ border: '1px solid #000', padding: '2px' }}>{m.name}</th>
+                      ))}
+                    </tr>
+                    <tr style={{ background: '#ffffff', fontSize: '8px' }}>
+                      <th style={{ border: '1px solid #000' }}>(ความถี่)</th>
+                      <th style={{ border: '1px solid #000' }}>วันที่</th>
+                      {monthsList.map(m => (
+                        m.weeks.map((w) => (
+                          <th key={`${m.name}-${w}`} style={{ border: '1px solid #000', padding: '1px' }}>{w}</th>
+                        ))
+                      ))}
+                    </tr>
+                    <tr style={{ background: '#ffffff', fontSize: '7.5px' }}>
+                      <th style={{ border: '1px solid #000' }}></th>
+                      <th style={{ border: '1px solid #000' }}>น้ำยาฆ่าเชื้อ</th>
+                      {monthsList.map(m => (
+                        m.weeks.map((w, idx) => (
+                          <th key={`dis-${m.name}-${idx}`} style={{ border: '1px solid #000', fontWeight: 'normal' }}>-</th>
+                        ))
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {periodSlots.map((proc, slotIdx) => (
+                      <React.Fragment key={proc?.id || `print-empty-${slotIdx}`}>
+                        <tr>
+                          <td rowSpan={3} style={{ border: '1px solid #000', textAlign: 'left', padding: '3px 4px', fontSize: '8.5px', verticalAlign: 'middle', width: '140px' }}>
+                            {proc ? `${proc.procedure} (${proc.frequency})` : ''}
+                          </td>
+                          <td style={{ border: '1px solid #000', padding: '1px' }}>แผน</td>
+                          {monthsList.map(m => (
+                            m.weeks.map((w, wIdx) => {
+                              if (!proc) return <td key={`p-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000' }}></td>;
+                              const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                              const cell = matrixData[cellKey];
+                              return (
+                                <td key={`p-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000', fontSize: '8.5px', fontWeight: 'bold' }}>
+                                  {cell?.isPlanned ? 'O' : ''}
+                                </td>
+                              );
+                            })
+                          ))}
+                        </tr>
+                        <tr>
+                          <td style={{ border: '1px solid #000', padding: '1px' }}>ผู้ปฏิบัติ</td>
+                          {monthsList.map(m => (
+                            m.weeks.map((w, wIdx) => {
+                              if (!proc) return <td key={`e-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000' }}></td>;
+                              const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                              const cell = matrixData[cellKey];
+                              return (
+                                <td key={`e-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000', fontSize: '8.5px', fontWeight: 'bold' }}>
+                                  {cell?.isCompleted ? '/' : ''}
+                                </td>
+                              );
+                            })
+                          ))}
+                        </tr>
+                        <tr>
+                          <td style={{ border: '1px solid #000', padding: '1px', fontSize: '7.5px' }}>วันที่</td>
+                          {monthsList.map(m => (
+                            m.weeks.map((w, wIdx) => {
+                              if (!proc) return <td key={`d-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000' }}></td>;
+                              const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                              const cell = matrixData[cellKey];
+                              return (
+                                <td key={`d-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000', fontSize: '6.5px' }}>
+                                  {cell?.completedDate ? cell.completedDate.slice(0, 5) : ''}
+                                </td>
+                              );
+                            })
+                          ))}
+                        </tr>
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              );
+
+              return (
+                <div>
+                  {/* Upper Half: Jan - Jun */}
+                  {renderPrintHalfTable(BWI_021_003_UPPER_MONTHS)}
+
+                  {/* Lower Half: Jul - Dec */}
+                  {renderPrintHalfTable(BWI_021_003_LOWER_MONTHS)}
+                </div>
+              );
+            })()}
+
+            {/* Official Form Footer */}
+            <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '8.5px' }}>
+              <div>หมายเหตุ วงกลม (O) หมายถึง สัปดาห์ที่ต้องทำการบำรุงรักษาเครื่องมือหรือห้องสะอาด เมื่อดำเนินการตามแผนแล้ว ให้ทำเครื่องหมายถูก (/) ในวงกลมที่ระบุ</div>
+              <div style={{ fontWeight: 'bold' }}>น้ำยาฆ่าเชื้อ (1) Chlorhex-C (2) Benz Cl</div>
             </div>
 
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#555', borderTop: '1px solid #ccc', paddingTop: '4px' }}>
+            <div style={{ marginTop: '4px', fontSize: '8.5px', fontStyle: 'normal' }}>
+              เปลี่ยนแบตเตอรี่ (1 ปี) ครั้งล่าสุด 1/7/2568 ใช้แบต Mitsubishi 3.6V และตอนเปลี่ยนให้เปิดเครื่องไว้
+            </div>
+
+            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', gap: '30px', fontSize: '9.5px' }}>
+              <div>จัดทำโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________ (ทิวัตถ์)</div>
+              <div>อนุมัติโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________ (วรพงศ์)</div>
+              <div>วันที่ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;30/12/2025</div>
+            </div>
+
+            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#333', borderTop: '1px solid #aaa', paddingTop: '4px' }}>
               <div>แบบฟอร์มเลขที่ BWI 021/003</div>
               <div>แก้ไขครั้งที่ 01/0150</div>
             </div>
