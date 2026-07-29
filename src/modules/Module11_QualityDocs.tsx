@@ -392,6 +392,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
   const [selectedAssetId, setSelectedAssetId] = useState<string>('0725656515047250001'); // Default Plumatex 3
   const [selectedYear, setSelectedYear] = useState<string>('2569');
   const [selectedMonthPair, setSelectedMonthPair] = useState<string>('7-8'); // Default July-August
+  const [printScope, setPrintScope] = useState<'single' | 'dept' | 'all'>('single');
 
   // Print Preview Modals
   const [isPrintMasterOpen, setIsPrintMasterOpen] = useState(false);
@@ -544,6 +545,60 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
   const selectedAsset = useMemo(() => {
     return assets.find(a => a.id === selectedAssetId) || assets[0];
   }, [assets, selectedAssetId]);
+
+  // Memoized assets to print for Daily Log (BWI 021/002)
+  const printAssetsDaily = useMemo(() => {
+    if (printScope === 'single') {
+      return selectedAsset ? [selectedAsset] : [];
+    }
+    
+    const targetDept = selectedAsset?.department || '';
+    const filtered = assets.filter(a => {
+      if (printScope === 'dept') {
+        return a.department === targetDept;
+      }
+      return true; // 'all'
+    });
+
+    const withProcs = filtered.filter(a => 
+      procedures.some(p => {
+        if (p.assetId !== a.id) return false;
+        if (p.frequencyType === 'period') return false;
+        if (p.frequencyType === 'daily') return true;
+        const f = (p.frequency || '').toLowerCase();
+        return f.includes('วัน') || f.includes('ใช้');
+      })
+    );
+
+    return withProcs.length > 0 ? withProcs : (selectedAsset ? [selectedAsset] : []);
+  }, [printScope, selectedAsset, assets, procedures]);
+
+  // Memoized assets to print for Period Log (BWI 021/003)
+  const printAssetsPeriod = useMemo(() => {
+    if (printScope === 'single') {
+      return selectedAsset ? [selectedAsset] : [];
+    }
+    
+    const targetDept = selectedAsset?.department || '';
+    const filtered = assets.filter(a => {
+      if (printScope === 'dept') {
+        return a.department === targetDept;
+      }
+      return true; // 'all'
+    });
+
+    const withProcs = filtered.filter(a => 
+      procedures.some(p => {
+        if (p.assetId !== a.id) return false;
+        if (p.frequencyType === 'period') return true;
+        if (p.frequencyType === 'daily') return false;
+        const f = (p.frequency || '').toLowerCase();
+        return !(f.includes('วัน') || f.includes('ใช้'));
+      })
+    );
+
+    return withProcs.length > 0 ? withProcs : (selectedAsset ? [selectedAsset] : []);
+  }, [printScope, selectedAsset, assets, procedures]);
 
   return (
     <div className="module-container animate-fade-in" style={{ paddingBottom: '3rem' }}>
@@ -804,6 +859,20 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                   <option value="2570">2570</option>
                 </select>
               </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>ขอบเขตการพิมพ์ BWI 021/002:</label>
+                <select 
+                  className="form-select"
+                  value={printScope}
+                  onChange={(e) => setPrintScope(e.target.value as any)}
+                  style={{ width: '220px', fontSize: '0.85rem' }}
+                >
+                  <option value="single">เฉพาะเครื่องมือนี้เท่านั้น ({selectedAsset.name})</option>
+                  <option value="dept">ทั้งฝ่าย ({selectedAsset.department || 'ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา'})</option>
+                  <option value="all">ทั้งองค์กร (ทุกฝ่าย)</option>
+                </select>
+              </div>
             </div>
 
             <button 
@@ -966,6 +1035,20 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                 >
                   <option value="2569">2569</option>
                   <option value="2570">2570</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>ขอบเขตการพิมพ์ BWI 021/003:</label>
+                <select 
+                  className="form-select"
+                  value={printScope}
+                  onChange={(e) => setPrintScope(e.target.value as any)}
+                  style={{ width: '220px', fontSize: '0.85rem' }}
+                >
+                  <option value="single">เฉพาะเครื่องมือนี้เท่านั้น ({selectedAsset.name})</option>
+                  <option value="dept">ทั้งฝ่าย ({selectedAsset.department || 'ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา'})</option>
+                  <option value="all">ทั้งองค์กร (ทุกฝ่าย)</option>
                 </select>
               </div>
             </div>
@@ -1352,112 +1435,116 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
           <div className="print-actions-bar glass-panel" style={{ maxWidth: '1050px', width: '100%', margin: '0 auto 1rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
             <div>
               <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์ใบบันทึกประจำวัน BWI 021/002 (A4 Landscape)</h4>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (วัน)</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (วัน) 
+                {printScope === 'single' ? ` (เฉพาะเครื่องมือนี้)` : printScope === 'dept' ? ` (ทั้งฝ่าย: ${selectedAsset.department})` : ` (ทั้งองค์กร)`} 
+                - ทั้งหมด {printAssetsDaily.length} รายการ
+              </p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button className="btn btn-primary" onClick={() => window.print()}>🖨️ สั่งพิมพ์เอกสาร (Print)</button>
+              <button className="btn btn-primary" onClick={() => window.print()}>🖨️ สั่งพิมพ์ ({printAssetsDaily.length} หน้า)</button>
               <button className="btn btn-secondary" onClick={() => setIsPrintDailyOpen(false)}>ปิดหน้าต่าง</button>
             </div>
           </div>
 
-          <div className="a4-page-preview" style={{ background: '#fff', color: '#000', fontFamily: "'Sarabun', 'TH Sarabun PSK', sans-serif", width: '297mm', minHeight: '210mm', padding: '8mm 10mm', margin: '0 auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', fontSize: '10px', lineHeight: 1.2 }}>
-            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginBottom: '8px' }}>
-              แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (วัน)
-            </div>
+          {printAssetsDaily.map((assetItem) => {
+            const rawDailyProcs = procedures.filter(p => {
+              if (p.assetId !== assetItem.id) return false;
+              if (p.frequencyType === 'period') return false;
+              if (p.frequencyType === 'daily') return true;
+              const f = (p.frequency || '').toLowerCase();
+              return f.includes('วัน') || f.includes('ใช้');
+            });
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '11px', fontWeight: 'bold' }}>
-              <div>ชื่อเครื่องมือ &nbsp;&nbsp;&nbsp;&nbsp;{selectedAsset.name}</div>
-              <div>รหัส &nbsp;{selectedAsset.id}</div>
-              <div>สถานที่ &nbsp;&nbsp;{selectedAsset.location || selectedAsset.department}</div>
-              <div>ปี &nbsp;&nbsp;{selectedYear}</div>
-              <div>ผู้รับผิดชอบ &nbsp;&nbsp;{selectedAsset.responsiblePerson || 'ชาตินีย์'}</div>
-            </div>
+            // Pad up to 3 slots per month for official form layout
+            const dailySlots = [0, 1, 2].map(i => rawDailyProcs[i] || null);
+            const pair = BWI_021_002_MONTH_PAIRS.find(p => p.id === selectedMonthPair) || BWI_021_002_MONTH_PAIRS[3];
 
-            {(() => {
-              const rawDailyProcs = procedures.filter(p => {
-                if (p.assetId !== selectedAssetId) return false;
-                if (p.frequencyType === 'period') return false;
-                if (p.frequencyType === 'daily') return true;
-                const f = (p.frequency || '').toLowerCase();
-                return f.includes('วัน') || f.includes('ใช้');
-              });
-
-              // Pad up to 3 slots per month for official form layout
-              const dailySlots = [0, 1, 2].map(i => rawDailyProcs[i] || null);
-              const pair = BWI_021_002_MONTH_PAIRS.find(p => p.id === selectedMonthPair) || BWI_021_002_MONTH_PAIRS[3];
-
-              const renderPrintMonthBlock = (monthNum: number, monthName: string) => {
-                const daysCount = getDaysInThaiMonth(monthNum, parseInt(selectedYear) || 2569);
-                const daysArray = Array.from({ length: daysCount }, (_, i) => i + 1);
-
-                return (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '8.5px', textAlign: 'center', marginBottom: '8px' }}>
-                    <thead>
-                      <tr style={{ background: '#ffffff' }}>
-                        <th style={{ border: '1px solid #000', width: '140px', padding: '2px' }}>รายการ</th>
-                        <th style={{ border: '1px solid #000', width: '35px' }}>เดือน</th>
-                        <th colSpan={daysCount} style={{ border: '1px solid #000', padding: '2px', textAlign: 'center', fontWeight: 'bold' }}>
-                          เดือน {monthName}
-                        </th>
-                      </tr>
-                      <tr style={{ background: '#ffffff', fontSize: '7.5px' }}>
-                        <th style={{ border: '1px solid #000' }}>(ความถี่)</th>
-                        <th style={{ border: '1px solid #000' }}>วันที่</th>
-                        {daysArray.map(d => (
-                          <th key={d} style={{ border: '1px solid #000', padding: '1px' }}>{d}</th>
-                        ))}
-                      </tr>
-                      <tr style={{ background: '#ffffff', fontSize: '7.5px' }}>
-                        <th style={{ border: '1px solid #000' }}></th>
-                        <th style={{ border: '1px solid #000' }}>น้ำยาฆ่าเชื้อ</th>
-                        {daysArray.map(d => {
-                          const disCode = (d <= 3 || (d >= 13 && d <= 17) || (d >= 27 && d <= 31)) ? '1' : ((d >= 6 && d <= 10) || (d >= 20 && d <= 24)) ? '2' : '';
-                          return (
-                            <th key={d} style={{ border: '1px solid #000', padding: '1px', fontWeight: 'normal' }}>{disCode}</th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dailySlots.map((proc, slotIdx) => (
-                        <React.Fragment key={proc?.id || `daily-print-slot-${monthNum}-${slotIdx}`}>
-                          <tr>
-                            <td rowSpan={2} style={{ border: '1px solid #000', textAlign: 'left', padding: '2px 4px', fontSize: '8px', verticalAlign: 'middle', width: '140px' }}>
-                              {proc ? `${proc.procedure} (${proc.frequency})` : ''}
-                            </td>
-                            <td style={{ border: '1px solid #000', padding: '1px' }}>แผน</td>
-                            {daysArray.map(d => {
-                              if (!proc) return <td key={d} style={{ border: '1px solid #000' }}></td>;
-                              const cellKey = `${proc.id}_${monthNum}-${d}`;
-                              const cell = matrixData[cellKey];
-                              return (
-                                <td key={d} style={{ border: '1px solid #000', fontSize: '8px', fontWeight: 'bold' }}>
-                                  {cell?.isPlanned ? 'O' : ''}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                          <tr>
-                            <td style={{ border: '1px solid #000', padding: '1px' }}>ผู้ปฏิบัติ</td>
-                            {daysArray.map(d => {
-                              if (!proc) return <td key={d} style={{ border: '1px solid #000' }}></td>;
-                              const cellKey = `${proc.id}_${monthNum}-${d}`;
-                              const cell = matrixData[cellKey];
-                              return (
-                                <td key={d} style={{ border: '1px solid #000', fontSize: '8px', fontWeight: 'bold' }}>
-                                  {cell?.isCompleted ? '/' : ''}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        </React.Fragment>
-                      ))}
-                    </tbody>
-                  </table>
-                );
-              };
+            const renderPrintMonthBlock = (monthNum: number, monthName: string) => {
+              const daysCount = getDaysInThaiMonth(monthNum, parseInt(selectedYear) || 2569);
+              const daysArray = Array.from({ length: daysCount }, (_, i) => i + 1);
 
               return (
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '8.5px', textAlign: 'center', marginBottom: '8px' }}>
+                  <thead>
+                    <tr style={{ background: '#ffffff' }}>
+                      <th style={{ border: '1px solid #000', width: '140px', padding: '2px' }}>รายการ</th>
+                      <th style={{ border: '1px solid #000', width: '35px' }}>เดือน</th>
+                      <th colSpan={daysCount} style={{ border: '1px solid #000', padding: '2px', textAlign: 'center', fontWeight: 'bold' }}>
+                        เดือน {monthName}
+                      </th>
+                    </tr>
+                    <tr style={{ background: '#ffffff', fontSize: '7.5px' }}>
+                      <th style={{ border: '1px solid #000' }}>(ความถี่)</th>
+                      <th style={{ border: '1px solid #000' }}>วันที่</th>
+                      {daysArray.map(d => (
+                        <th key={d} style={{ border: '1px solid #000', padding: '1px' }}>{d}</th>
+                      ))}
+                    </tr>
+                    <tr style={{ background: '#ffffff', fontSize: '7.5px' }}>
+                      <th style={{ border: '1px solid #000' }}></th>
+                      <th style={{ border: '1px solid #000' }}>น้ำยาฆ่าเชื้อ</th>
+                      {daysArray.map(d => {
+                        const disCode = (d <= 3 || (d >= 13 && d <= 17) || (d >= 27 && d <= 31)) ? '1' : ((d >= 6 && d <= 10) || (d >= 20 && d <= 24)) ? '2' : '';
+                        return (
+                          <th key={d} style={{ border: '1px solid #000', padding: '1px', fontWeight: 'normal' }}>{disCode}</th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dailySlots.map((proc, slotIdx) => (
+                      <React.Fragment key={proc?.id || `daily-print-slot-${assetItem.id}-${monthNum}-${slotIdx}`}>
+                        <tr>
+                          <td rowSpan={2} style={{ border: '1px solid #000', textAlign: 'left', padding: '2px 4px', fontSize: '8px', verticalAlign: 'middle', width: '140px' }}>
+                            {proc ? `${proc.procedure} (${proc.frequency})` : ''}
+                          </td>
+                          <td style={{ border: '1px solid #000', padding: '1px' }}>แผน</td>
+                          {daysArray.map(d => {
+                            if (!proc) return <td key={d} style={{ border: '1px solid #000' }}></td>;
+                            const cellKey = `${proc.id}_${monthNum}-${d}`;
+                            const cell = matrixData[cellKey];
+                            return (
+                              <td key={d} style={{ border: '1px solid #000', fontSize: '8px', fontWeight: 'bold' }}>
+                                {cell?.isPlanned ? 'O' : ''}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        <tr>
+                          <td style={{ border: '1px solid #000', padding: '1px' }}>ผู้ปฏิบัติ</td>
+                          {daysArray.map(d => {
+                            if (!proc) return <td key={d} style={{ border: '1px solid #000' }}></td>;
+                            const cellKey = `${proc.id}_${monthNum}-${d}`;
+                            const cell = matrixData[cellKey];
+                            return (
+                              <td key={d} style={{ border: '1px solid #000', fontSize: '8px', fontWeight: 'bold' }}>
+                                {cell?.isCompleted ? '/' : ''}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            };
+
+            return (
+              <div key={assetItem.id} className="a4-page-preview" style={{ background: '#fff', color: '#000', fontFamily: "'Sarabun', 'TH Sarabun PSK', sans-serif", width: '297mm', minHeight: '210mm', padding: '8mm 10mm', margin: '0 auto 2rem auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', fontSize: '10px', lineHeight: 1.2 }}>
+                <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginBottom: '8px' }}>
+                  แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (วัน)
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '11px', fontWeight: 'bold' }}>
+                  <div>ชื่อเครื่องมือ &nbsp;&nbsp;&nbsp;&nbsp;{assetItem.name}</div>
+                  <div>รหัส &nbsp;{assetItem.id}</div>
+                  <div>สถานที่ &nbsp;&nbsp;{assetItem.location || assetItem.department}</div>
+                  <div>ปี &nbsp;&nbsp;{selectedYear}</div>
+                  <div>ผู้รับผิดชอบ &nbsp;&nbsp;{assetItem.responsiblePerson || 'ชาตินีย์'}</div>
+                </div>
+
                 <div>
                   {/* Upper Month Block */}
                   {renderPrintMonthBlock(pair.month1Num, pair.month1Name)}
@@ -1465,68 +1552,75 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                   {/* Lower Month Block */}
                   {renderPrintMonthBlock(pair.month2Num, pair.month2Name)}
                 </div>
-              );
-            })()}
 
-            {/* Official Form Footer */}
-            <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '8.5px' }}>
-              <div>หมายเหตุ วงกลม (O) หมายถึง วันที่ต้องทำการบำรุงรักษาเครื่องมือหรือห้องสะอาด เมื่อดำเนินการตามแผนแล้ว ให้ทำเครื่องหมายถูก (/) ในวงกลมที่ระบุ</div>
-              <div style={{ fontWeight: 'bold' }}>น้ำยาฆ่าเชื้อ (1) Chlorhex-C (2) Benz Cl</div>
-            </div>
+                {/* Official Form Footer */}
+                <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '8.5px' }}>
+                  <div>หมายเหตุ วงกลม (O) หมายถึง วันที่ต้องทำการบำรุงรักษาเครื่องมือหรือห้องสะอาด เมื่อดำเนินการตามแผนแล้ว ให้ทำเครื่องหมายถูก (/) ในวงกลมที่ระบุ</div>
+                  <div style={{ fontWeight: 'bold' }}>น้ำยาฆ่าเชื้อ (1) Chlorhex-C (2) Benz Cl</div>
+                </div>
 
-            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '30px', fontSize: '9.5px' }}>
-              <div>จัดทำโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
-              <div>อนุมัติโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
-              <div>วันที่ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;........ / ........ / ..............</div>
-            </div>
+                <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '30px', fontSize: '9.5px' }}>
+                  <div>จัดทำโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
+                  <div>อนุมัติโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
+                  <div>วันที่ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;........ / ........ / ..............</div>
+                </div>
 
-            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#333', borderTop: '1px solid #aaa', paddingTop: '4px' }}>
-              <div>แบบฟอร์มเลขที่ BWI 021/002</div>
-              <div>แก้ไขครั้งที่ 01/0150</div>
-            </div>
+                <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#333', borderTop: '1px solid #aaa', paddingTop: '4px' }}>
+                  <div>แบบฟอร์มเลขที่ BWI 021/002</div>
+                  <div>แก้ไขครั้งที่ 01/0150</div>
+                </div>
+              </div>
+            );
+          })}
 
-            <style>{`
-              @media print {
-                @page {
-                  size: A4 landscape;
-                  margin: 5mm;
-                }
-                html, body, #root, .app-layout, .main-content, .module-container {
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  width: 100% !important;
-                  height: auto !important;
-                  min-height: auto !important;
-                  overflow: visible !important;
-                  position: static !important;
-                  background: #ffffff !important;
-                  color: #000000 !important;
-                }
-                .print-actions-bar, .sidebar, .top-bar, header, button, nav {
-                  display: none !important;
-                }
-                .print-preview-overlay {
-                  position: static !important;
-                  background: #ffffff !important;
-                  padding: 0 !important;
-                  margin: 0 !important;
-                  overflow: visible !important;
-                  display: block !important;
-                }
-                .a4-page-preview {
-                  position: static !important;
-                  width: 100% !important;
-                  max-width: 100% !important;
-                  box-shadow: none !important;
-                  border: none !important;
-                  padding: 0 !important;
-                  margin: 0 !important;
-                  background: #ffffff !important;
-                  color: #000000 !important;
-                }
+          <style>{`
+            @media print {
+              @page {
+                size: A4 landscape;
+                margin: 5mm;
               }
-            `}</style>
-          </div>
+              html, body, #root, .app-layout, .main-content, .module-container {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: auto !important;
+                overflow: visible !important;
+                position: static !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+              }
+              .print-actions-bar, .sidebar, .top-bar, header, button, nav {
+                display: none !important;
+              }
+              .print-preview-overlay {
+                position: static !important;
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+              }
+              .a4-page-preview {
+                position: static !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 0 10mm 0 !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+              }
+              .a4-page-preview:last-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                margin-bottom: 0 !important;
+              }
+            }
+          `}</style>
         </div>
       )}
 
@@ -1536,126 +1630,130 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
           <div className="print-actions-bar glass-panel" style={{ maxWidth: '1050px', width: '100%', margin: '0 auto 1rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
             <div>
               <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์ใบบันทึกสัปดาห์/เดือน/ปี BWI 021/003 (A4 Landscape)</h4>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (สัปดาห์/เดือน/ปี)</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (สัปดาห์/เดือน/ปี) 
+                {printScope === 'single' ? ` (เฉพาะเครื่องมือนี้)` : printScope === 'dept' ? ` (ทั้งฝ่าย: ${selectedAsset.department})` : ` (ทั้งองค์กร)`} 
+                - ทั้งหมด {printAssetsPeriod.length} รายการ
+              </p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button className="btn btn-primary" onClick={() => window.print()}>🖨️ สั่งพิมพ์เอกสาร (Print)</button>
+              <button className="btn btn-primary" onClick={() => window.print()}>🖨️ สั่งพิมพ์ ({printAssetsPeriod.length} หน้า)</button>
               <button className="btn btn-secondary" onClick={() => setIsPrintPeriodOpen(false)}>ปิดหน้าต่าง</button>
             </div>
           </div>
 
-          <div className="a4-page-preview" style={{ background: '#fff', color: '#000', fontFamily: "'Sarabun', 'TH Sarabun PSK', sans-serif", width: '297mm', minHeight: '210mm', padding: '8mm 10mm', margin: '0 auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', fontSize: '10px', lineHeight: 1.2 }}>
-            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginBottom: '8px' }}>
-              แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (สัปดาห์/เดือน/ปี)
-            </div>
+          {printAssetsPeriod.map((assetItem) => {
+            const rawPeriodProcs = procedures.filter(p => {
+              if (p.assetId !== assetItem.id) return false;
+              if (p.frequencyType === 'daily') return false;
+              if (p.frequencyType === 'period') return true;
+              const f = (p.frequency || '').toLowerCase();
+              return f.includes('สัปดาห์') || f.includes('เดือน') || f.includes('ปี');
+            });
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '11px', fontWeight: 'bold' }}>
-              <div>ชื่อเครื่องมือ &nbsp;&nbsp;&nbsp;&nbsp;{selectedAsset.name}</div>
-              <div>รหัส &nbsp;{selectedAsset.id}</div>
-              <div>สถานที่ &nbsp;&nbsp;{selectedAsset.location || selectedAsset.department}</div>
-              <div>ปี &nbsp;&nbsp;{selectedYear}</div>
-              <div>ผู้รับผิดชอบ &nbsp;&nbsp;{selectedAsset.responsiblePerson || 'ชาตินีย์'}</div>
-            </div>
+            // Pad to exactly 3 slots for official form layout
+            const periodSlots = [0, 1, 2].map(i => rawPeriodProcs[i] || null);
 
-            {(() => {
-              const rawPeriodProcs = procedures.filter(p => {
-                if (p.assetId !== selectedAssetId) return false;
-                if (p.frequencyType === 'daily') return false;
-                if (p.frequencyType === 'period') return true;
-                const f = (p.frequency || '').toLowerCase();
-                return f.includes('สัปดาห์') || f.includes('เดือน') || f.includes('ปี');
-              });
-
-              // Pad to exactly 3 slots for official form layout
-              const periodSlots = [0, 1, 2].map(i => rawPeriodProcs[i] || null);
-
-              const renderPrintHalfTable = (monthsList: MonthDef[]) => (
-                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '9px', textAlign: 'center', marginBottom: '10px' }}>
-                  <thead>
-                    <tr style={{ background: '#ffffff' }}>
-                      <th style={{ border: '1px solid #000', width: '140px', padding: '2px' }}>รายการ</th>
-                      <th style={{ border: '1px solid #000', width: '35px' }}>เดือน</th>
-                      {monthsList.map(m => (
-                        <th key={m.name} colSpan={m.weeks.length} style={{ border: '1px solid #000', padding: '2px' }}>{m.name}</th>
-                      ))}
-                    </tr>
-                    <tr style={{ background: '#ffffff', fontSize: '8px' }}>
-                      <th style={{ border: '1px solid #000' }}>(ความถี่)</th>
-                      <th style={{ border: '1px solid #000' }}>วันที่</th>
-                      {monthsList.map(m => (
-                        m.weeks.map((w) => (
-                          <th key={`${m.name}-${w}`} style={{ border: '1px solid #000', padding: '1px' }}>{w}</th>
-                        ))
-                      ))}
-                    </tr>
-                    <tr style={{ background: '#ffffff', fontSize: '7.5px' }}>
-                      <th style={{ border: '1px solid #000' }}></th>
-                      <th style={{ border: '1px solid #000' }}>น้ำยาฆ่าเชื้อ</th>
-                      {monthsList.map(m => (
-                        m.weeks.map((w, idx) => (
-                          <th key={`dis-${m.name}-${idx}`} style={{ border: '1px solid #000', fontWeight: 'normal' }}>-</th>
-                        ))
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {periodSlots.map((proc, slotIdx) => (
-                      <React.Fragment key={proc?.id || `print-empty-${slotIdx}`}>
-                        <tr>
-                          <td rowSpan={3} style={{ border: '1px solid #000', textAlign: 'left', padding: '3px 4px', fontSize: '8.5px', verticalAlign: 'middle', width: '140px' }}>
-                            {proc ? `${proc.procedure} (${proc.frequency})` : ''}
-                          </td>
-                          <td style={{ border: '1px solid #000', padding: '1px' }}>แผน</td>
-                          {monthsList.map(m => (
-                            m.weeks.map((w, wIdx) => {
-                              if (!proc) return <td key={`p-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000' }}></td>;
-                              const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
-                              const cell = matrixData[cellKey];
-                              return (
-                                <td key={`p-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000', fontSize: '8.5px', fontWeight: 'bold' }}>
-                                  {cell?.isPlanned ? 'O' : ''}
-                                </td>
-                              );
-                            })
-                          ))}
-                        </tr>
-                        <tr>
-                          <td style={{ border: '1px solid #000', padding: '1px' }}>ผู้ปฏิบัติ</td>
-                          {monthsList.map(m => (
-                            m.weeks.map((w, wIdx) => {
-                              if (!proc) return <td key={`e-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000' }}></td>;
-                              const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
-                              const cell = matrixData[cellKey];
-                              return (
-                                <td key={`e-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000', fontSize: '8.5px', fontWeight: 'bold' }}>
-                                  {cell?.isCompleted ? '/' : ''}
-                                </td>
-                              );
-                            })
-                          ))}
-                        </tr>
-                        <tr>
-                          <td style={{ border: '1px solid #000', padding: '1px', fontSize: '7.5px' }}>วันที่</td>
-                          {monthsList.map(m => (
-                            m.weeks.map((w, wIdx) => {
-                              if (!proc) return <td key={`d-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000' }}></td>;
-                              const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
-                              const cell = matrixData[cellKey];
-                              return (
-                                <td key={`d-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000', fontSize: '6.5px' }}>
-                                  {cell?.completedDate ? cell.completedDate.slice(0, 5) : ''}
-                                </td>
-                              );
-                            })
-                          ))}
-                        </tr>
-                      </React.Fragment>
+            const renderPrintHalfTable = (monthsList: MonthDef[]) => (
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '9px', textAlign: 'center', marginBottom: '10px' }}>
+                <thead>
+                  <tr style={{ background: '#ffffff' }}>
+                    <th style={{ border: '1px solid #000', width: '140px', padding: '2px' }}>รายการ</th>
+                    <th style={{ border: '1px solid #000', width: '35px' }}>เดือน</th>
+                    {monthsList.map(m => (
+                      <th key={m.name} colSpan={m.weeks.length} style={{ border: '1px solid #000', padding: '2px' }}>{m.name}</th>
                     ))}
-                  </tbody>
-                </table>
-              );
+                  </tr>
+                  <tr style={{ background: '#ffffff', fontSize: '8px' }}>
+                    <th style={{ border: '1px solid #000' }}>(ความถี่)</th>
+                    <th style={{ border: '1px solid #000' }}>วันที่</th>
+                    {monthsList.map(m => (
+                      m.weeks.map((w) => (
+                        <th key={`${m.name}-${w}`} style={{ border: '1px solid #000', padding: '1px' }}>{w}</th>
+                      ))
+                    ))}
+                  </tr>
+                  <tr style={{ background: '#ffffff', fontSize: '7.5px' }}>
+                    <th style={{ border: '1px solid #000' }}></th>
+                    <th style={{ border: '1px solid #000' }}>น้ำยาฆ่าเชื้อ</th>
+                    {monthsList.map(m => (
+                      m.weeks.map((w, idx) => (
+                        <th key={`dis-${m.name}-${idx}`} style={{ border: '1px solid #000', fontWeight: 'normal' }}>-</th>
+                      ))
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {periodSlots.map((proc, slotIdx) => (
+                    <React.Fragment key={proc?.id || `print-empty-${assetItem.id}-${slotIdx}`}>
+                      <tr>
+                        <td rowSpan={3} style={{ border: '1px solid #000', textAlign: 'left', padding: '3px 4px', fontSize: '8.5px', verticalAlign: 'middle', width: '140px' }}>
+                          {proc ? `${proc.procedure} (${proc.frequency})` : ''}
+                        </td>
+                        <td style={{ border: '1px solid #000', padding: '1px' }}>แผน</td>
+                        {monthsList.map(m => (
+                          m.weeks.map((w, wIdx) => {
+                            if (!proc) return <td key={`p-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000' }}></td>;
+                            const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                            const cell = matrixData[cellKey];
+                            return (
+                              <td key={`p-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000', fontSize: '8.5px', fontWeight: 'bold' }}>
+                                {cell?.isPlanned ? 'O' : ''}
+                              </td>
+                            );
+                          })
+                        ))}
+                      </tr>
+                      <tr>
+                        <td style={{ border: '1px solid #000', padding: '1px' }}>ผู้ปฏิบัติ</td>
+                        {monthsList.map(m => (
+                          m.weeks.map((w, wIdx) => {
+                            if (!proc) return <td key={`e-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000' }}></td>;
+                            const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                            const cell = matrixData[cellKey];
+                            return (
+                              <td key={`e-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000', fontSize: '8.5px', fontWeight: 'bold' }}>
+                                {cell?.isCompleted ? '/' : ''}
+                              </td>
+                            );
+                          })
+                        ))}
+                      </tr>
+                      <tr>
+                        <td style={{ border: '1px solid #000', padding: '1px', fontSize: '7.5px' }}>วันที่</td>
+                        {monthsList.map(m => (
+                          m.weeks.map((w, wIdx) => {
+                            if (!proc) return <td key={`d-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000' }}></td>;
+                            const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                            const cell = matrixData[cellKey];
+                            return (
+                              <td key={`d-${m.monthNum}-${wIdx}`} style={{ border: '1px solid #000', fontSize: '6.5px' }}>
+                                {cell?.completedDate ? cell.completedDate.slice(0, 5) : ''}
+                              </td>
+                            );
+                          })
+                        ))}
+                      </tr>
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            );
 
-              return (
+            return (
+              <div key={assetItem.id} className="a4-page-preview" style={{ background: '#fff', color: '#000', fontFamily: "'Sarabun', 'TH Sarabun PSK', sans-serif", width: '297mm', minHeight: '210mm', padding: '8mm 10mm', margin: '0 auto 2rem auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', fontSize: '10px', lineHeight: 1.2 }}>
+                <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginBottom: '8px' }}>
+                  แผน/บันทึกการบำรุงรักษาเครื่องมือและห้องสะอาด (สัปดาห์/เดือน/ปี)
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '11px', fontWeight: 'bold' }}>
+                  <div>ชื่อเครื่องมือ &nbsp;&nbsp;&nbsp;&nbsp;{assetItem.name}</div>
+                  <div>รหัส &nbsp;{assetItem.id}</div>
+                  <div>สถานที่ &nbsp;&nbsp;{assetItem.location || assetItem.department}</div>
+                  <div>ปี &nbsp;&nbsp;{selectedYear}</div>
+                  <div>ผู้รับผิดชอบ &nbsp;&nbsp;{assetItem.responsiblePerson || 'ชาตินีย์'}</div>
+                </div>
+
                 <div>
                   {/* Upper Half: Jan - Jun */}
                   {renderPrintHalfTable(BWI_021_003_UPPER_MONTHS)}
@@ -1663,72 +1761,79 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                   {/* Lower Half: Jul - Dec */}
                   {renderPrintHalfTable(BWI_021_003_LOWER_MONTHS)}
                 </div>
-              );
-            })()}
 
-            {/* Official Form Footer */}
-            <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '8.5px' }}>
-              <div>หมายเหตุ วงกลม (O) หมายถึง สัปดาห์ที่ต้องทำการบำรุงรักษาเครื่องมือหรือห้องสะอาด เมื่อดำเนินการตามแผนแล้ว ให้ทำเครื่องหมายถูก (/) ในวงกลมที่ระบุ</div>
-              <div style={{ fontWeight: 'bold' }}>น้ำยาฆ่าเชื้อ (1) Chlorhex-C (2) Benz Cl</div>
-            </div>
+                {/* Official Form Footer */}
+                <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '8.5px' }}>
+                  <div>หมายเหตุ วงกลม (O) หมายถึง สัปดาห์ที่ต้องทำการบำรุงรักษาเครื่องมือหรือห้องสะอาด เมื่อดำเนินการตามแผนแล้ว ให้ทำเครื่องหมายถูก (/) ในวงกลมที่ระบุ</div>
+                  <div style={{ fontWeight: 'bold' }}>น้ำยาฆ่าเชื้อ (1) Chlorhex-C (2) Benz Cl</div>
+                </div>
 
-            <div style={{ marginTop: '4px', fontSize: '8.5px', fontStyle: 'normal' }}>
-              เปลี่ยนแบตเตอรี่ (1 ปี) ครั้งล่าสุด 1/7/2568 ใช้แบต Mitsubishi 3.6V และตอนเปลี่ยนให้เปิดเครื่องไว้
-            </div>
+                <div style={{ marginTop: '4px', fontSize: '8.5px', color: '#333' }}>
+                  เปลี่ยนแบตเตอรี่ (1 ปี) ครั้งล่าสุด 1/7/2568 ใช้แบต Mitsubishi 3.6V และตอนเปลี่ยนให้เปิดเครื่องไว้
+                </div>
 
-            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '30px', fontSize: '9.5px' }}>
-              <div>จัดทำโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
-              <div>อนุมัติโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
-              <div>วันที่ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;........ / ........ / ..............</div>
-            </div>
+                <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '30px', fontSize: '9.5px' }}>
+                  <div>จัดทำโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
+                  <div>อนุมัติโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
+                  <div>วันที่ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;........ / ........ / ..............</div>
+                </div>
 
-            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#333', borderTop: '1px solid #aaa', paddingTop: '4px' }}>
-              <div>แบบฟอร์มเลขที่ BWI 021/003</div>
-              <div>แก้ไขครั้งที่ 01/0150</div>
-            </div>
+                <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#333', borderTop: '1px solid #aaa', paddingTop: '4px' }}>
+                  <div>แบบฟอร์มเลขที่ BWI 021/003</div>
+                  <div>แก้ไขครั้งที่ 01/0150</div>
+                </div>
+              </div>
+            );
+          })}
 
-            <style>{`
-              @media print {
-                @page {
-                  size: A4 landscape;
-                  margin: 5mm;
-                }
-                html, body, #root, .app-layout, .main-content, .module-container {
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  width: 100% !important;
-                  height: auto !important;
-                  min-height: auto !important;
-                  overflow: visible !important;
-                  position: static !important;
-                  background: #ffffff !important;
-                  color: #000000 !important;
-                }
-                .print-actions-bar, .sidebar, .top-bar, header, button, nav {
-                  display: none !important;
-                }
-                .print-preview-overlay {
-                  position: static !important;
-                  background: #ffffff !important;
-                  padding: 0 !important;
-                  margin: 0 !important;
-                  overflow: visible !important;
-                  display: block !important;
-                }
-                .a4-page-preview {
-                  position: static !important;
-                  width: 100% !important;
-                  max-width: 100% !important;
-                  box-shadow: none !important;
-                  border: none !important;
-                  padding: 0 !important;
-                  margin: 0 !important;
-                  background: #ffffff !important;
-                  color: #000000 !important;
-                }
+          <style>{`
+            @media print {
+              @page {
+                size: A4 landscape;
+                margin: 5mm;
               }
-            `}</style>
-          </div>
+              html, body, #root, .app-layout, .main-content, .module-container {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: auto !important;
+                overflow: visible !important;
+                position: static !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+              }
+              .print-actions-bar, .sidebar, .top-bar, header, button, nav {
+                display: none !important;
+              }
+              .print-preview-overlay {
+                position: static !important;
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+              }
+              .a4-page-preview {
+                position: static !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 0 10mm 0 !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+              }
+              .a4-page-preview:last-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                margin-bottom: 0 !important;
+              }
+            }
+          `}</style>
         </div>
       )}
 
