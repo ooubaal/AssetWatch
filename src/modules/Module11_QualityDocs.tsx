@@ -336,9 +336,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
   });
 
   // Filter States
-  const [deptFilter, setDeptFilter] = useState<string>(() => {
-    return (currentUser?.role === 'head' || currentUser?.role === 'operator') ? (currentUser.department || 'ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา') : 'ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา';
-  });
+  const [deptFilter, setDeptFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssetId, setSelectedAssetId] = useState<string>('0725656515047250001'); // Default Plumatex 3
   const [selectedYear, setSelectedYear] = useState<string>('2569');
@@ -378,18 +376,20 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
       return;
     }
 
+    const targetDept = assetObj.department || currentUser?.department || 'ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา';
+
     if (editingProc) {
       const updated = procedures.map(p => p.id === editingProc.id ? {
         ...p,
         assetId: assetObj.id,
         assetName: assetObj.name,
         assetCode: assetObj.id,
-        location: assetObj.location || assetObj.department,
-        department: assetObj.department,
+        location: assetObj.location || targetDept,
+        department: targetDept,
         procedure: formProcedure,
         frequency: formFrequency,
         frequencyType: formFreqType,
-        responsiblePerson: formPerson,
+        responsiblePerson: formPerson || assetObj.responsiblePerson || 'เจ้าหน้าที่ที่ใช้งาน',
         linkedContractId: formContractId || undefined
       } : p);
       saveProceduresToStorage(updated);
@@ -399,15 +399,21 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
         assetId: assetObj.id,
         assetName: assetObj.name,
         assetCode: assetObj.id,
-        location: assetObj.location || assetObj.department,
-        department: assetObj.department,
+        location: assetObj.location || targetDept,
+        department: targetDept,
         procedure: formProcedure,
         frequency: formFrequency,
         frequencyType: formFreqType,
-        responsiblePerson: formPerson,
+        responsiblePerson: formPerson || assetObj.responsiblePerson || 'เจ้าหน้าที่ที่ใช้งาน',
         linkedContractId: formContractId || undefined
       };
       saveProceduresToStorage([...procedures, newProc]);
+
+      // Ensure newly added procedure is immediately visible
+      if (deptFilter !== 'all' && deptFilter !== targetDept) {
+        setDeptFilter('all');
+      }
+      setSearchQuery('');
     }
     setIsProcModalOpen(false);
   };
