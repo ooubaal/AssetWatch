@@ -891,6 +891,11 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     }
   };
 
+  const resolveAssetName = (assetId: string, fallbackName?: string) => {
+    const found = assets.find(a => a.id === assetId);
+    return found ? found.name : (fallbackName || assetId);
+  };
+
   const handleDeleteSchedule = async (schedId: string) => {
     if (!window.confirm('คุณต้องการลบรายการบันทึกผลการบำรุงรักษานี้ใช่หรือไม่? (เมื่อลบแล้วรายการจะถูกลบออกจากระบบ)')) return;
     try {
@@ -1087,7 +1092,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                     }).map(sched => (
                       <div key={sched.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-primary)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                         <div>
-                          <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>{sched.assetName}</h4>
+                          <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>{resolveAssetName(sched.assetId, sched.assetName)}</h4>
                           <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>รหัสครุภัณฑ์: <code>{sched.assetId}</code></span>
                           <div style={{ display: 'block', fontSize: '0.725rem', color: 'var(--primary)', fontWeight: 650, marginTop: '0.15rem' }}>📅 แผนตรวจ: {getThaiDateFormatted(sched.plannedDate)}</div>
                         </div>
@@ -1817,7 +1822,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
             <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>รหัสครุภัณฑ์: <code>{rescheduleTarget.assetId}</code></div>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{rescheduleTarget.assetName}</h4>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{resolveAssetName(rescheduleTarget.assetId, rescheduleTarget.assetName)}</h4>
               <span style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 650 }}>📅 วันที่เดิม: {getThaiDateFormatted(rescheduleTarget.plannedDate)}</span>
             </div>
 
@@ -1871,7 +1876,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
             <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem', flexShrink: 0 }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>รหัสครุภัณฑ์: <code>{selectedSchedule.assetId}</code></div>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{selectedSchedule.assetName}</h4>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{resolveAssetName(selectedSchedule.assetId, selectedSchedule.assetName)}</h4>
               <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 650 }}>📅 วันที่ตามแผนบำรุงรักษา: {getThaiDateFormatted(selectedSchedule.plannedDate)}</span>
             </div>
 
@@ -2068,7 +2073,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                     <div style={{ borderLeft: '1px solid #dddddd', paddingLeft: '1.5rem' }}>
                       <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: '#000000' }}>📦 ข้อมูลทรัพย์สินและรอบ PM</h3>
                       <div><strong>รหัสครุภัณฑ์พัสดุ:</strong> <code>{selectedSchedule.assetId}</code></div>
-                      <div><strong>ชื่อรายการครุภัณฑ์:</strong> {selectedSchedule.assetName}</div>
+                      <div><strong>ชื่อรายการครุภัณฑ์:</strong> {resolveAssetName(selectedSchedule.assetId, selectedSchedule.assetName)}</div>
                       <div><strong>วันที่ทำจริง (Completed):</strong> {getThaiDateFormatted(selectedSchedule.completedDate || selectedSchedule.plannedDate)}</div>
                       <div><strong>เจ้าหน้าที่ผู้ตรวจสอบพัสดุ:</strong> 👤 {selectedSchedule.operator || 'เจ้าหน้าที่ตรวจเช็ค'}</div>
                     </div>

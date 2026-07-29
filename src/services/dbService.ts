@@ -361,6 +361,28 @@ export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<
     localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
   }
 
+  // Sync updated assetName to existing schedules and repairs if name changed
+  if (updates.name) {
+    const newName = updates.name;
+    try {
+      const schedules = JSON.parse(localStorage.getItem('assetwatch_pm_schedules') || '[]');
+      let schedMod = false;
+      schedules.forEach((s: any) => {
+        if (s.assetId === id) { s.assetName = newName; schedMod = true; }
+      });
+      if (schedMod) localStorage.setItem('assetwatch_pm_schedules', JSON.stringify(schedules));
+
+      const repairs = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
+      let repMod = false;
+      repairs.forEach((r: any) => {
+        if (r.assetId === id) { r.assetName = newName; repMod = true; }
+      });
+      if (repMod) localStorage.setItem('assetwatch_repairs', JSON.stringify(repairs));
+    } catch (err) {
+      console.error('Error syncing assetName to schedules/repairs:', err);
+    }
+  }
+
   // 2. Synchronize to Firestore using setDoc with merge: true to avoid "document not found" errors
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
