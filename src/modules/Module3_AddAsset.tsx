@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Download, UploadCloud, Clipboard, Trash2, HelpCircle, Printer } from 'lucide-react';
+import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Download, UploadCloud, Clipboard, Trash2, HelpCircle, Printer, Image as ImageIcon, Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Asset, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 import { uploadImage } from '../services/dbService';
 import confetti from 'canvas-confetti';
@@ -75,6 +75,11 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
   const [fileData, setFileData] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
   
+  // Batch & Single Row Photos state for Mass Import
+  const [batchImageFiles, setBatchImageFiles] = useState<Map<string, { file: File; previewUrl: string }>>(new Map());
+  const [rowCustomImages, setRowCustomImages] = useState<Map<number, { file: File; previewUrl: string }>>(new Map());
+  const [savingProgress, setSavingProgress] = useState<{ current: number; total: number } | null>(null);
+  
   interface ParsedAssetRow {
     rowNum: number;
     id: string;
@@ -86,6 +91,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     responsiblePerson: string;
     note: string;
     status: Asset['status'];
+    imageUrl?: string;
     errors: string[];
     warnings: string[];
     isValid: boolean;
@@ -96,10 +102,65 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
   const [massSuccess, setMassSuccess] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
 
+  // Normalize ID for flexible matching (e.g. 6901-001-0001 -> 69010010001)
+  const normalizeId = (str: string) => str.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+  const handleBatchImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const newMap = new Map(batchImageFiles);
+    Array.from(e.target.files).forEach(file => {
+      if (!file.type.startsWith('image/')) return;
+      const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      const norm = normalizeId(baseName);
+      if (norm) {
+        newMap.set(norm, {
+          file,
+          previewUrl: URL.createObjectURL(file)
+        });
+      }
+    });
+    setBatchImageFiles(newMap);
+  };
+
+  const handleRowImageChange = (rowNum: number, file: File) => {
+    const newMap = new Map(rowCustomImages);
+    newMap.set(rowNum, {
+      file,
+      previewUrl: URL.createObjectURL(file)
+    });
+    setRowCustomImages(newMap);
+  };
+
+  const getRowImage = (row: ParsedAssetRow) => {
+    if (rowCustomImages.has(row.rowNum)) {
+      return {
+        previewUrl: rowCustomImages.get(row.rowNum)!.previewUrl,
+        file: rowCustomImages.get(row.rowNum)!.file,
+        source: 'manual' as const
+      };
+    }
+    const norm = normalizeId(row.id);
+    if (norm && batchImageFiles.has(norm)) {
+      return {
+        previewUrl: batchImageFiles.get(norm)!.previewUrl,
+        file: batchImageFiles.get(norm)!.file,
+        source: 'matched' as const
+      };
+    }
+    if (row.imageUrl) {
+      return {
+        previewUrl: row.imageUrl,
+        file: null,
+        source: 'url' as const
+      };
+    }
+    return null;
+  };
+
   // Download template CSV file
   const handleDownloadTemplate = () => {
-    const headers = ['id', 'name', 'receivedDate', 'source', 'location', 'department', 'responsiblePerson', 'note', 'status'];
-    const exampleRow = ['6901-001-0001', 'คอมพิวเตอร์ All-in-One Dell', '2026-06-03', 'บริษัท เอ บี ซี จำกัด', 'ห้อง IT', 'ฝ่ายไอที', 'นายสมจิต รอดพ้น', 'สเปค Core i7 RAM 16GB', 'ใช้งานได้'];
+    const headers = ['id', 'name', 'receivedDate', 'source', 'location', 'department', 'responsiblePerson', 'note', 'status', 'imageUrl'];
+    const exampleRow = ['6901-001-0001', 'คอมพิวเตอร์ All-in-One Dell', '2026-06-03', 'บริษัท เอ บี ซี จำกัด', 'ห้อง IT', 'ฝ่ายไอที', 'นายสมจิต รอดพ้น', 'สเปค Core i7 RAM 16GB', 'ใช้งานได้', ''];
     
     // Add UTF-8 BOM so Excel opens Thai characters correctly
     const csvContent = "\uFEFF" + [headers.join(','), exampleRow.join(',')].join('\n');
@@ -191,6 +252,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     const rawResponsible = (values[6] || '').trim();
     const rawNote = (values[7] || '').trim();
     const rawStatus = (values[8] || '').trim();
+    const rawImageUrl = (values[9] || '').trim();
     
     // 1. ID Validation
     let id = rawId.toUpperCase();
@@ -294,6 +356,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
       responsiblePerson,
       note,
       status,
+      imageUrl: rawImageUrl || undefined,
       errors,
       warnings,
       isValid: errors.length === 0
@@ -335,6 +398,8 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     setFileData('');
     setFileName('');
     setParsedRows([]);
+    setBatchImageFiles(new Map());
+    setRowCustomImages(new Map());
     setMassSuccess(false);
     setImportedCount(0);
   };
@@ -346,23 +411,43 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     
     setSaving(true);
     setError(null);
+    setSavingProgress({ current: 0, total: validRows.length });
+
     try {
       const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
+      const assetsToAdd: Asset[] = [];
       
-      const assetsToAdd: Asset[] = validRows.map(r => ({
-        id: r.id,
-        name: r.name,
-        imageUrl: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60', // placeholder
-        receivedDate: r.receivedDate,
-        source: r.source,
-        location: r.location,
-        department: r.department,
-        responsiblePerson: r.responsiblePerson,
-        note: r.note,
-        status: r.status,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }));
+      for (let i = 0; i < validRows.length; i++) {
+        const r = validRows[i];
+        setSavingProgress({ current: i + 1, total: validRows.length });
+        
+        const rowImg = getRowImage(r);
+        let finalImageUrl = r.imageUrl || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+        
+        if (rowImg && rowImg.file) {
+          try {
+            // uploadImage automatically compresses image to 1024px @ 0.7 quality (~30-80KB)
+            finalImageUrl = await uploadImage(rowImg.file, 'assets');
+          } catch (imgErr) {
+            console.error(`Compression/Upload failed for row ${r.rowNum}:`, imgErr);
+          }
+        }
+        
+        assetsToAdd.push({
+          id: r.id,
+          name: r.name,
+          imageUrl: finalImageUrl,
+          receivedDate: r.receivedDate,
+          source: r.source,
+          location: r.location,
+          department: r.department,
+          responsiblePerson: r.responsiblePerson,
+          note: r.note,
+          status: r.status,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
       
       // Save all in bulk
       await onBulkAddAssets(assetsToAdd);
@@ -373,7 +458,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         assetName: `นำเข้าแบบกลุ่ม: ${assetsToAdd.length} รายการ`,
         action: 'create',
         operator: operatorName,
-        details: `แอดมินทำการนำเข้าข้อมูลครุภัณฑ์แบบกลุ่มสำเร็จ จำนวน ${assetsToAdd.length} รายการ`
+        details: `แอดมินทำการนำเข้าข้อมูลครุภัณฑ์แบบกลุ่มสำเร็จ จำนวน ${assetsToAdd.length} รายการ (พร้อมประมวลผลและบีบอัดรูปภาพพัสดุ)`
       });
       
       // Confetti!
@@ -390,6 +475,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
       setError(err.message || 'เกิดข้อผิดพลาดระหว่างนำเข้าข้อมูลแบบกลุ่ม');
     } finally {
       setSaving(false);
+      setSavingProgress(null);
     }
   };
 
@@ -882,6 +968,28 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         <div className="intake-form glass-panel">
           <div className="mass-import-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             
+            {/* Instruction Banner for Batch Import & Photos */}
+            <div className="glass-panel" style={{ padding: '1rem 1.25rem', border: '1px solid var(--primary-light)', borderRadius: 'var(--radius-md)', background: 'rgba(59, 130, 246, 0.04)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 800, fontSize: '0.9rem' }}>
+                <Sparkles size={18} />
+                💡 คำแนะนำสั้นๆ: การนำเข้าข้อมูลพร้อมรูปถ่ายพัสดุแบบกลุ่ม (Batch Photo Matching)
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+                <div style={{ background: 'var(--bg-secondary)', padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                  <strong>1. เตรียมไฟล์ข้อมูล:</strong> กรอกข้อมูลใน CSV หรือก๊อปปี้ตารางจาก Excel
+                </div>
+                <div style={{ background: 'var(--bg-secondary)', padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                  <strong>2. ตั้งชื่อไฟล์รูปให้ตรงรหัส:</strong> เช่น <code>6901-001-0001.jpg</code> หรือ <code>69010010001.png</code>
+                </div>
+                <div style={{ background: 'var(--bg-secondary)', padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                  <strong>3. เลือกรูปหลายไฟล์พร้อมกัน:</strong> กดปุ่ม <em>"📷 อัปโหลดรูปถ่ายพัสดุแบบกลุ่ม"</em> ระบบจะจับคู่รูปกับรหัสครุภัณฑ์ให้อัตโนมัติทันที!
+                </div>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <CheckCircle2 size={14} /> ⚡ ระบบบีบอัดรูปภาพให้อัตโนมัติ (Fast Optimization): รูปภาพทุกรูปจะถูกย่อให้อ่านฉลากชัดเจนและมีขนาดไฟล์เล็กจิ๋ว (~30-80KB) ก่อนบันทึกลงคลาวด์เพื่อประหยัดพื้นที่จัดเก็บ 100%
+              </div>
+            </div>
+
             {/* Template Download Section */}
             <div className="template-card">
               <div className="template-info">
@@ -898,13 +1006,13 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
               </button>
             </div>
 
-            {/* Input Options (Paste or Upload) */}
+            {/* Input Options (Paste, CSV Upload, or Batch Photos) */}
             <div className="import-grids">
               
               {/* Paste Box */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="import-box-header">
-                  <Clipboard size={16} /> 📋 วางข้อมูลตรงจาก Excel / Google Sheets (Copy-Paste)
+                  <Clipboard size={16} /> 📋 วางข้อมูลตรงจาก Excel (Copy-Paste)
                 </label>
                 <textarea
                   className="paste-textarea"
@@ -960,15 +1068,62 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
                 )}
               </div>
 
+              {/* Batch Photo Picker Box */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="import-box-header">
+                  <Camera size={16} /> 📷 อัปโหลดรูปถ่ายพัสดุแบบกลุ่ม (Batch Photos)
+                </label>
+                <input
+                  type="file"
+                  id="batch-images-picker"
+                  accept="image/*"
+                  multiple
+                  className="file-hidden-input"
+                  onChange={handleBatchImagesChange}
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="batch-images-picker" className="file-upload-box" style={{ borderColor: batchImageFiles.size > 0 ? 'var(--success)' : 'var(--border)' }}>
+                  <ImageIcon size={28} color={batchImageFiles.size > 0 ? "var(--success)" : "var(--text-muted)"} />
+                  {batchImageFiles.size > 0 ? (
+                    <>
+                      <span className="selected-file-badge" style={{ backgroundColor: 'var(--success-light)', color: 'var(--success)', border: '1px solid var(--success)' }}>
+                        📸 เลือกรูปถ่ายแล้ว {batchImageFiles.size} ไฟล์
+                      </span>
+                      <span className="subtitle-help">คลิกเพื่อเลือกเพิ่มรูปถ่ายอีก</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>คลิกเพื่อเลือกไฟล์รูปหลายๆ รูปพร้อมกัน</span>
+                      <span className="subtitle-help">ระบบจับคู่รูปภาพเข้ากับรหัส ID ให้อัตโนมัติ</span>
+                    </>
+                  )}
+                </label>
+                {batchImageFiles.size > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => setBatchImageFiles(new Map())}
+                    style={{ marginTop: '0.5rem', color: 'var(--danger)', fontSize: '0.75rem', padding: '0.25rem 0.5rem', border: '1px solid var(--border)', background: 'var(--bg-secondary)', width: 'fit-content' }}
+                  >
+                    <Trash2 size={12} /> ล้างรูปถ่ายแบบกลุ่ม ({batchImageFiles.size} รูป)
+                  </button>
+                )}
+              </div>
+
             </div>
 
             {/* Live Validation & Preview Table */}
             {parsedRows.length > 0 && (
               <div className="validation-preview-section animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 
-                <div className="preview-stats-bar">
+                <div className="preview-stats-bar" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>🔍 ตารางตรวจสอบความถูกต้องสด (Live Preview):</span>
+                    {parsedRows.length > 0 && (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 650, background: 'rgba(59, 130, 246, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '12px' }}>
+                        📸 จับคู่รูปถ่ายได้แล้ว: {parsedRows.filter(r => getRowImage(r) !== null).length} / {parsedRows.length} แถว
+                      </span>
+                    )}
                   </div>
                   
                   <div className="stats-group">
@@ -1000,8 +1155,9 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
                   <table className="preview-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '60px' }}>แถวที่</th>
-                        <th style={{ width: '120px' }}>รหัสครุภัณฑ์</th>
+                        <th style={{ width: '50px' }}>แถวที่</th>
+                        <th style={{ width: '90px' }}>รูปถ่ายพัสดุ</th>
+                        <th style={{ width: '130px' }}>รหัสครุภัณฑ์</th>
                         <th style={{ width: '150px' }}>ชื่อครุภัณฑ์</th>
                         <th style={{ width: '100px' }}>ฝ่ายที่ดูแล</th>
                         <th style={{ width: '100px' }}>สถานที่ตั้ง</th>
@@ -1019,7 +1175,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
                         return true;
                       }).length === 0 ? (
                         <tr>
-                          <td colSpan={10} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                          <td colSpan={11} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                             ไม่มีแถวข้อมูลตามตัวเลือกตัวกรอง
                           </td>
                         </tr>
@@ -1031,6 +1187,40 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
                         }).map((row) => (
                           <tr key={row.rowNum} className={row.isValid ? 'row-valid' : 'row-invalid'}>
                             <td style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{row.rowNum}</td>
+                            
+                            {/* Photo Thumbnail & Manual Selection Cell */}
+                            <td>
+                              {(() => {
+                                const rowImg = getRowImage(row);
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', padding: '0.2rem 0' }}>
+                                    {rowImg ? (
+                                      <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                                        <img src={rowImg.previewUrl} alt="Asset preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      </div>
+                                    ) : (
+                                      <div style={{ width: '38px', height: '38px', borderRadius: '4px', background: 'var(--bg-secondary)', border: '1px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                                        <Camera size={14} />
+                                      </div>
+                                    )}
+                                    <label style={{ fontSize: '0.625rem', cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>
+                                      {rowImg ? (rowImg.source === 'matched' ? '🟢 ตรง ID' : '📸 รูปกำหนดเอง') : '📷 +รูป'}
+                                      <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        style={{ display: 'none' }}
+                                        onChange={(e) => {
+                                          if (e.target.files && e.target.files[0]) {
+                                            handleRowImageChange(row.rowNum, e.target.files[0]);
+                                          }
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
+                                );
+                              })()}
+                            </td>
+
                             <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{row.id || '-'}</td>
                             <td>{row.name || <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>[ไม่มีชื่อ]</span>}</td>
                             <td>{row.department}</td>
@@ -1092,7 +1282,9 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
                       disabled={parsedRows.filter(r => r.isValid).length === 0 || saving}
                       onClick={handleMassImportSubmit}
                     >
-                      {saving ? 'กำลังประมวลผลนำเข้า...' : `💾 ยืนยันนำเข้าข้อมูล (${parsedRows.filter(r => r.isValid).length} แถว) ลงระบบ`}
+                      {saving ? (
+                        savingProgress ? `⚡ กำลังบีบอัดรูปภาพและนำเข้า (${savingProgress.current}/${savingProgress.total})...` : 'กำลังประมวลผลนำเข้า...'
+                      ) : `💾 ยืนยันนำเข้าข้อมูล (${parsedRows.filter(r => r.isValid).length} แถว) ลงระบบ`}
                     </button>
                   </div>
                 </div>
@@ -1517,8 +1709,8 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         
         .import-grids {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: 1.25rem;
         }
         
         .import-box-header {
