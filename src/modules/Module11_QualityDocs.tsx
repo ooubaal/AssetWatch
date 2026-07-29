@@ -1289,22 +1289,48 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             </table>
 
             {/* Footer Signatures */}
-            <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '13px' }}>
-              <div>
-                <div>ลงชื่อ ________________________________________</div>
-                <div style={{ marginTop: '5px' }}>หัวหน้าฝ่าย &nbsp;&nbsp;ผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div>วันที่ &nbsp;20 / 05 / 2569</div>
-              </div>
+            <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'flex-end', gap: '30px', fontSize: '11px' }}>
+              <div>จัดทำโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
+              <div>อนุมัติโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
+              <div>วันที่ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;........ / ........ / ..............</div>
             </div>
 
             {/* Form Code Footer */}
-            <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#555', borderTop: '1px solid #ccc', paddingTop: '5px' }}>
+            <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#555', borderTop: '1px solid #ccc', paddingTop: '5px' }}>
               <div>แบบฟอร์มเลขที่ BWI 021/001</div>
               <div>แก้ไขครั้งที่ 01/0150</div>
             </div>
 
+            <style>{`
+              @media print {
+                @page {
+                  size: A4 portrait;
+                  margin: 8mm;
+                }
+                body {
+                  background: #fff !important;
+                  color: #000 !important;
+                }
+                .print-actions-bar, sidebar, header, button, nav {
+                  display: none !important;
+                }
+                .print-preview-overlay {
+                  position: static !important;
+                  background: none !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  overflow: visible !important;
+                }
+                .a4-page-preview {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  box-shadow: none !important;
+                  border: none !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                }
+              }
+            `}</style>
           </div>
         </div>
       )}
@@ -1437,16 +1463,47 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
               <div style={{ fontWeight: 'bold' }}>น้ำยาฆ่าเชื้อ (1) Chlorhex-C (2) Benz Cl</div>
             </div>
 
-            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', gap: '30px', fontSize: '9.5px' }}>
-              <div>จัดทำโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________ (ทิวัตถ์)</div>
-              <div>อนุมัติโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________ (วรพงศ์)</div>
-              <div>วันที่ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1/7/2026</div>
+            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '30px', fontSize: '9.5px' }}>
+              <div>จัดทำโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
+              <div>อนุมัติโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
+              <div>วันที่ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;........ / ........ / ..............</div>
             </div>
 
-            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#333', borderTop: '1px solid #aaa', paddingTop: '4px' }}>
+            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#333', borderTop: '1px solid #aaa', paddingTop: '4px' }}>
               <div>แบบฟอร์มเลขที่ BWI 021/002</div>
               <div>แก้ไขครั้งที่ 01/0150</div>
             </div>
+
+            <style>{`
+              @media print {
+                @page {
+                  size: A4 landscape;
+                  margin: 5mm;
+                }
+                body {
+                  background: #fff !important;
+                  color: #000 !important;
+                }
+                .print-actions-bar, sidebar, header, button, nav {
+                  display: none !important;
+                }
+                .print-preview-overlay {
+                  position: static !important;
+                  background: none !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  overflow: visible !important;
+                }
+                .a4-page-preview {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  box-shadow: none !important;
+                  border: none !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                }
+              }
+            `}</style>
           </div>
         </div>
       )}
@@ -1597,16 +1654,47 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
               เปลี่ยนแบตเตอรี่ (1 ปี) ครั้งล่าสุด 1/7/2568 ใช้แบต Mitsubishi 3.6V และตอนเปลี่ยนให้เปิดเครื่องไว้
             </div>
 
-            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', gap: '30px', fontSize: '9.5px' }}>
-              <div>จัดทำโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________ (ทิวัตถ์)</div>
-              <div>อนุมัติโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________ (วรพงศ์)</div>
-              <div>วันที่ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;30/12/2025</div>
+            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '30px', fontSize: '9.5px' }}>
+              <div>จัดทำโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
+              <div>อนุมัติโดย &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;____________________________________</div>
+              <div>วันที่ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;........ / ........ / ..............</div>
             </div>
 
-            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#333', borderTop: '1px solid #aaa', paddingTop: '4px' }}>
+            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#333', borderTop: '1px solid #aaa', paddingTop: '4px' }}>
               <div>แบบฟอร์มเลขที่ BWI 021/003</div>
               <div>แก้ไขครั้งที่ 01/0150</div>
             </div>
+
+            <style>{`
+              @media print {
+                @page {
+                  size: A4 landscape;
+                  margin: 5mm;
+                }
+                body {
+                  background: #fff !important;
+                  color: #000 !important;
+                }
+                .print-actions-bar, sidebar, header, button, nav {
+                  display: none !important;
+                }
+                .print-preview-overlay {
+                  position: static !important;
+                  background: none !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  overflow: visible !important;
+                }
+                .a4-page-preview {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  box-shadow: none !important;
+                  border: none !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                }
+              }
+            `}</style>
           </div>
         </div>
       )}
