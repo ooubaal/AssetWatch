@@ -886,124 +886,169 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
 
           {/* Asset Summary Details */}
           <div className="glass-panel" style={{ padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.8rem', background: 'var(--bg-secondary)' }}>
-            <div>📌 <strong>เครื่องมือ:</strong> {selectedAsset.name}</div>
-            <div>🔢 <strong>รหัสเครื่อง:</strong> <code style={{ color: 'var(--primary)' }}>{selectedAsset.id}</code></div>
-            <div>📍 <strong>สถานที่:</strong> {selectedAsset.location || selectedAsset.department}</div>
-            <div>👤 <strong>ผู้รับผิดชอบ:</strong> {selectedAsset.responsiblePerson || 'เจ้าหน้าที่ที่ใช้งาน'}</div>
+            {printScope === 'single' ? (
+              <>
+                <div>📌 <strong>เครื่องมือ:</strong> {selectedAsset.name}</div>
+                <div>🔢 <strong>รหัสเครื่อง:</strong> <code style={{ color: 'var(--primary)' }}>{selectedAsset.id}</code></div>
+                <div>📍 <strong>สถานที่:</strong> {selectedAsset.location || selectedAsset.department}</div>
+                <div>👤 <strong>ผู้รับผิดชอบ:</strong> {selectedAsset.responsiblePerson || 'เจ้าหน้าที่ที่ใช้งาน'}</div>
+              </>
+            ) : (
+              <>
+                <div>🔍 <strong>ขอบเขตแสดงผล:</strong> {printScope === 'dept' ? `ทั้งฝ่าย (${selectedAsset.department})` : 'ทั้งองค์กร (ทุกฝ่าย)'}</div>
+                <div>📊 <strong>จำนวนเครื่องมือทั้งหมด:</strong> {printAssetsDaily.length} รายการที่มีแผนการบำรุงรักษาประจำวัน</div>
+                <div>📍 <strong>ฝ่ายที่เลือกอ้างอิง:</strong> {selectedAsset.department}</div>
+              </>
+            )}
           </div>
 
           {/* Interactive Daily Matrix Table for Month Pair */}
-          <div className="glass-panel" style={{ padding: '1.25rem', overflowX: 'auto' }}>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '0.75rem', color: 'var(--primary)' }}>
+          <div className="glass-panel" style={{ padding: '1.25rem', overflowX: 'auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary)' }}>
               📅 ตารางบันทึกประจำวัน (คลิกที่ช่องเพื่อตั้งค่า แผน [O] -&gt; ปฏิบัติสำเร็จ [/] -&gt; เคลียร์)
             </h4>
 
             {(() => {
-              const rawDailyProcs = procedures.filter(p => {
-                if (p.assetId !== selectedAssetId) return false;
-                if (p.frequencyType === 'period') return false; // Strictly exclude period items
-                if (p.frequencyType === 'daily') return true;
-                const f = (p.frequency || '').toLowerCase();
-                return f.includes('วัน') || f.includes('ใช้');
-              });
+              const assetsToShow = printScope === 'single' 
+                ? [selectedAsset] 
+                : printAssetsDaily.filter(a => procedures.some(p => {
+                    if (p.assetId !== a.id) return false;
+                    if (p.frequencyType === 'period') return false;
+                    if (p.frequencyType === 'daily') return true;
+                    const f = (p.frequency || '').toLowerCase();
+                    return f.includes('วัน') || f.includes('ใช้');
+                  }));
 
-              if (rawDailyProcs.length === 0) {
+              if (assetsToShow.length === 0) {
                 return (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำวันสำหรับเครื่องมือนี้ (ข้อกำหนดที่ตั้งไว้เป็นประจำสัปดาห์/เดือน/ปี จะแสดงในแถบ BWI 021/003)
+                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำวันสำหรับเครื่องมือใดๆ ในขอบเขตที่เลือก
                   </div>
                 );
               }
 
-              // Pad up to 3 slots for exact form matching
-              const dailySlots = [0, 1, 2].map(i => rawDailyProcs[i] || null);
-              const currentPair = BWI_021_002_MONTH_PAIRS.find(p => p.id === selectedMonthPair) || BWI_021_002_MONTH_PAIRS[3];
+              return assetsToShow.map(assetItem => {
+                const rawDailyProcs = procedures.filter(p => {
+                  if (p.assetId !== assetItem.id) return false;
+                  if (p.frequencyType === 'period') return false;
+                  if (p.frequencyType === 'daily') return true;
+                  const f = (p.frequency || '').toLowerCase();
+                  return f.includes('วัน') || f.includes('ใช้');
+                });
 
-              const renderInteractiveMonthBlock = (monthNum: number, monthName: string) => {
-                const daysCount = getDaysInThaiMonth(monthNum, parseInt(selectedYear) || 2569);
-                const daysArray = Array.from({ length: daysCount }, (_, i) => i + 1);
+                if (rawDailyProcs.length === 0 && printScope !== 'single') return null;
+
+                const dailySlots = [0, 1, 2].map(i => rawDailyProcs[i] || null);
+                const currentPair = BWI_021_002_MONTH_PAIRS.find(p => p.id === selectedMonthPair) || BWI_021_002_MONTH_PAIRS[3];
+
+                const renderInteractiveMonthBlock = (monthNum: number, monthName: string) => {
+                  const daysCount = getDaysInThaiMonth(monthNum, parseInt(selectedYear) || 2569);
+                  const daysArray = Array.from({ length: daysCount }, (_, i) => i + 1);
+
+                  return (
+                    <div style={{ marginBottom: '1.5rem' }} key={monthNum}>
+                      <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
+                        🗓️ เดือน {monthName} {selectedYear} ({daysCount} วัน)
+                      </div>
+                      <table style={{ width: '100%', fontSize: '0.7rem', borderCollapse: 'collapse', textAlign: 'center' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+                            <th style={{ width: '200px', textAlign: 'left', padding: '0.4rem' }}>รายการวิธีบำรุงรักษา</th>
+                            <th style={{ width: '50px', padding: '0.4rem' }}>ประเภท</th>
+                            {daysArray.map(day => (
+                              <th key={day} style={{ padding: '0.2rem', minWidth: '22px' }}>{day}</th>
+                            ))}
+                          </tr>
+                          <tr style={{ background: 'rgba(255,255,255,0.02)', fontSize: '0.625rem' }}>
+                            <th style={{ textAlign: 'left', paddingLeft: '0.4rem' }}>น้ำยาฆ่าเชื้อ</th>
+                            <th></th>
+                            {daysArray.map(day => {
+                              const disCode = (day <= 3 || (day >= 13 && day <= 17) || (day >= 27 && day <= 31)) ? '1' : ((day >= 6 && day <= 10) || (day >= 20 && day <= 24)) ? '2' : '-';
+                              return (
+                                <th key={day} style={{ color: 'var(--text-muted)', padding: '0.15rem' }}>{disCode}</th>
+                              );
+                            })}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dailySlots.map((proc, slotIdx) => (
+                            <React.Fragment key={proc?.id || `daily-slot-${assetItem.id}-${monthNum}-${slotIdx}`}>
+                              {/* Plan Row (O) */}
+                              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                <td rowSpan={2} style={{ textAlign: 'left', padding: '0.4rem', fontWeight: 600, borderRight: '1px solid var(--border)' }}>
+                                  {proc ? `${proc.procedure} (${proc.frequency})` : '-'}
+                                </td>
+                                <td style={{ background: 'rgba(59, 130, 246, 0.05)', fontWeight: 700, color: 'var(--primary)' }}>แผน</td>
+                                {daysArray.map(day => {
+                                  if (!proc) return <td key={day}></td>;
+                                  const cellKey = `${proc.id}_${monthNum}-${day}`;
+                                  const cell = matrixData[cellKey];
+                                  return (
+                                    <td 
+                                      key={day}
+                                      onClick={() => toggleMatrixCell(proc.id, `${monthNum}-${day}`)}
+                                      style={{ cursor: 'pointer', background: cell?.isPlanned ? 'rgba(234, 179, 8, 0.15)' : 'transparent', fontWeight: 700 }}
+                                    >
+                                      {cell?.isPlanned ? 'O' : ''}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                              {/* Execute Row (/) */}
+                              <tr style={{ borderBottom: '1.5px solid var(--border)' }}>
+                                <td style={{ background: 'rgba(34, 197, 94, 0.05)', fontWeight: 700, color: 'var(--success)' }}>ผู้ปฏิบัติ</td>
+                                {daysArray.map(day => {
+                                  if (!proc) return <td key={day}></td>;
+                                  const cellKey = `${proc.id}_${monthNum}-${day}`;
+                                  const cell = matrixData[cellKey];
+                                  return (
+                                    <td 
+                                      key={day}
+                                      onClick={() => toggleMatrixCell(proc.id, `${monthNum}-${day}`)}
+                                      style={{ cursor: 'pointer', background: cell?.isCompleted ? 'rgba(34, 197, 94, 0.2)' : 'transparent', fontWeight: 800, color: 'var(--success)' }}
+                                    >
+                                      {cell?.isCompleted ? '✓' : ''}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            </React.Fragment>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                };
+
+                if (rawDailyProcs.length === 0 && printScope === 'single') {
+                  return (
+                    <div key={assetItem.id} style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                        ⚙️ {assetItem.name} (<span style={{ color: 'var(--primary)' }}>{assetItem.id}</span>)
+                      </div>
+                      <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำวันสำหรับเครื่องมือนี้ (ข้อกำหนดที่ตั้งไว้เป็นประจำสัปดาห์/เดือน/ปี จะแสดงในแถบ BWI 021/003)
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
-                  <div style={{ marginBottom: '2rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
-                      🗓️ เดือน {monthName} {selectedYear} ({daysCount} วัน)
+                  <div key={assetItem.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '1.25rem', background: 'rgba(255,255,255,0.01)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border)' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--primary)' }}>
+                        ⚙️ {assetItem.name} (<code style={{ color: 'var(--text-primary)' }}>{assetItem.id}</code>)
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        📍 {assetItem.location || assetItem.department}
+                      </span>
                     </div>
-                    <table style={{ width: '100%', fontSize: '0.7rem', borderCollapse: 'collapse', textAlign: 'center' }}>
-                      <thead>
-                        <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
-                          <th style={{ width: '200px', textAlign: 'left', padding: '0.4rem' }}>รายการวิธีบำรุงรักษา</th>
-                          <th style={{ width: '50px', padding: '0.4rem' }}>ประเภท</th>
-                          {daysArray.map(day => (
-                            <th key={day} style={{ padding: '0.2rem', minWidth: '22px' }}>{day}</th>
-                          ))}
-                        </tr>
-                        <tr style={{ background: 'rgba(255,255,255,0.02)', fontSize: '0.625rem' }}>
-                          <th style={{ textAlign: 'left', paddingLeft: '0.4rem' }}>น้ำยาฆ่าเชื้อ</th>
-                          <th></th>
-                          {daysArray.map(day => {
-                            const disCode = (day <= 3 || (day >= 13 && day <= 17) || (day >= 27 && day <= 31)) ? '1' : ((day >= 6 && day <= 10) || (day >= 20 && day <= 24)) ? '2' : '-';
-                            return (
-                              <th key={day} style={{ color: 'var(--text-muted)', padding: '0.15rem' }}>{disCode}</th>
-                            );
-                          })}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dailySlots.map((proc, slotIdx) => (
-                          <React.Fragment key={proc?.id || `daily-slot-${monthNum}-${slotIdx}`}>
-                            {/* Plan Row (O) */}
-                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                              <td rowSpan={2} style={{ textAlign: 'left', padding: '0.4rem', fontWeight: 600, borderRight: '1px solid var(--border)' }}>
-                                {proc ? `${proc.procedure} (${proc.frequency})` : '-'}
-                              </td>
-                              <td style={{ background: 'rgba(59, 130, 246, 0.05)', fontWeight: 700, color: 'var(--primary)' }}>แผน</td>
-                              {daysArray.map(day => {
-                                if (!proc) return <td key={day}></td>;
-                                const cellKey = `${proc.id}_${monthNum}-${day}`;
-                                const cell = matrixData[cellKey];
-                                return (
-                                  <td 
-                                    key={day}
-                                    onClick={() => toggleMatrixCell(proc.id, `${monthNum}-${day}`)}
-                                    style={{ cursor: 'pointer', background: cell?.isPlanned ? 'rgba(234, 179, 8, 0.15)' : 'transparent', fontWeight: 700 }}
-                                  >
-                                    {cell?.isPlanned ? 'O' : ''}
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                            {/* Execute Row (/) */}
-                            <tr style={{ borderBottom: '1.5px solid var(--border)' }}>
-                              <td style={{ background: 'rgba(34, 197, 94, 0.05)', fontWeight: 700, color: 'var(--success)' }}>ผู้ปฏิบัติ</td>
-                              {daysArray.map(day => {
-                                if (!proc) return <td key={day}></td>;
-                                const cellKey = `${proc.id}_${monthNum}-${day}`;
-                                const cell = matrixData[cellKey];
-                                return (
-                                  <td 
-                                    key={day}
-                                    onClick={() => toggleMatrixCell(proc.id, `${monthNum}-${day}`)}
-                                    style={{ cursor: 'pointer', background: cell?.isCompleted ? 'rgba(34, 197, 94, 0.2)' : 'transparent', fontWeight: 800, color: 'var(--success)' }}
-                                  >
-                                    {cell?.isCompleted ? '✓' : ''}
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          </React.Fragment>
-                        ))}
-                      </tbody>
-                    </table>
+
+                    {renderInteractiveMonthBlock(currentPair.month1Num, currentPair.month1Name)}
+                    {renderInteractiveMonthBlock(currentPair.month2Num, currentPair.month2Name)}
                   </div>
                 );
-              };
-
-              return (
-                <div>
-                  {renderInteractiveMonthBlock(currentPair.month1Num, currentPair.month1Name)}
-                  {renderInteractiveMonthBlock(currentPair.month2Num, currentPair.month2Name)}
-                </div>
-              );
+              });
             })()}
           </div>
         </div>
@@ -1063,129 +1108,165 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
           </div>
 
           {/* Interactive Period Matrix Table */}
-          <div className="glass-panel" style={{ padding: '1.25rem', overflowX: 'auto' }}>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '0.75rem', color: 'var(--primary)' }}>
+          <div className="glass-panel" style={{ padding: '1.25rem', overflowX: 'auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary)' }}>
               🗓️ ตารางบันทึกประจำสัปดาห์/เดือน/ปี (ม.ค. - ธ.ค. {selectedYear})
             </h4>
 
             {(() => {
-              const rawPeriodProcs = procedures.filter(p => {
-                if (p.assetId !== selectedAssetId) return false;
-                if (p.frequencyType === 'daily') return false;
-                if (p.frequencyType === 'period') return true;
-                const f = (p.frequency || '').toLowerCase();
-                return f.includes('สัปดาห์') || f.includes('เดือน') || f.includes('ปี');
-              });
+              const assetsToShow = printScope === 'single'
+                ? [selectedAsset]
+                : printAssetsPeriod.filter(a => procedures.some(p => {
+                    if (p.assetId !== a.id) return false;
+                    if (p.frequencyType === 'daily') return false;
+                    if (p.frequencyType === 'period') return true;
+                    const f = (p.frequency || '').toLowerCase();
+                    return f.includes('สัปดาห์') || f.includes('เดือน') || f.includes('ปี');
+                  }));
 
-              if (rawPeriodProcs.length === 0) {
+              if (assetsToShow.length === 0) {
                 return (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำสัปดาห์/เดือน/ปีสำหรับเครื่องมือนี้ (ข้อกำหนดที่ตั้งไว้เป็นประจำวัน จะแสดงในแถบ BWI 021/002)
+                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำสัปดาห์/เดือน/ปีสำหรับเครื่องมือใดๆ ในขอบเขตที่เลือก
                   </div>
                 );
               }
 
-              const periodSlots = [0, 1, 2].map(i => rawPeriodProcs[i] || null);
+              return assetsToShow.map(assetItem => {
+                const rawPeriodProcs = procedures.filter(p => {
+                  if (p.assetId !== assetItem.id) return false;
+                  if (p.frequencyType === 'daily') return false;
+                  if (p.frequencyType === 'period') return true;
+                  const f = (p.frequency || '').toLowerCase();
+                  return f.includes('สัปดาห์') || f.includes('เดือน') || f.includes('ปี');
+                });
 
-              const renderInteractiveHalf = (monthsList: MonthDef[], title: string) => (
-                <div style={{ marginBottom: '2rem' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--primary)' }}>
-                    {title}
+                if (rawPeriodProcs.length === 0 && printScope !== 'single') return null;
+
+                const periodSlots = [0, 1, 2].map(i => rawPeriodProcs[i] || null);
+
+                const renderInteractiveHalf = (monthsList: MonthDef[], title: string) => (
+                  <div style={{ marginBottom: '2rem' }} key={title}>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--primary)' }}>
+                      {title}
+                    </div>
+                    <table style={{ width: '100%', fontSize: '0.7rem', borderCollapse: 'collapse', textAlign: 'center' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+                          <th style={{ width: '200px', textAlign: 'left', padding: '0.4rem' }}>รายการวิธีบำรุงรักษา</th>
+                          <th style={{ width: '50px', padding: '0.4rem' }}>ประเภท</th>
+                          {monthsList.map(m => (
+                            <th key={m.name} colSpan={m.weeks.length} style={{ padding: '0.3rem', borderLeft: '1px solid var(--border)' }}>{m.name}</th>
+                          ))}
+                        </tr>
+                        <tr style={{ background: 'rgba(255,255,255,0.02)', fontSize: '0.625rem' }}>
+                          <th></th>
+                          <th>วันที่</th>
+                          {monthsList.map(m => (
+                            m.weeks.map((w, wIdx) => (
+                              <th key={`${m.name}-${w}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none', padding: '0.2rem' }}>{w}</th>
+                            ))
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {periodSlots.map((proc, slotIdx) => (
+                          <React.Fragment key={proc?.id || `empty-${assetItem.id}-${slotIdx}`}>
+                            {/* Plan Row */}
+                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                              <td rowSpan={3} style={{ textAlign: 'left', padding: '0.4rem', fontWeight: 650, borderRight: '1px solid var(--border)' }}>
+                                {proc ? `${proc.procedure} (${proc.frequency})` : '-'}
+                              </td>
+                              <td style={{ background: 'rgba(59, 130, 246, 0.05)', fontWeight: 700, color: 'var(--primary)' }}>แผน</td>
+                              {monthsList.map(m => (
+                                m.weeks.map((w, wIdx) => {
+                                  if (!proc) return <td key={`${m.monthNum}-${wIdx}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}></td>;
+                                  const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                                  const cell = matrixData[cellKey];
+                                  return (
+                                    <td 
+                                      key={`${m.monthNum}-${wIdx}`}
+                                      onClick={() => toggleMatrixCell(proc.id, `${m.monthNum}-w${wIdx + 1}`)}
+                                      style={{ cursor: 'pointer', borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none', background: cell?.isPlanned ? 'rgba(234, 179, 8, 0.15)' : 'transparent', fontWeight: 700 }}
+                                    >
+                                      {cell?.isPlanned ? 'O' : ''}
+                                    </td>
+                                  );
+                                })
+                              ))}
+                            </tr>
+                            {/* Execute Row */}
+                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                              <td style={{ background: 'rgba(34, 197, 94, 0.05)', fontWeight: 700, color: 'var(--success)' }}>ผู้ปฏิบัติ</td>
+                              {monthsList.map(m => (
+                                m.weeks.map((w, wIdx) => {
+                                  if (!proc) return <td key={`${m.monthNum}-${wIdx}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}></td>;
+                                  const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                                  const cell = matrixData[cellKey];
+                                  return (
+                                    <td 
+                                      key={`${m.monthNum}-${wIdx}`}
+                                      onClick={() => toggleMatrixCell(proc.id, `${m.monthNum}-w${wIdx + 1}`)}
+                                      style={{ cursor: 'pointer', borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none', background: cell?.isCompleted ? 'rgba(34, 197, 94, 0.2)' : 'transparent', fontWeight: 800, color: 'var(--success)' }}
+                                    >
+                                      {cell?.isCompleted ? '✓' : ''}
+                                    </td>
+                                  );
+                                })
+                              ))}
+                            </tr>
+                            {/* Date Row */}
+                            <tr style={{ borderBottom: '1.5px solid var(--border)' }}>
+                              <td style={{ background: 'var(--bg-secondary)', fontSize: '0.625rem' }}>วันที่ทำ</td>
+                              {monthsList.map(m => (
+                                m.weeks.map((w, wIdx) => {
+                                  if (!proc) return <td key={`${m.monthNum}-${wIdx}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}></td>;
+                                  const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
+                                  const cell = matrixData[cellKey];
+                                  return (
+                                    <td key={`${m.monthNum}-${wIdx}`} style={{ fontSize: '0.55rem', borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}>
+                                      {cell?.completedDate ? cell.completedDate.slice(0, 5) : ''}
+                                    </td>
+                                  );
+                                })
+                              ))}
+                            </tr>
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <table style={{ width: '100%', fontSize: '0.7rem', borderCollapse: 'collapse', textAlign: 'center' }}>
-                    <thead>
-                      <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
-                        <th style={{ width: '200px', textAlign: 'left', padding: '0.4rem' }}>รายการวิธีบำรุงรักษา</th>
-                        <th style={{ width: '50px', padding: '0.4rem' }}>ประเภท</th>
-                        {monthsList.map(m => (
-                          <th key={m.name} colSpan={m.weeks.length} style={{ padding: '0.3rem', borderLeft: '1px solid var(--border)' }}>{m.name}</th>
-                        ))}
-                      </tr>
-                      <tr style={{ background: 'rgba(255,255,255,0.02)', fontSize: '0.625rem' }}>
-                        <th></th>
-                        <th>วันที่</th>
-                        {monthsList.map(m => (
-                          m.weeks.map((w, wIdx) => (
-                            <th key={`${m.name}-${w}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none', padding: '0.2rem' }}>{w}</th>
-                          ))
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {periodSlots.map((proc, slotIdx) => (
-                        <React.Fragment key={proc?.id || `empty-${slotIdx}`}>
-                          {/* Plan Row */}
-                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                            <td rowSpan={3} style={{ textAlign: 'left', padding: '0.4rem', fontWeight: 650, borderRight: '1px solid var(--border)' }}>
-                              {proc ? `${proc.procedure} (${proc.frequency})` : '-'}
-                            </td>
-                            <td style={{ background: 'rgba(59, 130, 246, 0.05)', fontWeight: 700, color: 'var(--primary)' }}>แผน</td>
-                            {monthsList.map(m => (
-                              m.weeks.map((w, wIdx) => {
-                                if (!proc) return <td key={`${m.monthNum}-${wIdx}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}></td>;
-                                const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
-                                const cell = matrixData[cellKey];
-                                return (
-                                  <td 
-                                    key={`${m.monthNum}-${wIdx}`}
-                                    onClick={() => toggleMatrixCell(proc.id, `${m.monthNum}-w${wIdx + 1}`)}
-                                    style={{ cursor: 'pointer', borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none', background: cell?.isPlanned ? 'rgba(234, 179, 8, 0.15)' : 'transparent', fontWeight: 700 }}
-                                  >
-                                    {cell?.isPlanned ? 'O' : ''}
-                                  </td>
-                                );
-                              })
-                            ))}
-                          </tr>
-                          {/* Execute Row */}
-                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                            <td style={{ background: 'rgba(34, 197, 94, 0.05)', fontWeight: 700, color: 'var(--success)' }}>ผู้ปฏิบัติ</td>
-                            {monthsList.map(m => (
-                              m.weeks.map((w, wIdx) => {
-                                if (!proc) return <td key={`${m.monthNum}-${wIdx}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}></td>;
-                                const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
-                                const cell = matrixData[cellKey];
-                                return (
-                                  <td 
-                                    key={`${m.monthNum}-${wIdx}`}
-                                    onClick={() => toggleMatrixCell(proc.id, `${m.monthNum}-w${wIdx + 1}`)}
-                                    style={{ cursor: 'pointer', borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none', background: cell?.isCompleted ? 'rgba(34, 197, 94, 0.2)' : 'transparent', fontWeight: 800, color: 'var(--success)' }}
-                                  >
-                                    {cell?.isCompleted ? '✓' : ''}
-                                  </td>
-                                );
-                              })
-                            ))}
-                          </tr>
-                          {/* Date Row */}
-                          <tr style={{ borderBottom: '1.5px solid var(--border)' }}>
-                            <td style={{ background: 'var(--bg-secondary)', fontSize: '0.625rem' }}>วันที่ทำ</td>
-                            {monthsList.map(m => (
-                              m.weeks.map((w, wIdx) => {
-                                if (!proc) return <td key={`${m.monthNum}-${wIdx}`} style={{ borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}></td>;
-                                const cellKey = `${proc.id}_${m.monthNum}-w${wIdx + 1}`;
-                                const cell = matrixData[cellKey];
-                                return (
-                                  <td key={`${m.monthNum}-${wIdx}`} style={{ fontSize: '0.55rem', borderLeft: wIdx === 0 ? '1px solid var(--border)' : 'none' }}>
-                                    {cell?.completedDate ? cell.completedDate.slice(0, 5) : ''}
-                                  </td>
-                                );
-                              })
-                            ))}
-                          </tr>
-                        </React.Fragment>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              );
+                );
 
-              return (
-                <div>
-                  {renderInteractiveHalf(BWI_021_003_UPPER_MONTHS, '📅 ครึ่งปีแรก (มกราคม - มิถุนายน)')}
-                  {renderInteractiveHalf(BWI_021_003_LOWER_MONTHS, '📅 ครึ่งปีหลัง (กรกฎาคม - ธันวาคม)')}
-                </div>
-              );
+                if (rawPeriodProcs.length === 0 && printScope === 'single') {
+                  return (
+                    <div key={assetItem.id} style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
+                      <div style={{ fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                        ⚙️ {assetItem.name} (<span style={{ color: 'var(--primary)' }}>{assetItem.id}</span>)
+                      </div>
+                      <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำสัปดาห์/เดือน/ปีสำหรับเครื่องมือนี้ (ข้อกำหนดที่ตั้งไว้เป็นประจำวัน จะแสดงในแถบ BWI 021/002)
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={assetItem.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '1.25rem', background: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border)' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--primary)' }}>
+                        ⚙️ {assetItem.name} (<code style={{ color: 'var(--text-primary)' }}>{assetItem.id}</code>)
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        📍 {assetItem.location || assetItem.department}
+                      </span>
+                    </div>
+
+                    {renderInteractiveHalf(BWI_021_003_UPPER_MONTHS, '📅 ครึ่งปีแรก (มกราคม - มิถุนายน)')}
+                    {renderInteractiveHalf(BWI_021_003_LOWER_MONTHS, '📅 ครึ่งปีหลัง (กรกฎาคม - ธันวาคม)')}
+                  </div>
+                );
+              });
             })()}
           </div>
         </div>
