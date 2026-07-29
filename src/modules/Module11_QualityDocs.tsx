@@ -31,6 +31,175 @@ interface Module11Props {
   currentUser: UserAccount | null;
 }
 
+// Custom Searchable Asset Select Component
+interface SearchableAssetSelectProps {
+  assets: Asset[];
+  selectedAssetId: string;
+  onSelectAsset: (assetId: string) => void;
+  label?: string;
+  placeholder?: string;
+  width?: string;
+}
+
+export const SearchableAssetSelect: React.FC<SearchableAssetSelectProps> = ({
+  assets,
+  selectedAssetId,
+  onSelectAsset,
+  label = "📌 เลือกรายการครุภัณฑ์ / ห้องสะอาด",
+  placeholder = "พิมพ์ค้นหาชื่อเครื่องมือ, รหัสพัสดุ, หรือห้อง...",
+  width = "100%"
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const selectedAsset = useMemo(() => {
+    return assets.find(a => a.id === selectedAssetId) || assets[0];
+  }, [assets, selectedAssetId]);
+
+  const filteredAssets = useMemo(() => {
+    if (!searchTerm.trim()) return assets.slice(0, 100);
+    const q = searchTerm.toLowerCase().trim();
+    return assets.filter(a => 
+      a.name.toLowerCase().includes(q) || 
+      a.id.toLowerCase().includes(q) || 
+      (a.location && a.location.toLowerCase().includes(q))
+    ).slice(0, 100);
+  }, [assets, searchTerm]);
+
+  return (
+    <div className="form-group" style={{ position: 'relative', width }}>
+      {label && <label className="form-label" style={{ marginBottom: '0.35rem', display: 'block' }}>{label}</label>}
+      
+      {/* Trigger Input Box */}
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="form-input"
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          cursor: 'pointer',
+          background: 'var(--bg-secondary)',
+          borderColor: isOpen ? 'var(--primary)' : 'var(--border)',
+          padding: '0.6rem 0.85rem',
+          borderRadius: 'var(--radius-sm)'
+        }}
+      >
+        {selectedAsset ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+            <span style={{ fontWeight: 650, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              {selectedAsset.name}
+            </span>
+            <code style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'rgba(59, 130, 246, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px', flexShrink: 0 }}>
+              {selectedAsset.id}
+            </code>
+            {selectedAsset.location && (
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                📍 {selectedAsset.location}
+              </span>
+            )}
+          </div>
+        ) : (
+          <span style={{ color: 'var(--text-muted)' }}>-- เลือกรายการครุภัณฑ์ --</span>
+        )}
+        <Search size={16} color="var(--primary)" style={{ flexShrink: 0, marginLeft: '0.5rem' }} />
+      </div>
+
+      {/* Dropdown Search Panel */}
+      {isOpen && (
+        <>
+          {/* Overlay backdrop to close dropdown */}
+          <div 
+            onClick={() => setIsOpen(false)}
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10080 }} 
+          />
+
+          <div 
+            className="glass-panel animate-fade-in"
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              zIndex: 10090,
+              marginTop: '0.35rem',
+              padding: '0.6rem',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+              maxHeight: '320px',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            {/* Search Box Input */}
+            <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
+              <Search size={14} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                type="text"
+                className="form-input"
+                placeholder={placeholder}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                autoFocus
+                style={{ paddingLeft: '2rem', fontSize: '0.8rem', padding: '0.45rem 0.5rem 0.45rem 2rem' }}
+              />
+            </div>
+
+            {/* List Options */}
+            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              {filteredAssets.length === 0 ? (
+                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  ไม่พบรายการครุภัณฑ์ที่ค้นหา
+                </div>
+              ) : (
+                filteredAssets.map(a => {
+                  const isSelected = a.id === selectedAssetId;
+                  return (
+                    <div
+                      key={a.id}
+                      onClick={() => {
+                        onSelectAsset(a.id);
+                        setIsOpen(false);
+                      }}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                        background: isSelected ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                        borderLeft: isSelected ? '3px solid var(--primary)' : '3px solid transparent',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '0.8rem',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 650, color: isSelected ? 'var(--primary)' : 'var(--text-primary)' }}>
+                          {a.name}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: '0.1rem' }}>
+                          <span>🆔 {a.id}</span>
+                          {a.location && <span>📍 {a.location}</span>}
+                        </div>
+                      </div>
+                      {isSelected && <CheckCircle size={14} color="var(--primary)" />}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 export const INITIAL_QUALITY_PROCEDURES: QualityProcedure[] = [
   {
     id: "qproc-1",
@@ -467,23 +636,18 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
           
           {/* Asset Selector & Controls */}
           <div className="glass-panel" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>เลือกเครื่องมือ / ห้องสะอาด:</label>
-                <select 
-                  className="form-select"
-                  value={selectedAssetId}
-                  onChange={(e) => setSelectedAssetId(e.target.value)}
-                  style={{ minWidth: '280px', fontSize: '0.85rem' }}
-                >
-                  {assets.filter(a => a.department === deptFilter || deptFilter === 'all').map(a => (
-                    <option key={a.id} value={a.id}>{a.name} ({a.id})</option>
-                  ))}
-                </select>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap', flex: 1, maxWidth: '600px' }}>
+              <div style={{ flex: 1, minWidth: '280px' }}>
+                <SearchableAssetSelect 
+                  assets={assets.filter(a => a.department === deptFilter || deptFilter === 'all')}
+                  selectedAssetId={selectedAssetId}
+                  onSelectAsset={(id) => setSelectedAssetId(id)}
+                  label="🔍 เลือกเครื่องมือ / ห้องสะอาด (ค้นหาได้):"
+                />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>เลือกปี พ.ศ.:</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>เลือกปี พ.ศ.:</label>
                 <select 
                   className="form-select"
                   value={selectedYear}
@@ -604,23 +768,18 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
           
           {/* Asset Selector & Controls */}
           <div className="glass-panel" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>เลือกเครื่องมือ / ห้องสะอาด:</label>
-                <select 
-                  className="form-select"
-                  value={selectedAssetId}
-                  onChange={(e) => setSelectedAssetId(e.target.value)}
-                  style={{ minWidth: '280px', fontSize: '0.85rem' }}
-                >
-                  {assets.filter(a => a.department === deptFilter || deptFilter === 'all').map(a => (
-                    <option key={a.id} value={a.id}>{a.name} ({a.id})</option>
-                  ))}
-                </select>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap', flex: 1, maxWidth: '600px' }}>
+              <div style={{ flex: 1, minWidth: '280px' }}>
+                <SearchableAssetSelect 
+                  assets={assets.filter(a => a.department === deptFilter || deptFilter === 'all')}
+                  selectedAssetId={selectedAssetId}
+                  onSelectAsset={(id) => setSelectedAssetId(id)}
+                  label="🔍 เลือกเครื่องมือ / ห้องสะอาด (ค้นหาได้):"
+                />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>เลือกปี พ.ศ.:</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>เลือกปี พ.ศ.:</label>
                 <select 
                   className="form-select"
                   value={selectedYear}
@@ -764,19 +923,15 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-              <div className="form-group">
-                <label className="form-label">📌 เลือกรายการครุภัณฑ์ / ห้องสะอาด</label>
-                <select 
-                  className="form-select"
-                  value={formAssetId}
-                  onChange={(e) => setFormAssetId(e.target.value)}
-                  required
-                >
-                  {assets.map(a => (
-                    <option key={a.id} value={a.id}>{a.name} ({a.id}) - {a.location}</option>
-                  ))}
-                </select>
-              </div>
+              
+              {/* SEARCHABLE ASSET SELECTOR */}
+              <SearchableAssetSelect 
+                assets={assets}
+                selectedAssetId={formAssetId}
+                onSelectAsset={(id) => setFormAssetId(id)}
+                label="📌 เลือกรายการครุภัณฑ์ / ห้องสะอาด (พิมพ์ค้นหาได้ง่าย):"
+                placeholder="พิมพ์ค้นหาชื่อเครื่องมือ, รหัสพัสดุ (เช่น TERUMO, Plumatex, 0725...), หรือชื่อห้อง..."
+              />
 
               <div className="form-group">
                 <label className="form-label">🛠️ ข้อกำหนด / วิธีบำรุงรักษา</label>
