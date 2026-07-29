@@ -370,6 +370,43 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       await onUpdatePMSchedule(selectedSchedule.id, scheduleUpdates);
 
+      // Auto-recalculate & update next pending schedule for this contract & asset
+      if (pmStatus === 'completed') {
+        const contract = contracts.find(c => c.id === selectedSchedule.contractId);
+        if (contract && contract.pmFrequency !== 'custom') {
+          let intervalMonths = 12;
+          if (contract.pmFrequency === 'monthly') intervalMonths = 1;
+          else if (contract.pmFrequency === 'quarterly') intervalMonths = 3;
+          else if (contract.pmFrequency === 'semi-annually') intervalMonths = 6;
+          else if (contract.pmFrequency === 'annually') intervalMonths = 12;
+
+          const baseDateStr = completedDate || selectedSchedule.plannedDate;
+          const baseDate = new Date(baseDateStr);
+          if (!isNaN(baseDate.getTime())) {
+            baseDate.setMonth(baseDate.getMonth() + intervalMonths);
+            const nextPlannedDate = baseDate.toISOString().split('T')[0];
+
+            // Find existing next pending schedule for this asset & contract
+            const otherPending = schedules
+              .filter(s => s.assetId === selectedSchedule.assetId && s.contractId === selectedSchedule.contractId && s.id !== selectedSchedule.id && s.status === 'pending')
+              .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate))[0];
+
+            if (otherPending) {
+              await onUpdatePMSchedule(otherPending.id, { plannedDate: nextPlannedDate });
+            } else {
+              await onAddPMSchedule({
+                id: `SCHED-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                contractId: selectedSchedule.contractId,
+                assetId: selectedSchedule.assetId,
+                assetName: selectedSchedule.assetName,
+                plannedDate: nextPlannedDate,
+                status: 'pending'
+              });
+            }
+          }
+        }
+      }
+
       // 2. Log in Audit Trails
       await onLogAudit({
         assetId: selectedSchedule.assetId,
@@ -1415,6 +1452,30 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                               .filter(s => s.assetId === asset.id && s.contractId === contract.id && s.status === 'pending')
                               .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate))[0];
 
+                            const planCompletedScheds = schedules
+                              .filter(s => s.assetId === asset.id && s.contractId === contract.id && s.status === 'completed')
+                              .sort((a, b) => (b.completedDate || b.plannedDate).localeCompare(a.completedDate || a.plannedDate));
+                            const latestCompleted = planCompletedScheds[0];
+
+                            let displayNextDate = planPendingSched ? planPendingSched.plannedDate : '';
+                            if (latestCompleted && contract.pmFrequency !== 'custom') {
+                              let intervalMonths = 12;
+                              if (contract.pmFrequency === 'monthly') intervalMonths = 1;
+                              else if (contract.pmFrequency === 'quarterly') intervalMonths = 3;
+                              else if (contract.pmFrequency === 'semi-annually') intervalMonths = 6;
+                              else if (contract.pmFrequency === 'annually') intervalMonths = 12;
+
+                              const lastDateStr = latestCompleted.completedDate || latestCompleted.plannedDate;
+                              const lastDate = new Date(lastDateStr);
+                              if (!isNaN(lastDate.getTime())) {
+                                lastDate.setMonth(lastDate.getMonth() + intervalMonths);
+                                const expectedNext = lastDate.toISOString().split('T')[0];
+                                if (!displayNextDate || displayNextDate > expectedNext) {
+                                  displayNextDate = expectedNext;
+                                }
+                              }
+                            }
+
                             return (
                               <div key={contract.id} style={{ background: 'var(--bg-primary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.775rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                                 {/* Plan Title & Actions Header */}
@@ -1460,9 +1521,9 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--border)', paddingTop: '0.35rem', marginTop: '0.2rem' }}>
                                   <div>
                                     📅 <strong>PM ถัดไป:</strong>{' '}
-                                    {planPendingSched ? (
+                                    {displayNextDate ? (
                                       <span style={{ color: 'var(--primary)', fontWeight: 700 }}>
-                                        {getThaiDateFormatted(planPendingSched.plannedDate)}
+                                        {getThaiDateFormatted(displayNextDate)}
                                       </span>
                                     ) : (
                                       <span style={{ color: 'var(--success)', fontWeight: 650 }}>✅ ครบทุกรอบ</span>
