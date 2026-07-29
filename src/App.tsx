@@ -52,6 +52,7 @@ import { Module7_Settings } from './modules/Module7_Settings';
 import { Module8_Departments } from './modules/Module8_Departments';
 import { Module9_AccessControl } from './modules/Module9_AccessControl';
 import { Module10_Maintenance } from './modules/Module10_Maintenance';
+import { Module11_QualityDocs } from './modules/Module11_QualityDocs';
 
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS, PMContract, PMSchedule, PMNotification } from './utils/mockData';
 import { X, Camera, AlertCircle, Lock, Bell } from 'lucide-react';
@@ -1122,6 +1123,13 @@ function App() {
                 onLogAudit={handleLogAudit}
                 currentUser={currentUser}
                 onRefreshData={fetchAllData}
+              />
+            )}
+            {currentTab === 'module11_quality' && (
+              <Module11_QualityDocs 
+                assets={assets}
+                contracts={contracts}
+                currentUser={currentUser}
               />
             )}
             {currentTab === 'module6' && (
