@@ -485,6 +485,34 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
     });
   }, [procedures, deptFilter, searchQuery]);
 
+  // Grouped Procedures by Machine (Asset)
+  const groupedProcedures = useMemo(() => {
+    const map = new Map<string, {
+      assetId: string;
+      assetName: string;
+      assetCode: string;
+      location: string;
+      department: string;
+      items: QualityProcedure[];
+    }>();
+
+    filteredProcedures.forEach(p => {
+      if (!map.has(p.assetId)) {
+        map.set(p.assetId, {
+          assetId: p.assetId,
+          assetName: p.assetName,
+          assetCode: p.assetCode,
+          location: p.location,
+          department: p.department,
+          items: []
+        });
+      }
+      map.get(p.assetId)!.items.push(p);
+    });
+
+    return Array.from(map.values());
+  }, [filteredProcedures]);
+
   // Selected Asset for Daily/Period Forms
   const selectedAsset = useMemo(() => {
     return assets.find(a => a.id === selectedAssetId) || assets[0];
@@ -594,67 +622,112 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredProcedures.length === 0 ? (
+                {groupedProcedures.length === 0 ? (
                   <tr>
                     <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>
                       ไม่พบข้อมูลกำหนดวิธีบำรุงรักษาเครื่องมือตามเงื่อนไข
                     </td>
                   </tr>
                 ) : (
-                  filteredProcedures.map((proc, idx) => {
-                    const isOutsource = proc.procedure.includes('บริษัท') || proc.responsiblePerson.includes('บริษัท');
-                    return (
-                      <tr key={proc.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isOutsource ? 'rgba(59, 130, 246, 0.03)' : 'transparent' }}>
-                        <td style={{ padding: '0.5rem', textAlign: 'center', fontWeight: 700 }}>{idx + 1}</td>
-                        <td style={{ padding: '0.5rem', fontWeight: 650, color: 'var(--text-primary)' }}>{proc.assetName}</td>
-                        <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: 'var(--primary)' }}>{proc.assetCode}</td>
-                        <td style={{ padding: '0.5rem' }}>📍 {proc.location}</td>
-                        <td style={{ padding: '0.5rem' }}>
-                          <div>{proc.procedure}</div>
-                          {isOutsource && (
-                            <span className="badge badge-primary" style={{ fontSize: '0.65rem', marginTop: '0.2rem' }}>
-                              🧾 สัญญา Outsource (ผูกกับ PM Module 10)
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                          <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
-                            {proc.frequency}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.5rem', fontWeight: 600 }}>{proc.responsiblePerson}</td>
-                        <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                            <button 
-                              onClick={() => {
-                                setEditingProc(proc);
-                                setFormAssetId(proc.assetId);
-                                setFormProcedure(proc.procedure);
-                                setFormFrequency(proc.frequency);
-                                setFormFreqType(proc.frequencyType);
-                                setFormPerson(proc.responsiblePerson);
-                                setFormContractId(proc.linkedContractId || '');
-                                setIsProcModalOpen(true);
-                              }}
-                              className="btn btn-ghost btn-xs" 
-                              style={{ padding: '0.15rem 0.35rem', border: '1px solid var(--border)' }}
-                              title="แก้ไขวิธีบำรุงรักษา"
-                            >
-                              ✏️
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteProcedure(proc.id)}
-                              className="btn btn-ghost btn-xs text-danger" 
-                              style={{ padding: '0.15rem 0.35rem', border: '1px solid var(--border)' }}
-                              title="ลบ"
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                  groupedProcedures.map((group, groupIdx) => (
+                    <React.Fragment key={group.assetId}>
+                      {group.items.map((proc, procIdx) => {
+                        const isOutsource = proc.procedure.includes('บริษัท') || proc.responsiblePerson.includes('บริษัท');
+                        const isLastInGroup = procIdx === group.items.length - 1;
+                        
+                        return (
+                          <tr 
+                            key={proc.id} 
+                            style={{ 
+                              borderBottom: isLastInGroup ? '1.5px solid var(--border)' : '1px solid rgba(255,255,255,0.03)', 
+                              background: isOutsource ? 'rgba(59, 130, 246, 0.03)' : 'transparent' 
+                            }}
+                          >
+                            {/* Render Machine Info Columns ONLY for the first row of the group */}
+                            {procIdx === 0 && (
+                              <>
+                                <td rowSpan={group.items.length} style={{ padding: '0.6rem 0.5rem', textAlign: 'center', fontWeight: 700, borderRight: '1px solid var(--border)', verticalAlign: 'middle', background: 'rgba(255,255,255,0.01)' }}>
+                                  {groupIdx + 1}
+                                </td>
+                                <td rowSpan={group.items.length} style={{ padding: '0.6rem 0.5rem', fontWeight: 650, color: 'var(--text-primary)', borderRight: '1px solid var(--border)', verticalAlign: 'middle', background: 'rgba(255,255,255,0.01)' }}>
+                                  <div>{group.assetName}</div>
+                                  <div style={{ marginTop: '0.35rem' }}>
+                                    <button 
+                                      onClick={() => {
+                                        setEditingProc(null);
+                                        setFormAssetId(group.assetId);
+                                        setFormProcedure('');
+                                        setFormFrequency('');
+                                        setFormFreqType('daily');
+                                        setFormPerson('');
+                                        setFormContractId('');
+                                        setIsProcModalOpen(true);
+                                      }}
+                                      className="btn btn-secondary btn-sm"
+                                      style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', border: '1px dashed var(--primary)', color: 'var(--primary)' }}
+                                    >
+                                      + เพิ่มวิธีบำรุงรักษาเครื่องนี้
+                                    </button>
+                                  </div>
+                                </td>
+                                <td rowSpan={group.items.length} style={{ padding: '0.6rem 0.5rem', fontFamily: 'monospace', color: 'var(--primary)', borderRight: '1px solid var(--border)', verticalAlign: 'middle', background: 'rgba(255,255,255,0.01)' }}>
+                                  {group.assetCode}
+                                </td>
+                                <td rowSpan={group.items.length} style={{ padding: '0.6rem 0.5rem', borderRight: '1px solid var(--border)', verticalAlign: 'middle', background: 'rgba(255,255,255,0.01)' }}>
+                                  📍 {group.location}
+                                </td>
+                              </>
+                            )}
+
+                            {/* Procedure Details Columns */}
+                            <td style={{ padding: '0.55rem' }}>
+                              <div>{proc.procedure}</div>
+                              {isOutsource && (
+                                <span className="badge badge-primary" style={{ fontSize: '0.65rem', marginTop: '0.2rem' }}>
+                                  🧾 สัญญา Outsource (ผูกกับ PM Module 10)
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '0.55rem', textAlign: 'center' }}>
+                              <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
+                                {proc.frequency}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.55rem', fontWeight: 600 }}>{proc.responsiblePerson}</td>
+                            <td style={{ padding: '0.55rem', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                                <button 
+                                  onClick={() => {
+                                    setEditingProc(proc);
+                                    setFormAssetId(proc.assetId);
+                                    setFormProcedure(proc.procedure);
+                                    setFormFrequency(proc.frequency);
+                                    setFormFreqType(proc.frequencyType);
+                                    setFormPerson(proc.responsiblePerson);
+                                    setFormContractId(proc.linkedContractId || '');
+                                    setIsProcModalOpen(true);
+                                  }}
+                                  className="btn btn-ghost btn-xs" 
+                                  style={{ padding: '0.15rem 0.35rem', border: '1px solid var(--border)' }}
+                                  title="แก้ไขวิธีบำรุงรักษา"
+                                >
+                                  ✏️
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteProcedure(proc.id)}
+                                  className="btn btn-ghost btn-xs text-danger" 
+                                  style={{ padding: '0.15rem 0.35rem', border: '1px solid var(--border)' }}
+                                  title="ลบ"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))
                 )}
               </tbody>
             </table>
@@ -1119,16 +1192,32 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredProcedures.map((proc, idx) => (
-                  <tr key={proc.id}>
-                    <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{idx + 1}</td>
-                    <td style={{ border: '1px solid #000', padding: '5px' }}>{proc.assetName}</td>
-                    <td style={{ border: '1px solid #000', padding: '5px', fontFamily: 'monospace' }}>{proc.assetCode}</td>
-                    <td style={{ border: '1px solid #000', padding: '5px' }}>{proc.location}</td>
-                    <td style={{ border: '1px solid #000', padding: '5px' }}>- {proc.procedure}</td>
-                    <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{proc.frequency}</td>
-                    <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{proc.responsiblePerson}</td>
-                  </tr>
+                {groupedProcedures.map((group, groupIdx) => (
+                  <React.Fragment key={group.assetId}>
+                    {group.items.map((proc, procIdx) => (
+                      <tr key={proc.id}>
+                        {procIdx === 0 && (
+                          <>
+                            <td rowSpan={group.items.length} style={{ border: '1px solid #000', padding: '5px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 'bold' }}>
+                              {groupIdx + 1}
+                            </td>
+                            <td rowSpan={group.items.length} style={{ border: '1px solid #000', padding: '5px', verticalAlign: 'middle', fontWeight: 'bold' }}>
+                              {group.assetName}
+                            </td>
+                            <td rowSpan={group.items.length} style={{ border: '1px solid #000', padding: '5px', fontFamily: 'monospace', verticalAlign: 'middle' }}>
+                              {group.assetCode}
+                            </td>
+                            <td rowSpan={group.items.length} style={{ border: '1px solid #000', padding: '5px', verticalAlign: 'middle' }}>
+                              {group.location}
+                            </td>
+                          </>
+                        )}
+                        <td style={{ border: '1px solid #000', padding: '5px' }}>- {proc.procedure}</td>
+                        <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{proc.frequency}</td>
+                        <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{proc.responsiblePerson}</td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
