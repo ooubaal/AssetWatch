@@ -634,6 +634,50 @@ export const updateSurveyRound = async (id: string, updates: Partial<SurveyRound
 };
 
 // --- DEPARTMENT & LOCATION CONFIG SERVICES ---
+// Helper to ensure 'ฝ่ายผลิตถุงบรรจุโลหิต' exists with all 85 rooms in PDF
+const syncBloodBagDepartment = async (depts: DepartmentLocationConfig[], isFirebase: boolean, db: any): Promise<DepartmentLocationConfig[]> => {
+  const targetName = "ฝ่ายผลิตถุงบรรจุโลหิต";
+  const defaultBloodBagDept = INITIAL_DEPARTMENTS.find(d => d.name === targetName);
+  if (!defaultBloodBagDept) return depts;
+
+  let existingIdx = depts.findIndex(d => d.name === targetName);
+  let changed = false;
+
+  if (existingIdx === -1) {
+    depts.push(defaultBloodBagDept);
+    changed = true;
+    if (isFirebase && db) {
+      try {
+        await setDoc(doc(db, 'departments', defaultBloodBagDept.id), defaultBloodBagDept);
+      } catch (e) {
+        console.error('Failed to sync new Blood Bag Dept to Firestore:', e);
+      }
+    }
+  } else {
+    // Check if any rooms from default 85 rooms are missing
+    const currentRoomsSet = new Set(depts[existingIdx].locations);
+    const missingRooms = defaultBloodBagDept.locations.filter(r => !currentRoomsSet.has(r));
+    if (missingRooms.length > 0) {
+      const mergedLocations = Array.from(new Set([...depts[existingIdx].locations, ...defaultBloodBagDept.locations]));
+      depts[existingIdx].locations = mergedLocations;
+      changed = true;
+      if (isFirebase && db) {
+        try {
+          await updateDoc(doc(db, 'departments', depts[existingIdx].id), { locations: mergedLocations });
+        } catch (e) {
+          console.error('Failed to update Blood Bag Dept locations in Firestore:', e);
+        }
+      }
+    }
+  }
+
+  if (changed) {
+    localStorage.setItem('assetwatch_departments', JSON.stringify(depts));
+  }
+
+  return depts;
+};
+
 export const getDepartments = async (): Promise<DepartmentLocationConfig[]> => {
   const { isFirebase, db } = getServices();
   
@@ -654,10 +698,12 @@ export const getDepartments = async (): Promise<DepartmentLocationConfig[]> => {
         for (const dept of seedDepts) {
           await setDoc(doc(db, 'departments', dept.id), dept);
         }
-        return seedDepts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+        const syncedSeed = await syncBloodBagDepartment(seedDepts, isFirebase, db);
+        return syncedSeed.sort((a, b) => a.name.localeCompare(b.name, 'th'));
       }
 
-      return list;
+      const syncedList = await syncBloodBagDepartment(list, isFirebase, db);
+      return syncedList.sort((a, b) => a.name.localeCompare(b.name, 'th'));
     } catch (e) {
       console.error('Firebase getDepartments failed, falling back to localStorage:', e);
     }
@@ -666,7 +712,8 @@ export const getDepartments = async (): Promise<DepartmentLocationConfig[]> => {
   // LocalStorage Fallback
   initLocalStorageIfNeeded();
   const depts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
-  return depts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+  const syncedLocal = await syncBloodBagDepartment(depts, false, null);
+  return syncedLocal.sort((a, b) => a.name.localeCompare(b.name, 'th'));
 };
 
 export const addDepartment = async (dept: DepartmentLocationConfig): Promise<void> => {
