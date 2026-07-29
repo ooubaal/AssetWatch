@@ -53,7 +53,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
   // Report states
   const [selectedReportDept, setSelectedReportDept] = useState(() => {
-    return currentUser?.role === 'user' ? currentUser.department : 'all';
+    return (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') ? currentUser.department : 'all';
   });
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -65,7 +65,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
   // Sync operator user's department restriction
   useEffect(() => {
-    if (currentUser?.role === 'user') {
+    if (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') {
       setSelectedReportDept(currentUser.department);
     }
   }, [currentUser]);
@@ -488,7 +488,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
   // Prefill department and location from system configuration if available
   useEffect(() => {
-    if (currentUser?.role === 'user') {
+    if (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') {
       setIsCustomInput(false);
       setDepartment(currentUser.department);
       
@@ -814,7 +814,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
           {/* Row 4: Location, Dept, Responsible */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', marginTop: '0.25rem' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--text-muted)' }}>📍 ฝ่ายจัดวางพัสดุและห้องติดตั้ง</span>
-            {currentUser?.role !== 'user' && (
+            {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
               <button 
                 type="button" 
                 className="btn btn-ghost btn-xs"
@@ -873,7 +873,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
                     className="form-select"
                     value={department}
                     onChange={handleDepartmentSelectChange}
-                    disabled={currentUser?.role === 'user'}
+                    disabled={currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user'}
                     required
                   >
                     {departments.length === 0 ? (
@@ -1307,9 +1307,9 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
                 className="form-select"
                 value={selectedReportDept}
                 onChange={(e) => setSelectedReportDept(e.target.value)}
-                disabled={currentUser?.role === 'user'}
+                disabled={currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user'}
               >
-                {currentUser?.role !== 'user' && <option value="all">ทุกหน่วยงาน</option>}
+                {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && <option value="all">ทุกหน่วยงาน</option>}
                 {currentUser?.role === 'user' ? (
                   <option value={currentUser.department}>{currentUser.department}</option>
                 ) : (

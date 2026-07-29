@@ -695,7 +695,7 @@ function App() {
                   <option value="">-- เลือกชื่อผู้ใช้งาน (Select User) --</option>
                   {users.map(u => (
                     <option key={u.id} value={u.username}>
-                      {u.name} ({u.username}) — {u.role === 'admin' ? '👑 แอดมินสูงสุด' : `💼 ${u.department}`} {u.isBlocked ? '🚫 [ถูกระงับสิทธิ์]' : ''}
+                      {u.name} ({u.username}) — {u.role === 'admin' ? '👑 แอดมินสูงสุด' : u.role === 'manager' ? '💼 ผู้บริหาร' : u.role === 'head' ? `👔 หัวหน้า (${u.department})` : `🔧 ปฏิบัติงาน (${u.department})`} {u.isBlocked ? '🚫 [ถูกระงับสิทธิ์]' : ''}
                     </option>
                   ))}
                 </select>

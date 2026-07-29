@@ -12,6 +12,7 @@ export interface Asset {
   responsiblePerson: string;
   note: string;
   status: 'ใช้งานได้' | 'รอจำหน่าย' | 'ชำรุด' | 'ขอป้ายรหัสใหม่' | 'รอโอน' | 'อื่นๆ';
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -306,13 +307,15 @@ export const INITIAL_DEPARTMENTS: DepartmentLocationConfig[] = [
   }
 ];
 
+export type UserRole = 'admin' | 'manager' | 'head' | 'operator' | 'user';
+
 export interface UserAccount {
   id: string;
   username: string;
   password?: string;
   name: string;
-  role: 'admin' | 'manager' | 'user';
-  department: string; // empty string for admin, or specific department name for user
+  role: UserRole;
+  department: string; // empty string for admin/manager, or specific department name for head/operator
   isBlocked: boolean;
   createdAt: string;
 }
@@ -322,7 +325,7 @@ export const INITIAL_USERS: UserAccount[] = [
     id: "user-admin",
     username: "admin",
     password: "admin",
-    name: "แอดมินสูงสุด",
+    name: "แอดมินสูงสุด (System Admin)",
     role: "admin",
     department: "",
     isBlocked: false,
@@ -332,39 +335,59 @@ export const INITIAL_USERS: UserAccount[] = [
     id: "user-manager",
     username: "manager",
     password: "123",
-    name: "ผู้จัดการกองพัสดุ (Manager)",
+    name: "ผู้อำนวยการศูนย์ฯ (Manager Executive)",
     role: "manager",
     department: "",
     isBlocked: false,
     createdAt: "2026-02-01T00:00:00.000Z"
   },
   {
-    id: "user-it",
-    username: "it_user",
+    id: "user-head-blood",
+    username: "head_blood",
     password: "123",
-    name: "เจ้าหน้าที่ไอที",
-    role: "user",
-    department: "ฝ่ายเทคโนโลยีสารสนเทศ",
+    name: "หัวหน้าฝ่ายผลิตผลิตภัณฑ์เลือด (Head)",
+    role: "head",
+    department: "ฝ่ายผลิตผลิตภัณฑ์เลือด",
+    isBlocked: false,
+    createdAt: "2026-02-10T00:00:00.000Z"
+  },
+  {
+    id: "user-op-blood",
+    username: "op_blood",
+    password: "123",
+    name: "เจ้าหน้าที่ปฏิบัติงานฝ่ายผลิตเลือด (Operator)",
+    role: "operator",
+    department: "ฝ่ายผลิตผลิตภัณฑ์เลือด",
     isBlocked: false,
     createdAt: "2026-02-15T00:00:00.000Z"
   },
   {
-    id: "user-general",
-    username: "admin_general",
+    id: "user-head-qa",
+    username: "head_qa",
     password: "123",
-    name: "เจ้าหน้าที่บริหารทั่วไป",
-    role: "user",
-    department: "ฝ่ายบริหารทั่วไป",
+    name: "หัวหน้าฝ่ายประกันคุณภาพ (Head QA)",
+    role: "head",
+    department: "ฝ่ายตรวจตราและประกันคุณภาพ",
     isBlocked: false,
     createdAt: "2026-03-01T00:00:00.000Z"
+  },
+  {
+    id: "user-op-qa",
+    username: "op_qa",
+    password: "123",
+    name: "เจ้าหน้าที่ฝ่ายประกันคุณภาพ (Operator QA)",
+    role: "operator",
+    department: "ฝ่ายตรวจตราและประกันคุณภาพ",
+    isBlocked: false,
+    createdAt: "2026-03-05T00:00:00.000Z"
   },
   {
     id: "user-blocked",
     username: "blocked",
     password: "123",
     name: "ผู้ใช้ที่ถูกระงับสิทธิ์",
-    role: "user",
-    department: "ฝ่ายธุรการและสารบรรณ",
+    role: "operator",
+    department: "ฝ่ายบริหารทั่วไป",
     isBlocked: true,
     createdAt: "2026-04-10T00:00:00.000Z"
   }

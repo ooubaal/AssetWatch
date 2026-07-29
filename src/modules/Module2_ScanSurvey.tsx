@@ -681,7 +681,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                         <Printer size={15} /> 🖨️ ออกรายงานรอบปัจจุบัน
                       </button>
 
-                      {currentUser?.role !== 'manager' && !showCloseConfirm && (
+                      {(currentUser?.role === 'admin' || currentUser?.role === 'manager' || currentUser?.role === 'head') && !showCloseConfirm && (
                         <button 
                           type="button" 
                           className="btn btn-danger"
@@ -691,14 +691,14 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                           }}
                           style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
                         >
-                          <Lock size={15} /> 🔒 ปิดรอบการสำรวจและบันทึกประวัติ
+                          <Lock size={15} /> {currentUser?.role === 'head' ? `🔒 ปิดรอบการสำรวจประจำฝ่าย (${currentUser.department})` : '🔒 ปิดรอบการสำรวจและบันทึกประวัติ (องค์กร)'}
                         </button>
                       )}
                     </div>
 
-                    {currentUser?.role === 'manager' && (
+                    {(currentUser?.role === 'operator' || currentUser?.role === 'user') && (
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem' }}>
-                        <Lock size={14} /> บัญชีผู้จัดการ (Manager) — ไม่มีสิทธิ์ปิดรอบสำรวจพัสดุ
+                        <Lock size={14} /> บัญชีผู้ปฏิบัติงาน (Operator) — สแกนตรวจนับได้ แต่ไม่มีสิทธิ์ปิดรอบสำรวจพัสดุ (เฉพาะ Head/Manager/Admin)
                       </div>
                     )}
 

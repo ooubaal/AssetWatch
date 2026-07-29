@@ -30,7 +30,7 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'admin' | 'manager' | 'user'>('user');
+  const [role, setRole] = useState<'admin' | 'manager' | 'head' | 'operator' | 'user'>('operator');
   const [department, setDepartment] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +40,8 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
   const totalCount = users.length;
   const adminCount = users.filter(u => u.role === 'admin').length;
   const managerCount = users.filter(u => u.role === 'manager').length;
-  const userCount = users.filter(u => u.role === 'user').length;
+  const headCount = users.filter(u => u.role === 'head').length;
+  const userCount = users.filter(u => u.role === 'operator' || u.role === 'user').length;
   const blockedCount = users.filter(u => u.isBlocked).length;
 
   const filteredUsers = users.filter(u => {
@@ -451,27 +452,28 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">🛡️ ระดับสิทธิ์ควบคุม</label>
+                <label className="form-label">🛡️ ระดับสิทธิ์ควบคุม (Role)</label>
                 <select 
                   className="form-select"
                   value={role}
-                  onChange={(e) => setRole(e.target.value as 'admin' | 'manager' | 'user')}
+                  onChange={(e) => setRole(e.target.value as any)}
                   required
                 >
-                  <option value="user">เจ้าหน้าที่ปฏิบัติการฝ่ายพัสดุ (Operator)</option>
-                  <option value="manager">ผู้จัดการ/ผู้ดูรายงานภาพรวม (Manager - ดูอย่างเดียว)</option>
-                  <option value="admin">ผู้ดูแลระบบสูงสุด (Admin)</option>
+                  <option value="operator">🔧 4. Operator (เจ้าหน้าที่ปฏิบัติงาน — ลงรายการ/สแกนเฉพาะของตนเอง)</option>
+                  <option value="head">👔 3. Head (หัวหน้าฝ่าย/งาน — สิทธิ์เต็มในฝ่าย & จัดการคนในฝ่าย & ปิดรอบฝ่าย)</option>
+                  <option value="manager">💼 2. Manager (ผู้บริหาร/ผู้อำนวยการ — ดูได้ทุกฝ่าย & อนุมัติระดับองค์กร)</option>
+                  <option value="admin">👑 1. Admin (แอดมินสูงสุด — สิทธิ์เต็มทุกอย่างทั้งองค์กร)</option>
                 </select>
               </div>
 
-              {role === 'user' && (
+              {(role === 'head' || role === 'operator' || role === 'user') && (
                 <div className="form-group animate-fade-in">
-                  <label className="form-label">🏢 ฝ่าย/หน่วยงานพัสดุที่สังกัด (เพื่อใช้ควบคุมการดูแลทรัพย์สิน)</label>
+                  <label className="form-label">🏢 ฝ่าย/หน่วยงานที่สังกัด (เพื่อใช้ควบคุมขอบเขตข้อมูล)</label>
                   <select 
                     className="form-select"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    required={role === 'user'}
+                    required
                   >
                     {departments.map(dept => (
                       <option key={dept.id} value={dept.name}>{dept.name}</option>

@@ -132,7 +132,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
                 : currentUser.role === 'manager'
                   ? 'linear-gradient(135deg, #8b5cf6, #ec4899)'
-                  : 'linear-gradient(135deg, #3b82f6, #06b6d4)'
+                  : currentUser.role === 'head'
+                    ? 'linear-gradient(135deg, #f59e0b, #ef4444)'
+                    : 'linear-gradient(135deg, #3b82f6, #06b6d4)'
             }}>
               {currentUser.name.slice(0, 2).toUpperCase()}
             </div>
@@ -140,13 +142,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="profile-name">{currentUser.name}</span>
               <div className="profile-badges">
                 <span className={`profile-role-badge ${
-                  currentUser.role === 'admin' ? 'badge-admin' : currentUser.role === 'manager' ? 'badge-manager' : 'badge-user'
+                  currentUser.role === 'admin' ? 'badge-admin' : currentUser.role === 'manager' ? 'badge-manager' : currentUser.role === 'head' ? 'badge-warning' : 'badge-user'
                 }`}>
-                  {currentUser.role === 'admin' ? 'แอดมิน' : currentUser.role === 'manager' ? 'ผู้จัดการ' : 'เจ้าหน้าที่'}
+                  {currentUser.role === 'admin' ? '👑 แอดมินสูงสุด' : currentUser.role === 'manager' ? '💼 ผู้บริหาร' : currentUser.role === 'head' ? '👔 หัวหน้าฝ่าย' : '🔧 ผู้ปฏิบัติงาน'}
                 </span>
-                {currentUser.role === 'user' && currentUser.department && (
+                {currentUser.department && (
                   <span className="profile-dept-badge" title={currentUser.department}>
-                    {currentUser.department.replace('ฝ่าย', '').replace('กลุ่มงาน', '').slice(0, 8)}..
+                    {currentUser.department.replace('ฝ่าย', '').replace('กลุ่มงาน', '').slice(0, 10)}
                   </span>
                 )}
               </div>

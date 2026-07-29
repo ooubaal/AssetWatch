@@ -55,7 +55,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   // Search & Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDeptFilter, setSelectedDeptFilter] = useState(() => {
-    return currentUser?.role === 'user' ? currentUser.department : 'all';
+    return (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') ? currentUser.department : 'all';
   });
 
   // Modal Dialog states
@@ -102,7 +102,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const filteredModalAssets = useMemo(() => {
     return assets.filter(a => {
       if (a.status === 'รอจำหน่าย') return false;
-      if (currentUser?.role === 'user' && a.department !== currentUser.department) return false;
+      if ((currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') && a.department !== currentUser.department) return false;
       if (!modalAssetSearch.trim()) return true;
       const term = modalAssetSearch.toLowerCase().trim();
       return (

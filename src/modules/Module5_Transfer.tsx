@@ -38,7 +38,7 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
 
   // Report States
   const [selectedReportDept, setSelectedReportDept] = useState(() => {
-    return currentUser?.role === 'user' ? currentUser.department : 'all';
+    return (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') ? currentUser.department : 'all';
   });
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -50,7 +50,7 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
 
   // Sync operator user's department restriction
   useEffect(() => {
-    if (currentUser?.role === 'user') {
+    if (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') {
       setSelectedReportDept(currentUser.department);
     }
   }, [currentUser]);
@@ -58,7 +58,7 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
   // Search active assets (only active/usable ones can be transferred)
   const transferrableAssets = assets.filter(a => {
     const isTransferrable = a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
-    if (currentUser?.role === 'user') {
+    if (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') {
       return isTransferrable && a.department === currentUser.department;
     }
     return isTransferrable;
@@ -490,9 +490,9 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
                 className="form-select"
                 value={selectedReportDept}
                 onChange={(e) => setSelectedReportDept(e.target.value)}
-                disabled={currentUser?.role === 'user'}
+                disabled={currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user'}
               >
-                {currentUser?.role !== 'user' && <option value="all">ทุกหน่วยงาน</option>}
+                {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && <option value="all">ทุกหน่วยงาน</option>}
                 {currentUser?.role === 'user' ? (
                   <option value={currentUser.department}>{currentUser.department}</option>
                 ) : (

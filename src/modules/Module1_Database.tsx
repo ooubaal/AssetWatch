@@ -57,8 +57,20 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   const isAllowedToEdit = (asset: Asset) => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
-    if (currentUser.role === 'manager') return false;
-    return asset.department === currentUser.department;
+    if (currentUser.role === 'manager') return false; // Manager is Read-Only Executive
+    if (currentUser.role === 'head') return asset.department === currentUser.department; // Head can edit all in department
+    // Operator can edit items in department created by themselves
+    return asset.department === currentUser.department && (asset.createdBy === currentUser.id || asset.createdBy === currentUser.username || !asset.createdBy);
+  };
+
+  const isAllowedToDelete = (asset: Asset) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true;
+    if (currentUser.role === 'head') return asset.department === currentUser.department;
+    if (currentUser.role === 'operator' || currentUser.role === 'user') {
+      return asset.department === currentUser.department && (asset.createdBy === currentUser.id || asset.createdBy === currentUser.username);
+    }
+    return false;
   };
 
   return (

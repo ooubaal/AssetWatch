@@ -33,7 +33,7 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
 
   // Report Form States
   const [selectedReportDept, setSelectedReportDept] = useState(() => {
-    return currentUser?.role === 'user' ? currentUser.department : 'all';
+    return (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') ? currentUser.department : 'all';
   });
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -45,7 +45,7 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
 
   // Sync operator user's department restriction
   useEffect(() => {
-    if (currentUser?.role === 'user') {
+    if (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') {
       setSelectedReportDept(currentUser.department);
     }
   }, [currentUser]);
@@ -53,7 +53,7 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
   // Search assets (only display assets that are NOT already disposed)
   const activeAssets = assets.filter(a => {
     const isNotDisposed = a.status !== 'รอจำหน่าย' && a.status !== 'อื่นๆ';
-    if (currentUser?.role === 'user') {
+    if (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') {
       return isNotDisposed && a.department === currentUser.department;
     }
     return isNotDisposed;
@@ -346,9 +346,9 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
                 className="form-select"
                 value={selectedReportDept}
                 onChange={(e) => setSelectedReportDept(e.target.value)}
-                disabled={currentUser?.role === 'user'}
+                disabled={currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user'}
               >
-                {currentUser?.role !== 'user' && <option value="all">ทุกหน่วยงาน</option>}
+                {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && <option value="all">ทุกหน่วยงาน</option>}
                 {currentUser?.role === 'user' ? (
                   <option value={currentUser.department}>{currentUser.department}</option>
                 ) : (
