@@ -216,7 +216,7 @@ export const INITIAL_DEPARTMENTS: DepartmentLocationConfig[] = [
   },
   {
     id: "dept-4",
-    name: "ฝ่ายผลิตถุงบรรจุโลหิต",
+    name: "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     locations: [
       "BR 00 Cleanroom",
       "BR 1 Air lock 1",

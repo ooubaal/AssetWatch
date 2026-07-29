@@ -689,7 +689,44 @@ export const updateSurveyRound = async (id: string, updates: Partial<SurveyRound
 // --- DEPARTMENT & LOCATION CONFIG SERVICES ---
 // Helper to ensure 'ฝ่ายผลิตถุงบรรจุโลหิต' exists with all 85 rooms in PDF
 const syncBloodBagDepartment = async (depts: DepartmentLocationConfig[], isFirebase: boolean, db: any): Promise<DepartmentLocationConfig[]> => {
-  const targetName = "ฝ่ายผลิตถุงบรรจุโลหิต";
+  // Auto-migration: Merge duplicate department "ฝ่ายผลิตถุงบรรจุโลหิต" into "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา"
+  const oldDeptIdx = depts.findIndex(d => d.name === "ฝ่ายผลิตถุงบรรจุโลหิต");
+  if (oldDeptIdx !== -1) {
+    const oldDept = depts[oldDeptIdx];
+    const newDeptIdx = depts.findIndex(d => d.name === "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา");
+    if (newDeptIdx !== -1) {
+      depts[newDeptIdx].locations = Array.from(new Set([...depts[newDeptIdx].locations, ...oldDept.locations]));
+      depts.splice(oldDeptIdx, 1);
+    } else {
+      depts[oldDeptIdx].name = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา";
+    }
+    localStorage.setItem('assetwatch_departments', JSON.stringify(depts));
+
+    // Also migrate assets in localStorage
+    try {
+      const storedAssets = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+      let assetChanged = false;
+      storedAssets.forEach((a: any) => {
+        if (a.department === "ฝ่ายผลิตถุงบรรจุโลหิต") { a.department = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา"; assetChanged = true; }
+        if (a.responsiblePerson === "ฝ่ายผลิตถุงบรรจุโลหิต") { a.responsiblePerson = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา"; assetChanged = true; }
+      });
+      if (assetChanged) {
+        localStorage.setItem('assetwatch_assets', JSON.stringify(storedAssets));
+      }
+
+      const storedUsers = JSON.parse(localStorage.getItem('assetwatch_users') || '[]');
+      let userChanged = false;
+      storedUsers.forEach((u: any) => {
+        if (u.department === "ฝ่ายผลิตถุงบรรจุโลหิต") { u.department = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา"; userChanged = true; }
+      });
+      if (userChanged) {
+        localStorage.setItem('assetwatch_users', JSON.stringify(storedUsers));
+      }
+    } catch (e) {
+      console.error('Error migrating local storage for department merge:', e);
+    }
+  }
+  const targetName = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา";
   const defaultBloodBagDept = INITIAL_DEPARTMENTS.find(d => d.name === targetName);
   if (!defaultBloodBagDept) return depts;
 
