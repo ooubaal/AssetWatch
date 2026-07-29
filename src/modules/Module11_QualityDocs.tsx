@@ -691,18 +691,18 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             </h4>
 
             {(() => {
-              const allAssetProcs = procedures.filter(p => p.assetId === selectedAssetId);
-              let dailyProcs = allAssetProcs.filter(p => {
+              const dailyProcs = procedures.filter(p => {
+                if (p.assetId !== selectedAssetId) return false;
+                if (p.frequencyType === 'period') return false; // Strictly exclude period items
+                if (p.frequencyType === 'daily') return true;
                 const f = (p.frequency || '').toLowerCase();
-                return p.frequencyType === 'daily' || f.includes('วัน') || f.includes('ใช้');
+                return f.includes('วัน') || f.includes('ใช้');
               });
-              if (dailyProcs.length === 0 && allAssetProcs.length > 0) {
-                dailyProcs = allAssetProcs;
-              }
+
               if (dailyProcs.length === 0) {
                 return (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาสำหรับเครื่องมือนี้ (สามารถเพิ่มได้ในแถบ BWI 021/001)
+                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำวันสำหรับเครื่องมือนี้ (ข้อกำหนดที่ตั้งไว้เป็นประจำสัปดาห์/เดือน/ปี จะแสดงในแถบ BWI 021/003)
                   </div>
                 );
               }
@@ -822,18 +822,18 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             </h4>
 
             {(() => {
-              const allAssetProcs = procedures.filter(p => p.assetId === selectedAssetId);
-              let periodProcs = allAssetProcs.filter(p => {
+              const periodProcs = procedures.filter(p => {
+                if (p.assetId !== selectedAssetId) return false;
+                if (p.frequencyType === 'daily') return false; // Strictly exclude daily items
+                if (p.frequencyType === 'period') return true;
                 const f = (p.frequency || '').toLowerCase();
-                return p.frequencyType === 'period' || f.includes('สัปดาห์') || f.includes('เดือน') || f.includes('ปี');
+                return f.includes('สัปดาห์') || f.includes('เดือน') || f.includes('ปี');
               });
-              if (periodProcs.length === 0 && allAssetProcs.length > 0) {
-                periodProcs = allAssetProcs;
-              }
+
               if (periodProcs.length === 0) {
                 return (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำสัปดาห์/เดือน/ปี สำหรับเครื่องมือนี้ (สามารถเพิ่มได้ในแถบ BWI 021/001)
+                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำสัปดาห์/เดือน/ปีสำหรับเครื่องมือนี้ (ข้อกำหนดที่ตั้งไว้เป็นประจำวัน จะแสดงในแถบ BWI 021/002)
                   </div>
                 );
               }
@@ -974,7 +974,16 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
                     className="form-input"
                     placeholder="เช่น วันที่ใช้งาน, 1 สัปดาห์, 3 เดือน, 1 ปี"
                     value={formFrequency}
-                    onChange={(e) => setFormFrequency(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormFrequency(val);
+                      const lower = val.toLowerCase();
+                      if (lower.includes('สัปดาห์') || lower.includes('เดือน') || lower.includes('ปี')) {
+                        setFormFreqType('period');
+                      } else if (lower.includes('วัน') || lower.includes('ใช้')) {
+                        setFormFreqType('daily');
+                      }
+                    }}
                     required
                   />
                 </div>
