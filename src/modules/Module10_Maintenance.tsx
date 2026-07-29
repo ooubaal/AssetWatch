@@ -854,6 +854,18 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     }
   };
 
+  const handleDeleteSchedule = async (schedId: string) => {
+    if (!window.confirm('คุณต้องการลบรายการบันทึกผลการบำรุงรักษานี้ใช่หรือไม่? (เมื่อลบแล้วรายการจะถูกลบออกจากระบบ)')) return;
+    try {
+      await onDeletePMSchedule(schedId);
+      alert('ลบรายการบันทึกเรียบร้อยแล้ว');
+      await onRefreshData();
+    } catch (e) {
+      console.error(e);
+      alert('เกิดข้อผิดพลาดในการลบรายการบันทึก');
+    }
+  };
+
   // Date formatted helper
   const getThaiDateFormatted = (dateStr: string) => {
     const testDate = new Date(dateStr);
@@ -1457,15 +1469,73 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                                     )}
                                   </div>
                                   {planPendingSched && (
-                                    <button 
-                                      onClick={() => handleOpenPMForm(planPendingSched)}
-                                      className="btn btn-success btn-xs"
-                                      style={{ padding: '0.15rem 0.45rem', fontSize: '0.675rem' }}
-                                    >
-                                      🔧 บันทึก PM
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                      <button 
+                                        onClick={() => handleOpenReschedule(planPendingSched)}
+                                        className="btn btn-ghost btn-xs"
+                                        style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                        title="เลื่อนวันนัด PM"
+                                      >
+                                        📅 เลื่อนวัน
+                                      </button>
+                                      <button 
+                                        onClick={() => handleOpenPMForm(planPendingSched)}
+                                        className="btn btn-success btn-xs"
+                                        style={{ padding: '0.15rem 0.45rem', fontSize: '0.675rem' }}
+                                      >
+                                        🔧 บันทึก PM
+                                      </button>
+                                    </div>
                                   )}
                                 </div>
+
+                                {/* Latest Completed PM for this plan if exists */}
+                                {(() => {
+                                  const planCompletedScheds = schedules
+                                    .filter(s => s.assetId === asset.id && s.contractId === contract.id && s.status === 'completed')
+                                    .sort((a, b) => (b.completedDate || b.plannedDate).localeCompare(a.completedDate || a.plannedDate));
+                                  
+                                  const latestCompleted = planCompletedScheds[0];
+                                  if (!latestCompleted) return null;
+
+                                  return (
+                                    <div style={{ background: 'var(--bg-secondary)', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.725rem', marginTop: '0.35rem' }}>
+                                      <div>
+                                        <span style={{ color: 'var(--success)', fontWeight: 700 }}>🟢 PM ล่าสุด:</span> {getThaiDateFormatted(latestCompleted.completedDate || latestCompleted.plannedDate)} {latestCompleted.operator ? `(${latestCompleted.operator})` : ''}
+                                      </div>
+                                      <div style={{ display: 'flex', gap: '0.2rem' }}>
+                                        <button 
+                                          onClick={() => { setSelectedSchedule(latestCompleted); setIsPrintReportOpen(true); }}
+                                          className="btn btn-ghost btn-xs"
+                                          style={{ padding: '0.1rem 0.3rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                          title="ดู / พิมพ์ใบรายงาน A4"
+                                        >
+                                          🖨️ พิมพ์
+                                        </button>
+                                        {currentUser?.role !== 'user' && (
+                                          <button 
+                                            onClick={() => handleOpenPMForm(latestCompleted)}
+                                            className="btn btn-ghost btn-xs"
+                                            style={{ padding: '0.1rem 0.3rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                            title="แก้ไขข้อมูลผลการบำรุงรักษา"
+                                          >
+                                            ✏️ แก้ไข
+                                          </button>
+                                        )}
+                                        {currentUser?.role === 'admin' && (
+                                          <button 
+                                            onClick={() => handleDeleteSchedule(latestCompleted.id)}
+                                            className="btn btn-ghost btn-xs text-danger"
+                                            style={{ padding: '0.1rem 0.3rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                            title="ลบบันทึกนี้"
+                                          >
+                                            🗑️ ลบ
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             );
                           })
