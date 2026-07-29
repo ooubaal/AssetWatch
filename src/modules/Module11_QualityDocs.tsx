@@ -377,6 +377,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
     }
 
     const targetDept = assetObj.department || currentUser?.department || 'ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา';
+    setSelectedAssetId(assetObj.id);
 
     if (editingProc) {
       const updated = procedures.map(p => p.id === editingProc.id ? {
@@ -690,11 +691,18 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             </h4>
 
             {(() => {
-              const dailyProcs = procedures.filter(p => p.assetId === selectedAssetId && p.frequencyType === 'daily');
+              const allAssetProcs = procedures.filter(p => p.assetId === selectedAssetId);
+              let dailyProcs = allAssetProcs.filter(p => {
+                const f = (p.frequency || '').toLowerCase();
+                return p.frequencyType === 'daily' || f.includes('วัน') || f.includes('ใช้');
+              });
+              if (dailyProcs.length === 0 && allAssetProcs.length > 0) {
+                dailyProcs = allAssetProcs;
+              }
               if (dailyProcs.length === 0) {
                 return (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำวันสำหรับเครื่องมือนี้ (สามารถเพิ่มได้ในแถบ BWI 021/001)
+                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาสำหรับเครื่องมือนี้ (สามารถเพิ่มได้ในแถบ BWI 021/001)
                   </div>
                 );
               }
@@ -814,11 +822,18 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
             </h4>
 
             {(() => {
-              const periodProcs = procedures.filter(p => p.assetId === selectedAssetId && p.frequencyType === 'period');
+              const allAssetProcs = procedures.filter(p => p.assetId === selectedAssetId);
+              let periodProcs = allAssetProcs.filter(p => {
+                const f = (p.frequency || '').toLowerCase();
+                return p.frequencyType === 'period' || f.includes('สัปดาห์') || f.includes('เดือน') || f.includes('ปี');
+              });
+              if (periodProcs.length === 0 && allAssetProcs.length > 0) {
+                periodProcs = allAssetProcs;
+              }
               if (periodProcs.length === 0) {
                 return (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำสัปดาห์/เดือน/ปี สำหรับเครื่องมือนี้
+                    ยังไม่มีข้อกำหนดวิธีบำรุงรักษาประจำสัปดาห์/เดือน/ปี สำหรับเครื่องมือนี้ (สามารถเพิ่มได้ในแถบ BWI 021/001)
                   </div>
                 );
               }
