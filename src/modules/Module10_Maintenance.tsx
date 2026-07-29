@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Wrench, Calendar, FileText, Bell, Plus, CheckCircle, Clock, AlertTriangle, 
   Trash2, Phone, User, Building, ExternalLink, Printer, ChevronLeft, ChevronRight, Camera, Search, ArrowRight, RefreshCw 
@@ -87,6 +87,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     d.setFullYear(d.getFullYear() + 1);
     return d.toISOString().split('T')[0];
   });
+  const [hasNoEndDate, setHasNoEndDate] = useState(false);
+  const [modalAssetSearch, setModalAssetSearch] = useState('');
   const [pmFrequency, setPmFrequency] = useState<PMContract['pmFrequency']>('quarterly');
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [vendorContact, setVendorContact] = useState('');
@@ -95,6 +97,22 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [editingContract, setEditingContract] = useState<PMContract | null>(null);
   const [customDates, setCustomDates] = useState<string[]>([]);
   const [newCustomDate, setNewCustomDate] = useState('');
+
+  // Filtered asset list for Contract modal search
+  const filteredModalAssets = useMemo(() => {
+    return assets.filter(a => {
+      if (a.status === 'รอจำหน่าย') return false;
+      if (currentUser?.role === 'user' && a.department !== currentUser.department) return false;
+      if (!modalAssetSearch.trim()) return true;
+      const term = modalAssetSearch.toLowerCase().trim();
+      return (
+        a.id.toLowerCase().includes(term) ||
+        a.name.toLowerCase().includes(term) ||
+        (a.location && a.location.toLowerCase().includes(term)) ||
+        (a.department && a.department.toLowerCase().includes(term))
+      );
+    });
+  }, [assets, currentUser, modalAssetSearch]);
 
   // Add Ad-hoc Repair Modal States
   const [isRepairFormOpen, setIsRepairFormOpen] = useState(false);
@@ -346,6 +364,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       const finalVendorName = contractType === 'internal' ? 'บำรุงรักษาภายในโดยฝ่ายพัสดุ' : vendorName;
       const finalContactPerson = contractType === 'internal' ? 'เจ้าหน้าที่พัสดุประจำแผนก' : vendorContact;
       const finalContactPhone = contractType === 'internal' ? '-' : vendorPhone;
+      const finalEndDate = hasNoEndDate ? '' : contractEnd;
 
       if (editingContract) {
         // --- EDIT MODE ---
@@ -354,7 +373,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           title: contractTitle,
           vendorName: finalVendorName,
           startDate: contractStart,
-          endDate: contractEnd,
+          endDate: finalEndDate,
+          hasNoEndDate,
           pmFrequency,
           assetIds: selectedAssetIds,
           contactPerson: finalContactPerson,
@@ -375,7 +395,11 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           targetDates = [...customDates];
         } else {
           const start = new Date(contractStart);
-          const end = new Date(contractEnd);
+          let end = new Date(contractEnd);
+          if (hasNoEndDate) {
+            end = new Date(start);
+            end.setFullYear(end.getFullYear() + 3);
+          }
           let intervalMonths = 3;
           if (pmFrequency === 'monthly') intervalMonths = 1;
           else if (pmFrequency === 'semi-annually') intervalMonths = 6;
@@ -453,7 +477,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           title: contractTitle,
           vendorName: finalVendorName,
           startDate: contractStart,
-          endDate: contractEnd,
+          endDate: finalEndDate,
+          hasNoEndDate,
           pmFrequency,
           assetIds: selectedAssetIds,
           contactPerson: finalContactPerson,
@@ -490,7 +515,11 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         } else {
           // Standard periodic frequency logic
           const start = new Date(contractStart);
-          const end = new Date(contractEnd);
+          let end = new Date(contractEnd);
+          if (hasNoEndDate) {
+            end = new Date(start);
+            end.setFullYear(end.getFullYear() + 3);
+          }
           
           let intervalMonths = 3; // default quarterly
           if (pmFrequency === 'monthly') intervalMonths = 1;
@@ -578,7 +607,9 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setContractTitle(contract.title);
     setVendorName(contract.vendorName);
     setContractStart(contract.startDate);
-    setContractEnd(contract.endDate);
+    setContractEnd(contract.endDate || '');
+    setHasNoEndDate(!!contract.hasNoEndDate || !contract.endDate);
+    setModalAssetSearch('');
     setPmFrequency(contract.pmFrequency);
     setSelectedAssetIds(contract.assetIds);
     setVendorContact(contract.contactPerson);
@@ -1172,7 +1203,21 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>รายการแผนงานและสัญญาบำรุงรักษาครุภัณฑ์</h3>
             {currentUser?.role !== 'user' && (
-              <button className="btn btn-primary" onClick={() => { setIsContractFormOpen(true); setEditingContract(null); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => { 
+                  setIsContractFormOpen(true); 
+                  setEditingContract(null); 
+                  setHasNoEndDate(false);
+                  setModalAssetSearch('');
+                  setContractStart(new Date().toISOString().split('T')[0]);
+                  const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+                  setContractEnd(d.toISOString().split('T')[0]);
+                  setSelectedAssetIds([]);
+                  setCustomDates([]);
+                }} 
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
                 <Plus size={16} /> สร้างแผน/สัญญาบำรุงรักษาใหม่
               </button>
             )}
@@ -1233,7 +1278,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       {isInternal ? (
                         <>
                           <div>🛠️ <strong>ลักษณะแผน:</strong> บำรุงรักษาภายในโดยฝ่ายพัสดุเอง (Self-Maintenance)</div>
-                          <div>📅 <strong>ระยะเวลารอบแผนงาน:</strong> {getThaiDateFormatted(contract.startDate)} ถึง {getThaiDateFormatted(contract.endDate)}</div>
+                          <div>📅 <strong>ระยะเวลารอบแผนงาน:</strong> {getThaiDateFormatted(contract.startDate)} ถึง {contract.hasNoEndDate || !contract.endDate ? 'ไม่มีกำหนดสิ้นสุด (ถาวร ♾️)' : getThaiDateFormatted(contract.endDate)}</div>
                           <div>🔄 <strong>ความถี่รอบตรวจเช็ค PM:</strong> {
                             contract.pmFrequency === 'monthly' ? 'รายเดือน' : 
                             (contract.pmFrequency === 'quarterly' ? 'รายไตรมาส (3 เดือน)' : 
@@ -1245,7 +1290,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       ) : (
                         <>
                           <div>🏢 <strong>บริษัทผู้รับจ้าง:</strong> {contract.vendorName}</div>
-                          <div>📅 <strong>ระยะเวลารอบสัญญา:</strong> {getThaiDateFormatted(contract.startDate)} ถึง {getThaiDateFormatted(contract.endDate)}</div>
+                          <div>📅 <strong>ระยะเวลารอบสัญญา:</strong> {getThaiDateFormatted(contract.startDate)} ถึง {contract.hasNoEndDate || !contract.endDate ? 'ไม่มีกำหนดสิ้นสุด (ถาวร ♾️)' : getThaiDateFormatted(contract.endDate)}</div>
                           <div>🔄 <strong>ความถี่รอบตรวจเช็ค PM:</strong> {
                             contract.pmFrequency === 'monthly' ? 'รายเดือน' : 
                             (contract.pmFrequency === 'quarterly' ? 'รายไตรมาส (3 เดือน)' : 
@@ -1986,16 +2031,38 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </div>
 
               <div className="form-group flex-1">
-                <label className="form-label">📅 วันสิ้นสุดแผน/สัญญา</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                  <label className="form-label" style={{ margin: 0 }}>📅 วันสิ้นสุดแผน/สัญญา</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--primary)', fontWeight: 650 }}>
+                    <input 
+                      type="checkbox"
+                      checked={hasNoEndDate}
+                      onChange={(e) => {
+                        setHasNoEndDate(e.target.checked);
+                        if (e.target.checked) setContractEnd('');
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>♾️ ไม่มีกำหนดสิ้นสุด</span>
+                  </label>
+                </div>
                 <input 
                   type="date" 
                   className="form-input"
                   value={contractEnd}
                   onChange={(e) => setContractEnd(e.target.value)}
-                  required
+                  disabled={hasNoEndDate}
+                  required={!hasNoEndDate}
+                  style={{ opacity: hasNoEndDate ? 0.45 : 1 }}
                 />
               </div>
             </div>
+
+            {hasNoEndDate && (
+              <div style={{ fontSize: '0.725rem', color: 'var(--primary)', background: 'rgba(59, 130, 246, 0.08)', border: '1px dashed var(--primary)', padding: '0.4rem 0.75rem', borderRadius: 'var(--radius-sm)', marginTop: '-0.4rem' }}>
+                ℹ️ <strong>แผนบำรุงรักษาต่อเนื่องถาวร:</strong> (เช่น การเปลี่ยนแบตเตอรี่ หรือตรวจเช็คสภาพสม่ำเสมอ) ระบบจะสร้างรอบนัดหมายอัตโนมัติตามความถี่ที่เลือกอย่างต่อเนื่อง
+              </div>
+            )}
 
             {contractType === 'outsource' && (
               <div className="form-row-double">
@@ -2080,27 +2147,94 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </div>
             )}
 
-            {/* Checkbox selector for assets */}
-            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <label className="form-label">🔒 เลือกครุภัณฑ์ที่เข้าควบคุมในสัญญานี้ (เลือกได้หลายรายการ)</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-primary)' }}>
-                {assets.filter(a => a.status !== 'รอจำหน่าย').map(asset => (
-                  <label key={asset.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox"
-                      checked={selectedAssetIds.includes(asset.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedAssetIds(prev => [...prev, asset.id]);
-                        } else {
-                          setSelectedAssetIds(prev => prev.filter(id => id !== asset.id));
-                        }
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span><strong>{asset.id}</strong> - {asset.name} (📍 {asset.location})</span>
-                  </label>
-                ))}
+            {/* Checkbox selector for assets (Searchable + Quick Select) */}
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: '0.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="form-label" style={{ fontWeight: 700, margin: 0 }}>
+                  🔒 เลือกครุภัณฑ์ที่เข้าควบคุมในสัญญานี้ (เลือกแล้ว <span style={{ color: 'var(--primary)' }}>{selectedAssetIds.length}</span> รายการ)
+                </label>
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-ghost btn-xs" 
+                    onClick={() => {
+                      const filteredIds = filteredModalAssets.map(a => a.id);
+                      setSelectedAssetIds(prev => Array.from(new Set([...prev, ...filteredIds])));
+                    }}
+                    style={{ fontSize: '0.725rem', padding: '0.15rem 0.45rem', color: 'var(--primary)', border: '1px solid var(--border)' }}
+                    title="เลือกครุภัณฑ์ทั้งหมดที่ค้นพบขณะนี้"
+                  >
+                    ☑️ เลือกผลลัพธ์ทั้งหมด
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-ghost btn-xs" 
+                    onClick={() => setSelectedAssetIds([])}
+                    style={{ fontSize: '0.725rem', padding: '0.15rem 0.45rem', color: 'var(--danger)', border: '1px solid var(--border)' }}
+                    title="ยกเลิกการเลือกครุภัณฑ์ทั้งหมด"
+                  >
+                    ✕ ยกเลิกทั้งหมด
+                  </button>
+                </div>
+              </div>
+
+              {/* Search Box */}
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="🔍 ค้นหาครุภัณฑ์ตามรหัส (ID), ชื่อครุภัณฑ์, ห้องจัดเก็บ, ฝ่าย..." 
+                  value={modalAssetSearch}
+                  onChange={(e) => setModalAssetSearch(e.target.value)}
+                  style={{ paddingLeft: '2.2rem', fontSize: '0.825rem', height: '36px' }}
+                />
+                <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.6, pointerEvents: 'none', fontSize: '0.85rem' }}>🔍</span>
+                {modalAssetSearch && (
+                  <button 
+                    type="button" 
+                    onClick={() => setModalAssetSearch('')}
+                    style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', alignItems: 'center' }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '180px', overflowY: 'auto', border: '1px solid var(--border)', padding: '0.65rem 0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-primary)' }}>
+                {filteredModalAssets.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.825rem', fontStyle: 'italic' }}>
+                    🔍 ไม่พบครุภัณฑ์ที่ตรงกับคำค้นหา "{modalAssetSearch}"
+                  </div>
+                ) : (
+                  filteredModalAssets.map(asset => {
+                    const isChecked = selectedAssetIds.includes(asset.id);
+                    return (
+                      <label key={asset.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', cursor: 'pointer', padding: '0.2rem 0.25rem', borderRadius: '4px', background: isChecked ? 'rgba(59, 130, 246, 0.08)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                        <input 
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedAssetIds(prev => [...prev, asset.id]);
+                            } else {
+                              setSelectedAssetIds(prev => prev.filter(id => id !== asset.id));
+                            }
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <strong style={{ color: 'var(--primary)', fontFamily: 'monospace' }}>{asset.id}</strong> - {asset.name}
+                        </span>
+                        <span className="badge badge-muted" style={{ fontSize: '0.675rem', padding: '0.1rem 0.4rem', flexShrink: 0 }}>📍 {asset.location}</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+              
+              <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textAlign: 'right' }}>
+                แสดง {filteredModalAssets.length} จากทั้งหมด {assets.filter(a => a.status !== 'รอจำหน่าย').length} รายการ
               </div>
             </div>
 

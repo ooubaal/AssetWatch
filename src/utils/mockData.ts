@@ -377,6 +377,7 @@ export interface PMContract {
   vendorName: string;
   startDate: string;
   endDate: string;
+  hasNoEndDate?: boolean;
   pmFrequency: 'monthly' | 'quarterly' | 'semi-annually' | 'annually' | 'custom';
   assetIds: string[];
   contactPerson: string;
