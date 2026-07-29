@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, PMContract, PMSchedule, PMNotification, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS, INITIAL_USERS, INITIAL_CONTRACTS, INITIAL_SCHEDULES, INITIAL_NOTIFICATIONS } from '../utils/mockData';
+import { BLOOD_BAG_ASSETS } from '../utils/bloodBagAssetsData';
 
 // Helper to check if we are using Firebase
 const getServices = () => {
@@ -207,6 +208,33 @@ export const uploadImage = async (file: File, path: string = 'assets'): Promise<
 };
 
 // --- ASSET SERVICES ---
+// Helper to ensure all Blood Bag assets from PDF are synced into LocalStorage and Firestore
+const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: any): Promise<Asset[]> => {
+  const existingIdSet = new Set(assetsList.map(a => a.id));
+  const missingAssets = BLOOD_BAG_ASSETS.filter(a => !existingIdSet.has(a.id));
+
+  if (missingAssets.length === 0) return assetsList;
+
+  console.log(`Syncing ${missingAssets.length} missing Blood Bag assets...`);
+  const updatedList = [...assetsList, ...missingAssets];
+
+  // Update LocalStorage
+  localStorage.setItem('assetwatch_assets', JSON.stringify(updatedList));
+
+  // Update Firestore if online
+  if (isFirebase && db) {
+    try {
+      for (const asset of missingAssets) {
+        await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
+      }
+    } catch (e) {
+      console.error('Failed to sync missing Blood Bag assets to Firestore:', e);
+    }
+  }
+
+  return updatedList;
+};
+
 export const getAssets = async (): Promise<Asset[]> => {
   const { isFirebase, db } = getServices();
   
@@ -225,12 +253,13 @@ export const getAssets = async (): Promise<Asset[]> => {
         const localAssets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
         const seedAssets = localAssets.length > 0 ? localAssets : INITIAL_ASSETS;
         for (const asset of seedAssets) {
-          await setDoc(doc(db, 'assets', asset.id), asset);
+          await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
         }
         return seedAssets;
       }
 
-      return list;
+      const syncedList = await syncBloodBagAssets(list, isFirebase, db);
+      return syncedList;
     } catch (e) {
       console.error('Firebase getAssets failed, falling back to localStorage:', e);
     }
@@ -238,7 +267,9 @@ export const getAssets = async (): Promise<Asset[]> => {
 
   // LocalStorage Fallback
   initLocalStorageIfNeeded();
-  return JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+  const localList: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+  const syncedLocal = await syncBloodBagAssets(localList, false, null);
+  return syncedLocal;
 };
 
 export const getAsset = async (id: string): Promise<Asset | null> => {
