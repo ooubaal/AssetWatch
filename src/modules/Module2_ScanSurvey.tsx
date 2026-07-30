@@ -1488,7 +1488,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.65rem;
+          padding-bottom: 1.5rem;
+          padding-right: 0.25rem;
         }
 
         .checklist-item-row {
