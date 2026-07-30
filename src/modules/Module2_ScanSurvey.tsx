@@ -221,6 +221,39 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   }, [progressPercent, totalInList, isNewScanNeeded, surveySuccess]);
 
   const handleScanSuccess = (decodedId: string) => {
+    // Intercept Firebase Config QR code scanned from Settings page
+    if (decodedId.includes('apiKey') && decodedId.includes('projectId') && decodedId.includes('{')) {
+      try {
+        const config = JSON.parse(decodedId);
+        if (config && config.apiKey && config.projectId) {
+          const confirmConnect = window.confirm(
+            '⚠️ พบ QR Code เชื่อมต่อระบบคลาวด์ร่วม (Cloud Database Configuration)\n\n' +
+            'ต้องการตั้งค่าและเชื่อมต่ออุปกรณ์เครื่องนี้เข้ากับฐานข้อมูลคลาวด์ส่วนกลางเดียวกับเครื่องหลักหรือไม่?'
+          );
+          if (confirmConnect) {
+            localStorage.setItem('assetwatch_firebase_config', JSON.stringify(config));
+            localStorage.setItem('assetwatch_db_mode', 'firebase');
+            localStorage.setItem('assetwatch_force_base64_images', 'true');
+            
+            confetti({
+              particleCount: 150,
+              spread: 80,
+              origin: { y: 0.5 }
+            });
+            
+            alert('เชื่อมต่อระบบคลาวด์สำเร็จ! ระบบจะทำการรีโหลดแอปพลิเคชันเพื่อซิงค์ข้อมูลใหม่...');
+            window.location.reload();
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse QR config:', e);
+      }
+      setIsNewScanNeeded(true);
+      setScannedId(null);
+      return;
+    }
+
     setIsNewScanNeeded(false);
     setScannedId(decodedId);
     
@@ -446,6 +479,23 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 >
                   <Camera size={14} /> 📸 เปิดใช้งานกล้องตรวจนับ
                 </button>
+
+                {localStorage.getItem('assetwatch_db_mode') !== 'firebase' && (
+                  <div style={{
+                    marginTop: '0.5rem',
+                    padding: '0.65rem 0.85rem',
+                    backgroundColor: 'rgba(99, 102, 241, 0.06)',
+                    border: '1px dashed var(--primary)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.7rem',
+                    color: 'var(--text-primary)',
+                    maxWidth: '300px',
+                    lineHeight: 1.4,
+                    textAlign: 'left'
+                  }}>
+                    💡 <strong>ซิงค์ข้อมูลกับคอมพิวเตอร์หลัก:</strong> เปิดกล้องแล้วสแกน <strong>QR Code ในหน้า "ตั้งค่า"</strong> ของคอมพิวเตอร์ เพื่อซิงค์รอบการสำรวจและการตรวจนับขึ้นคลาวด์โดยตรง!
+                  </div>
+                )}
               </div>
             )
           ) : (

@@ -451,6 +451,41 @@ function App() {
 
   const handleAddSurvey = async (survey: Omit<SurveyRecord, 'id'>) => {
     await addSurvey(survey);
+    
+    // Dynamically calculate and update active round stats in DB
+    if (activeRound) {
+      const allSurveys = await getSurveys();
+      const activeSurveys = allSurveys.filter(s => s.roundId === activeRound.id);
+      
+      const total = assets.length;
+      const completed = activeSurveys.length;
+      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+      
+      const breakdown = {
+        'ใช้งานได้': 0,
+        'ชำรุด': 0,
+        'รอจำหน่าย': 0,
+        'ขอป้ายรหัสใหม่': 0,
+        'รอโอน': 0,
+        'อื่นๆ': 0
+      };
+      
+      activeSurveys.forEach(s => {
+        const status = s.status as keyof typeof breakdown;
+        if (breakdown[status] !== undefined) {
+          breakdown[status]++;
+        } else {
+          breakdown['อื่นๆ']++;
+        }
+      });
+      
+      await updateSurveyRound(activeRound.id, {
+        surveyedAssets: completed,
+        completionRate: rate,
+        statusBreakdown: breakdown
+      });
+    }
+
     await fetchAllData();
   };
 
