@@ -228,6 +228,13 @@ function App() {
   useEffect(() => {
     if (!isSetupWizardNeeded) {
       fetchAllData();
+
+      // Real-time synchronization polling every 5 seconds
+      const intervalId = setInterval(() => {
+        fetchAllData();
+      }, 5000);
+
+      return () => clearInterval(intervalId);
     }
   }, [isSetupWizardNeeded]);
 
@@ -1079,6 +1086,7 @@ function App() {
                 repairs={repairs} 
                 surveys={surveys}
                 setCurrentTab={setCurrentTab}
+                currentUser={currentUser}
               />
             )}
             {currentTab === 'module1' && (

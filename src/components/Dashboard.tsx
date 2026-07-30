@@ -9,29 +9,45 @@ import {
   FileSpreadsheet,
   Plus
 } from 'lucide-react';
-import { Asset, RepairCase, SurveyRecord } from '../utils/mockData';
+import { Asset, RepairCase, SurveyRecord, UserAccount } from '../utils/mockData';
 
 interface DashboardProps {
   assets: Asset[];
   repairs: RepairCase[];
   surveys: SurveyRecord[];
   setCurrentTab: (tab: string) => void;
+  currentUser: UserAccount | null;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
   assets, 
   repairs, 
   surveys,
-  setCurrentTab
+  setCurrentTab,
+  currentUser
 }) => {
+  // Department-scoped filtering: operators and heads only see their own department
+  const isOrgWideView = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  const userDept = currentUser?.department;
+
+  const scopedAssets = isOrgWideView ? assets : assets.filter(a => a.department === userDept);
+  const scopedRepairs = isOrgWideView ? repairs : repairs.filter(r => {
+    const asset = assets.find(a => a.id === r.assetId);
+    return asset?.department === userDept;
+  });
+  const scopedSurveys = isOrgWideView ? surveys : surveys.filter(s => {
+    const asset = assets.find(a => a.id === s.assetId);
+    return asset?.department === userDept;
+  });
+
   // Analytical Calculations
-  const totalAssets = assets.length;
+  const totalAssets = scopedAssets.length;
   
-  const activeRepairs = repairs.filter(r => r.status !== 'completed').length;
+  const activeRepairs = scopedRepairs.filter(r => r.status !== 'completed').length;
   
   // Surveys done today
   const todayStr = new Date().toISOString().split('T')[0];
-  const surveysToday = surveys.filter(s => {
+  const surveysToday = scopedSurveys.filter(s => {
     try {
       const sDate = new Date(s.timestamp).toISOString().split('T')[0];
       return sDate === todayStr;
@@ -42,12 +58,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Survey Coverage calculation
   // Distinct assets surveyed today or overall in current session
-  const distinctSurveyedIds = new Set(surveys.map(s => s.assetId));
+  const distinctSurveyedIds = new Set(scopedSurveys.map(s => s.assetId));
   const totalSurveyed = distinctSurveyedIds.size;
   const surveyPercent = totalAssets > 0 ? Math.round((totalSurveyed / totalAssets) * 100) : 0;
 
   // Status Distribution
-  const statusCounts = assets.reduce((acc, curr) => {
+  const statusCounts = scopedAssets.reduce((acc, curr) => {
     acc[curr.status] = (acc[curr.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -62,7 +78,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   // Recent 3 repairs
-  const recentRepairs = repairs.slice(0, 3);
+  const recentRepairs = scopedRepairs.slice(0, 3);
 
   // High-fidelity active analytics summary
   return (
@@ -72,7 +88,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="dashboard-header">
         <div>
           <h1>แผงควบคุมหลัก (Dashboard)</h1>
-          <p className="subtitle">ภาพรวมสถิติมูลค่าและการสำรวจครุภัณฑ์ขององค์กรในปัจจุบัน</p>
+          <p className="subtitle">
+            {isOrgWideView 
+              ? 'ภาพรวมสถิติมูลค่าและการสำรวจครุภัณฑ์ขององค์กรในปัจจุบัน'
+              : `ข้อมูลเฉพาะฝ่าย: ${userDept || 'ไม่ระบุ'}`
+            }
+          </p>
         </div>
         <div className="dashboard-header-actions">
           <button className="btn btn-primary btn-sm" onClick={() => setCurrentTab('module3')}>
