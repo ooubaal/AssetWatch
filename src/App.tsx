@@ -431,8 +431,8 @@ function App() {
     await fetchAllData();
   };
 
-  const handleUpdateAssetStatus = async (id: string, status: Asset['status']) => {
-    await updateAsset(id, { status });
+  const handleUpdateAssetStatus = async (id: string, status: Asset['status'], updates?: Partial<Asset>) => {
+    await updateAsset(id, { status, ...updates });
     await fetchAllData();
   };
 

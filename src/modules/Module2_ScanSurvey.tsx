@@ -36,7 +36,7 @@ interface Module2ScanSurveyProps {
   rounds: SurveyRound[];
   activeRound: SurveyRound | null;
   onAddSurvey: (survey: Omit<SurveyRecord, 'id'>) => Promise<void>;
-  onUpdateAssetStatus: (id: string, status: Asset['status']) => Promise<void>;
+  onUpdateAssetStatus: (id: string, status: Asset['status'], updates?: Partial<Asset>) => Promise<void>;
   onLogAudit: (trail: { assetId: string; assetName: string; action: any; operator: string; details: string }) => Promise<void>;
   onRedirectToAdd: (prefilledId: string) => void;
   onCreateSurveyRound: (name: string, operator: string) => Promise<void>;
@@ -74,6 +74,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   
   // Survey Form States
   const [selectedStatus, setSelectedStatus] = useState<Asset['status']>('ใช้งานได้');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [customLocation, setCustomLocation] = useState('');
   const [attachImageFile, setAttachImageFile] = useState<File | null>(null);
   const [attachImagePreview, setAttachImagePreview] = useState<string | null>(null);
   
@@ -262,6 +264,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     if (found) {
       setScannedAsset(found);
       setSelectedStatus(found.status);
+      setSelectedLocation(found.location || '');
+      setCustomLocation('');
       setSurveySuccess(false);
 
       // Warning if scanned asset belongs to a different department than selected
@@ -270,6 +274,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       }
     } else {
       setScannedAsset(null);
+      setSelectedLocation('');
+      setCustomLocation('');
       setSurveySuccess(false);
     }
   };
@@ -279,6 +285,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     setScannedId(asset.id);
     setScannedAsset(asset);
     setSelectedStatus(asset.status);
+    setSelectedLocation(asset.location || '');
+    setCustomLocation('');
     setSurveySuccess(false);
   };
 
@@ -306,6 +314,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         uploadedUrl = await uploadImage(attachImageFile, 'surveys');
       }
 
+      // Determine final location
+      const finalLocation = selectedLocation === 'custom' ? customLocation.trim() : selectedLocation;
+
       // 1. Add survey log record
       await onAddSurvey({
         assetId: scannedId,
@@ -316,17 +327,29 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         roundId: activeRound?.id || 'round-default'
       });
 
-      // 2. If status has changed, update the asset status in main database
-      if (scannedAsset && scannedAsset.status !== selectedStatus) {
-        await onUpdateAssetStatus(scannedId, selectedStatus);
+      // 2. If status or location has changed, update the asset status and location in main database
+      const hasStatusChanged = scannedAsset && scannedAsset.status !== selectedStatus;
+      const hasLocationChanged = scannedAsset && scannedAsset.location !== finalLocation;
+
+      if (scannedAsset && (hasStatusChanged || hasLocationChanged)) {
+        await onUpdateAssetStatus(scannedId, selectedStatus, { location: finalLocation });
         
+        let details = 'สแกนสำรวจตรวจนับ';
+        if (hasStatusChanged && hasLocationChanged) {
+          details += ` และอัปเดตเปลี่ยนสถานะพัสดุ จาก "${scannedAsset.status}" เป็น "${selectedStatus}" พร้อมย้ายห้องที่ตั้ง จาก "${scannedAsset.location || '-'}" เป็น "${finalLocation}"`;
+        } else if (hasStatusChanged) {
+          details += ` และอัปเดตเปลี่ยนสถานะพัสดุ จาก "${scannedAsset.status}" เป็น "${selectedStatus}"`;
+        } else {
+          details += ` และย้ายห้องจัดเก็บพัสดุ จาก "${scannedAsset.location || '-'}" เป็น "${finalLocation}"`;
+        }
+
         // Log status change audit trail
         await onLogAudit({
           assetId: scannedId,
           assetName: scannedAsset.name,
           action: 'survey',
           operator,
-          details: `สแกนสำรวจตรวจนับ และอัปเดตเปลี่ยนสถานะพัสดุ จาก "${scannedAsset.status}" เป็น "${selectedStatus}"`
+          details
         });
       } else if (scannedAsset) {
         // Log simple verification survey audit trail
@@ -335,7 +358,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           assetName: scannedAsset.name,
           action: 'survey',
           operator,
-          details: `สแกนสำรวจตรวจนับแล้ว สภาพยังคง "${selectedStatus}" ตามปกติ`
+          details: `สแกนสำรวจตรวจนับแล้ว สภาพยังคง "${selectedStatus}" ตั้งอยู่ที่ "${finalLocation}" ตามปกติ`
         });
       } else {
         // Unregistered asset checked
@@ -371,6 +394,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     setScannedAsset(null);
     setAttachImageFile(null);
     setAttachImagePreview(null);
+    setSelectedLocation('');
+    setCustomLocation('');
     setSurveySuccess(false);
     setIsNewScanNeeded(true);
   };
@@ -725,7 +750,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 </div>
               </div>
 
-              <div className="form-group">
+               <div className="form-group">
                 <label className="form-label">🔍 ยืนยันสถานะที่พบในขณะสำรวจ</label>
                 <select 
                   className="form-select status-confirm-select"
@@ -741,6 +766,40 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                   <option value="อื่นๆ">อื่นๆ</option>
                 </select>
               </div>
+
+              <div className="form-group">
+                <label className="form-label">📍 ยืนยันสถานที่จัดเก็บ/ติดตั้ง (เปลี่ยนได้หากพัสดุย้ายห้อง)</label>
+                <select 
+                  className="form-select"
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  required
+                >
+                  {scannedAsset.location && !uniqueLocationsInList.includes(scannedAsset.location) && (
+                    <option value={scannedAsset.location}>{scannedAsset.location} (ที่ตั้งเดิม)</option>
+                  )}
+                  {uniqueLocationsInList.map((loc: string) => (
+                    <option key={loc} value={loc}>
+                      {loc} {loc === scannedAsset.location ? '(ที่ตั้งเดิม)' : ''}
+                    </option>
+                  ))}
+                  <option value="custom">✏️ ระบุห้องใหม่ด้วยตนเอง...</option>
+                </select>
+              </div>
+
+              {selectedLocation === 'custom' && (
+                <div className="form-group animate-fade-in" style={{ marginTop: '-0.5rem' }}>
+                  <label className="form-label">✍️ ระบุชื่อห้อง/ตำแหน่งจัดเก็บใหม่</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="เช่น Room 402, คลังอุปกรณ์..."
+                    value={customLocation}
+                    onChange={(e) => setCustomLocation(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
 
               {/* Picture upload area for documenting asset damage */}
               <div className="form-group">
