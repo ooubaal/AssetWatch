@@ -96,7 +96,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [roundHistoryTab, setRoundHistoryTab] = useState<'active' | 'history'>('active');
   const [selectedRoundDept, setSelectedRoundDept] = useState('all');
 
-  const [isCameraActive, setIsCameraActive] = useState(true);
+  const [isCameraActive, setIsCameraActive] = useState(false);
 
   // Lock selectedDept and selectedRoundDept on currentUser load (for user, operator, and head roles)
   useEffect(() => {
