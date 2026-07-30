@@ -530,11 +530,40 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
             )
           ) : (
             <div className="scan-placeholder glass-panel">
-              <CheckCircle2 size={48} color="var(--success)" className="success-bounce" />
-              <h3>ตรวจพบรหัสครุภัณฑ์เรียบร้อยแล้ว</h3>
-              <div className="scanned-code-pill">
-                <code>{scannedId}</code>
-              </div>
+              {(() => {
+                const isSurveyed = scannedAsset ? isAssetSurveyedInRound(scannedAsset.id) : false;
+                const surveyRecord = scannedAsset ? getSurveyInfo(scannedAsset.id) : null;
+
+                if (isSurveyed) {
+                  return (
+                    <>
+                      <CheckCircle2 size={48} color="var(--success)" className="success-bounce" />
+                      <h3 style={{ color: 'var(--success)', marginTop: '0.5rem' }}>ครุภัณฑ์ถูกสำรวจเรียบร้อยแล้ว</h3>
+                      <div className="scanned-code-pill" style={{ borderColor: 'var(--success)', background: 'rgba(34, 197, 94, 0.1)' }}>
+                        <code style={{ color: 'var(--success)' }}>{scannedId}</code>
+                      </div>
+                      {surveyRecord && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                          ✓ สำรวจแล้วเมื่อ {new Date(surveyRecord.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น. (สถานะ: {surveyRecord.status})
+                        </div>
+                      )}
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <AlertTriangle size={48} color="var(--danger)" className="danger-bounce" />
+                    <h3 style={{ color: 'var(--danger)', marginTop: '0.5rem' }}>ครุภัณฑ์ยังไม่ถูกสำรวจ</h3>
+                    <div className="scanned-code-pill" style={{ borderColor: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)' }}>
+                      <code style={{ color: 'var(--danger)' }}>{scannedId}</code>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      กรุณายืนยันสถานะและตำแหน่งพัสดุด้านขวาเพื่อบันทึกการสำรวจ
+                    </div>
+                  </>
+                );
+              })()}
               
               {scannedAsset && selectedDept !== 'all' && scannedAsset.department !== selectedDept && (
                 <div className="alert alert-danger" style={{ padding: '0.65rem 1rem', fontSize: '0.8rem', margin: '0.5rem 0' }}>
@@ -543,7 +572,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 </div>
               )}
 
-              <button className="btn btn-secondary w-full" onClick={handleResetScan} style={{ marginTop: '0.5rem' }}>
+              <button className="btn btn-secondary w-full" onClick={handleResetScan} style={{ marginTop: '0.75rem' }}>
                 <RefreshCw size={14} /> กดเพื่อสแกนชิ้นถัดไป
               </button>
             </div>
