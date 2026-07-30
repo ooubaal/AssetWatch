@@ -512,6 +512,20 @@ export const addAuditTrail = async (trail: Omit<AuditTrail, 'id'>): Promise<void
 };
 
 // --- SURVEY SERVICES ---
+
+// Deduplicate surveys: keep only the latest survey per (assetId + roundId) pair.
+// This prevents phantom duplicates from failed retries or stale localStorage merges.
+const deduplicateSurveys = (surveys: SurveyRecord[]): SurveyRecord[] => {
+  const map = new Map<string, SurveyRecord>();
+  // Sort oldest first so newest overwrites
+  const sorted = [...surveys].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  for (const s of sorted) {
+    const key = `${s.assetId}__${s.roundId}`;
+    map.set(key, s);
+  }
+  return Array.from(map.values());
+};
+
 export const getSurveys = async (): Promise<SurveyRecord[]> => {
   // Read local cache first
   initLocalStorageIfNeeded();
@@ -523,16 +537,17 @@ export const getSurveys = async (): Promise<SurveyRecord[]> => {
       const q = query(collection(db, 'surveys'));
       const snapshot = await getDocs(q);
       const fbList: SurveyRecord[] = [];
-      snapshot.forEach((doc) => {
-        fbList.push({ id: doc.id, ...doc.data() } as SurveyRecord);
+      snapshot.forEach((docSnap) => {
+        fbList.push({ id: docSnap.id, ...docSnap.data() } as SurveyRecord);
       });
 
-      // Merge local and remote avoiding duplicates
+      // Merge local and remote avoiding ID duplicates
       const mergedMap = new Map<string, SurveyRecord>();
       localSurveys.forEach(s => mergedMap.set(s.id, s));
       fbList.forEach(s => mergedMap.set(s.id, s));
       
-      const mergedList = Array.from(mergedMap.values());
+      // Deduplicate by (assetId + roundId) to prevent phantom count inflation
+      const mergedList = deduplicateSurveys(Array.from(mergedMap.values()));
       localStorage.setItem('assetwatch_surveys', JSON.stringify(mergedList));
       return mergedList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     } catch (e) {
@@ -540,7 +555,10 @@ export const getSurveys = async (): Promise<SurveyRecord[]> => {
     }
   }
 
-  return localSurveys.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  // Deduplicate local cache too
+  const deduped = deduplicateSurveys(localSurveys);
+  localStorage.setItem('assetwatch_surveys', JSON.stringify(deduped));
+  return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
 export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void> => {
@@ -551,14 +569,16 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
   initLocalStorageIfNeeded();
   const localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
   localSurveys.push(fullSurvey);
-  localStorage.setItem('assetwatch_surveys', JSON.stringify(localSurveys));
+  // Deduplicate immediately to prevent phantom count growth
+  const deduped = deduplicateSurveys(localSurveys);
+  localStorage.setItem('assetwatch_surveys', JSON.stringify(deduped));
 
-  // 2. Then try to sync to Firebase Firestore
+  // 2. Then try to sync to Firebase Firestore (sanitize to strip undefined values)
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
       const docRef = doc(db, 'surveys', id);
-      await setDoc(docRef, fullSurvey);
+      await setDoc(docRef, sanitizeForFirestore(fullSurvey as any));
     } catch (e) {
       console.error('Firebase addSurvey failed, but saved locally:', e);
     }
@@ -652,57 +672,62 @@ export const updateRepair = async (id: string, updates: Partial<RepairCase>): Pr
 
 // --- SURVEY ROUND SERVICES ---
 export const getSurveyRounds = async (): Promise<SurveyRound[]> => {
+  // Local-first: always read local cache first
+  initLocalStorageIfNeeded();
+  const localRounds: SurveyRound[] = JSON.parse(localStorage.getItem('assetwatch_survey_rounds') || '[]');
+
   const { isFirebase, db } = getServices();
-  
   if (isFirebase && db) {
     try {
-      const q = query(collection(db, 'survey_rounds'), orderBy('dateCreated', 'desc'));
+      // No orderBy to avoid needing a Firestore index
+      const q = query(collection(db, 'survey_rounds'));
       const snapshot = await getDocs(q);
-      const list: SurveyRound[] = [];
-      snapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as SurveyRound);
+      const fbList: SurveyRound[] = [];
+      snapshot.forEach((docSnap) => {
+        fbList.push({ id: docSnap.id, ...docSnap.data() } as SurveyRound);
       });
 
-      // Seeding Firestore if completely empty
-      if (list.length === 0) {
-        initLocalStorageIfNeeded();
-        const localRounds: SurveyRound[] = JSON.parse(localStorage.getItem('assetwatch_survey_rounds') || '[]');
+      // Seeding Firestore if completely empty — push local rounds to cloud
+      if (fbList.length === 0 && localRounds.length > 0) {
         for (const round of localRounds) {
-          await setDoc(doc(db, 'survey_rounds', round.id), round);
+          await setDoc(doc(db, 'survey_rounds', round.id), sanitizeForFirestore(round as any));
         }
         return localRounds.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
       }
 
-      return list;
+      // Merge local and remote avoiding duplicates (cloud wins on conflicts)
+      const mergedMap = new Map<string, SurveyRound>();
+      localRounds.forEach(r => mergedMap.set(r.id, r));
+      fbList.forEach(r => mergedMap.set(r.id, r));
+      
+      const mergedList = Array.from(mergedMap.values());
+      localStorage.setItem('assetwatch_survey_rounds', JSON.stringify(mergedList));
+      return mergedList.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
     } catch (e) {
-      console.error('Firebase getSurveyRounds failed, falling back to localStorage:', e);
+      console.error('Firebase getSurveyRounds failed, returning local cache:', e);
     }
   }
 
-  // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const rounds: SurveyRound[] = JSON.parse(localStorage.getItem('assetwatch_survey_rounds') || '[]');
-  return rounds.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
+  return localRounds.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
 };
 
 export const addSurveyRound = async (round: SurveyRound): Promise<void> => {
-  const { isFirebase, db } = getServices();
-  
-  if (isFirebase && db) {
-    try {
-      const docRef = doc(db, 'survey_rounds', round.id);
-      await setDoc(docRef, round);
-      return;
-    } catch (e) {
-      console.error('Firebase addSurveyRound failed, falling back to localStorage:', e);
-    }
-  }
-
-  // LocalStorage Fallback
+  // 1. Always write to local storage first
   initLocalStorageIfNeeded();
   const rounds: SurveyRound[] = JSON.parse(localStorage.getItem('assetwatch_survey_rounds') || '[]');
   rounds.push(round);
   localStorage.setItem('assetwatch_survey_rounds', JSON.stringify(rounds));
+
+  // 2. Then sync to Firestore
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'survey_rounds', round.id);
+      await setDoc(docRef, sanitizeForFirestore(round as any));
+    } catch (e) {
+      console.error('Firebase addSurveyRound failed, but saved locally:', e);
+    }
+  }
 };
 
 export const updateSurveyRound = async (id: string, updates: Partial<SurveyRound>): Promise<void> => {
