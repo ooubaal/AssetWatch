@@ -1053,7 +1053,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                       </div>
                     )}
 
-                    {currentUser?.role !== 'manager' && showCloseConfirm && (
+                    {showCloseConfirm && (
                       <div className="close-confirm-card" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1.5px solid var(--danger)', padding: '1rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                           <AlertTriangle color="var(--danger)" size={18} />
