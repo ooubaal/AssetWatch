@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet } from 'lucide-react';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
 
@@ -29,12 +29,31 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   
   // Selected asset for viewing details in modal
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  
+  // State for Report Print Modal
+  const [showPrintModal, setShowPrintModal] = useState(false);
+
+  // Role permissions check
+  const isOrgWide = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  const userDept = currentUser?.department || '';
+
+  // Force department filter for Head / Operator
+  useEffect(() => {
+    if (!isOrgWide && userDept) {
+      setDeptFilter(userDept);
+    }
+  }, [currentUser, isOrgWide, userDept]);
 
   // Extract unique departments & locations for filter dropdowns
   const uniqueDepts = Array.from(new Set(assets.map(a => a.department).filter(Boolean)));
 
   // Filter and search computation
   const filteredAssets = assets.filter((asset) => {
+    // Role-based department restriction: Head and Operator see ONLY their department
+    if (!isOrgWide && userDept && asset.department !== userDept) {
+      return false;
+    }
+
     const matchesSearch = 
       asset.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       asset.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -116,13 +135,29 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
               className="form-select filter-select"
               value={deptFilter}
               onChange={(e) => setDeptFilter(e.target.value)}
+              disabled={!isOrgWide}
             >
-              <option value="">ทุกหน่วยงาน</option>
-              {uniqueDepts.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
+              {isOrgWide ? (
+                <>
+                  <option value="">ทุกหน่วยงาน (ทั้งองค์กร)</option>
+                  {uniqueDepts.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </>
+              ) : (
+                <option value={userDept}>เฉพาะหน่วยงาน: {userDept}</option>
+              )}
             </select>
           </div>
+
+          <button 
+            type="button" 
+            className="btn btn-primary"
+            onClick={() => setShowPrintModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem' }}
+          >
+            <Printer size={15} /> พิมพ์รายงาน / ออกรายการ
+          </button>
 
           <div className="view-toggle">
             <button 
@@ -477,6 +512,129 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           }
           .filter-select {
             min-width: 120px;
+          }
+        }
+      `}</style>
+      {/* REPORT PRINT MODAL OVERLAY */}
+      {showPrintModal && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
+          <div className="print-actions-bar glass-panel" style={{ maxWidth: '900px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10000 }}>
+            <div>
+              <h4 style={{ fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>📑 พิมพ์รายงานบัญชีครุภัณฑ์</h4>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                {isOrgWide ? (deptFilter ? `หน่วยงาน: ${deptFilter}` : 'ทุกหน่วยงาน (ทั้งองค์กร)') : `เฉพาะหน่วยงาน: ${userDept}`} — รวม {filteredAssets.length} รายการ
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                type="button" 
+                className="btn btn-primary"
+                onClick={() => window.print()}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Printer size={16} /> สั่งพิมพ์ / บันทึก PDF
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-secondary"
+                onClick={() => setShowPrintModal(false)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <X size={16} /> ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+
+          <div className="print-sheet-paper" style={{ background: '#ffffff', color: '#000000', maxWidth: '900px', width: '100%', margin: '0 auto', padding: '2rem', borderRadius: '4px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', fontFamily: 'Sarabun, TH Sarabun New, sans-serif' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #000', paddingBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: '0 0 0.25rem 0' }}>รายงานบัญชีควบคุมครุภัณฑ์พัสดุ</h2>
+              <p style={{ fontSize: '0.95rem', margin: 0 }}>
+                {isOrgWide ? (deptFilter ? `หน่วยงาน: ${deptFilter}` : 'ข้อมูลครุภัณฑ์ทุกหน่วยงาน (ภาพรวมองค์กร)') : `เฉพาะหน่วยงาน: ${userDept}`}
+              </p>
+              <p style={{ fontSize: '0.8rem', color: '#555', margin: '0.25rem 0 0 0' }}>
+                วันที่พิมพ์รายงาน: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} น. | ผู้พิมพ์: {currentUser?.name || 'แอดมินพัสดุ'}
+              </p>
+            </div>
+
+            {/* Summary Statistics */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', fontSize: '0.85rem', background: '#f8fafc', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
+              <div><strong>รายการทั้งหมด:</strong> {filteredAssets.length} ชิ้น</div>
+              <div><strong>ใช้งานได้:</strong> {filteredAssets.filter(a => a.status === 'ใช้งานได้').length} ชิ้น</div>
+              <div><strong>ชำรุด:</strong> {filteredAssets.filter(a => a.status === 'ชำรุด').length} ชิ้น</div>
+              <div><strong>รอจำหน่าย:</strong> {filteredAssets.filter(a => a.status === 'รอจำหน่าย').length} ชิ้น</div>
+            </div>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f1f5f9', borderTop: '1px solid #000', borderBottom: '2px solid #000' }}>
+                  <th style={{ padding: '0.5rem', width: '5%' }}>ลำดับ</th>
+                  <th style={{ padding: '0.5rem', width: '22%' }}>รหัสครุภัณฑ์</th>
+                  <th style={{ padding: '0.5rem', width: '28%' }}>รายการ / ชื่อเครื่องมือ</th>
+                  <th style={{ padding: '0.5rem', width: '18%' }}>หน่วยงาน / แผนก</th>
+                  <th style={{ padding: '0.5rem', width: '17%' }}>สถานที่จัดเก็บ</th>
+                  <th style={{ padding: '0.5rem', width: '10%', textAlign: 'center' }}>สถานะ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAssets.map((asset, idx) => (
+                  <tr key={asset.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '0.45rem 0.5rem', textAlign: 'center' }}>{idx + 1}</td>
+                    <td style={{ padding: '0.45rem 0.5rem', fontWeight: 'bold' }}>{asset.id}</td>
+                    <td style={{ padding: '0.45rem 0.5rem' }}>{asset.name}</td>
+                    <td style={{ padding: '0.45rem 0.5rem' }}>{asset.department || '-'}</td>
+                    <td style={{ padding: '0.45rem 0.5rem' }}>{asset.location || '-'}</td>
+                    <td style={{ padding: '0.45rem 0.5rem', textAlign: 'center', fontWeight: 'bold' }}>
+                      {asset.status}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Signature Footer */}
+            <div style={{ marginTop: '3rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
+              <div style={{ textAlign: 'center', width: '40%' }}>
+                <p>ลงชื่อ......................................................................</p>
+                <p style={{ marginTop: '0.25rem' }}>({currentUser?.name || '....................................................'})</p>
+                <p style={{ color: '#555', fontSize: '0.8rem' }}>ตำแหน่ง {currentUser?.role?.toUpperCase() || 'เจ้าหน้าที่ผู้รายงาน'}</p>
+              </div>
+
+              <div style={{ textAlign: 'center', width: '40%' }}>
+                <p>ลงชื่อ......................................................................</p>
+                <p style={{ marginTop: '0.25rem' }}>(....................................................)</p>
+                <p style={{ color: '#555', fontSize: '0.8rem' }}>หัวหน้างาน / ผู้รับรองรายงาน</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Printable CSS Media Rules */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-preview-overlay, .print-preview-overlay * {
+            visibility: visible;
+          }
+          .print-preview-overlay {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            background: white !important;
+            padding: 0 !important;
+          }
+          .print-actions-bar {
+            display: none !important;
+          }
+          .print-sheet-paper {
+            box-shadow: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
           }
         }
       `}</style>
