@@ -1477,6 +1477,24 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         </div>
       )}
 
+      {/* 🛠️ Diagnostic Panel (Collapsible) */}
+      <div style={{ marginTop: '2rem', padding: '1rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', width: '100%', boxSizing: 'border-box' }}>
+        <details>
+          <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}>🔧 Diagnostic Logs & Debugging</summary>
+          <div style={{ fontSize: '0.75rem', marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div><strong>Active Round ID:</strong> <code>{activeRound?.id || 'null'}</code></div>
+            <div><strong>Total Surveys:</strong> <code>{surveys.length}</code></div>
+            <div><strong>Surveys in Active Round:</strong> <code>{surveys.filter(s => s.roundId === activeRound?.id).length}</code></div>
+            <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'var(--bg-primary)', padding: '0.5rem', borderRadius: '4px' }}>
+              <strong>Recent Surveys:</strong>
+              {surveys.slice(0, 5).map(s => (
+                <div key={s.id}>- Asset ID: <code>{s.assetId}</code> | Round ID: <code>{s.roundId}</code> | Status: <code>{s.status}</code></div>
+              ))}
+            </div>
+          </div>
+        </details>
+      </div>
+
       <style>{`
         .survey-setup-bar {
           padding: 1.25rem;
