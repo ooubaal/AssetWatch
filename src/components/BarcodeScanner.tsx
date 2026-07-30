@@ -314,6 +314,11 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           height: 100% !important;
         }
 
+        .scanner-view div {
+          width: 100% !important;
+          height: 100% !important;
+        }
+
         .scanner-view video {
           width: 100% !important;
           height: 100% !important;

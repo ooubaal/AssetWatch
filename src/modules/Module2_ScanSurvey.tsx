@@ -1427,16 +1427,22 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           padding: 1.25rem;
           display: flex;
           flex-direction: column;
-          height: 440px; /* Fixed height for exact visual alignment */
+          height: 500px; /* Expanded height for visual balance and larger viewport */
           box-sizing: border-box;
         }
 
         .scan-frame {
-          height: 440px; /* Matching height */
+          height: 500px; /* Matching height */
           display: flex;
           flex-direction: column;
           overflow: hidden;
           box-sizing: border-box;
+        }
+
+        .scan-frame .scanner-wrapper {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
         }
 
         .scan-frame .video-container {
@@ -1597,7 +1603,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         }
 
         .scan-placeholder {
-          height: 440px; /* Matching height */
+          height: 500px; /* Matching height */
           padding: 2rem;
           display: flex;
           flex-direction: column;
