@@ -40,6 +40,15 @@ export interface SurveyRecord {
   timestamp: string;
 }
 
+export interface DepartmentSignoff {
+  department: string;
+  signedBy: string;
+  signedAt: string;
+  status: 'pending' | 'signed';
+  surveyedAssets: number;
+  totalAssets: number;
+}
+
 export interface SurveyRound {
   id: string;
   name: string;
@@ -58,6 +67,12 @@ export interface SurveyRound {
     'อื่นๆ': number;
   };
   operator: string;
+  departmentSignoffs?: Record<string, DepartmentSignoff>;
+  reopenHistory?: Array<{
+    reopenedBy: string;
+    reopenedAt: string;
+    reason?: string;
+  }>;
 }
 
 export interface DepartmentLocationConfig {

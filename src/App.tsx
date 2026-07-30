@@ -577,6 +577,75 @@ function App() {
     await fetchAllData();
   };
 
+  const handleDepartmentSignoff = async (department: string, operatorName: string) => {
+    if (!activeRound) return;
+    const latestSurveys = await getSurveys();
+    const deptAssets = assets.filter(a => a.department === department);
+    const deptSurveys = latestSurveys.filter(s => {
+      if (s.roundId !== activeRound.id) return false;
+      const asset = assets.find(a => a.id === s.assetId);
+      return asset?.department === department;
+    });
+
+    const existingSignoffs = activeRound.departmentSignoffs || {};
+    const updatedSignoffs = {
+      ...existingSignoffs,
+      [department]: {
+        department,
+        signedBy: operatorName,
+        signedAt: new Date().toISOString(),
+        status: 'signed' as const,
+        surveyedAssets: deptSurveys.length,
+        totalAssets: deptAssets.length
+      }
+    };
+
+    await updateSurveyRound(activeRound.id, {
+      departmentSignoffs: updatedSignoffs
+    });
+
+    await handleLogAudit({
+      assetId: 'SYSTEM',
+      assetName: `รอบการสำรวจ: ${activeRound.name}`,
+      action: 'survey',
+      operator: operatorName,
+      details: `หัวหน้าฝ่าย/หน่วยงาน ${department} ยืนยันปิดรอบระดับฝ่ายเรียบร้อยแล้ว (${deptSurveys.length}/${deptAssets.length} ชิ้น)`,
+    });
+
+    await fetchAllData();
+  };
+
+  const handleReopenSurveyRound = async (roundId: string, operatorName: string, reason?: string) => {
+    const targetRound = rounds.find(r => r.id === roundId);
+    if (!targetRound) return;
+
+    const existingHistory = targetRound.reopenHistory || [];
+    const updatedHistory = [
+      ...existingHistory,
+      {
+        reopenedBy: operatorName,
+        reopenedAt: new Date().toISOString(),
+        reason: reason || 'ดึงรอบกลับมาแก้ไขตรวจนับเพิ่ม'
+      }
+    ];
+
+    await updateSurveyRound(roundId, {
+      status: 'active',
+      dateClosed: undefined,
+      reopenHistory: updatedHistory
+    });
+
+    await handleLogAudit({
+      assetId: 'SYSTEM',
+      assetName: `รอบการสำรวจ: ${targetRound.name}`,
+      action: 'survey',
+      operator: operatorName,
+      details: `ผู้บริหาร/แอดมินดึงรอบการสำรวจกลับมาแก้ไขตรวจนับเพิ่ม (เหตุผล: ${reason || 'ดึงรอบกลับมาแก้ไข'})`,
+    });
+
+    await fetchAllData();
+  };
+
   // --- MODULE 8: DEPARTMENT CONFIG HANDLERS ---
   const handleCreateDepartment = async (name: string, locations: string[]) => {
     const newDept: DepartmentLocationConfig = {
@@ -1112,6 +1181,8 @@ function App() {
                 onRedirectToAdd={handleRedirectToRegister}
                 onCreateSurveyRound={handleCreateSurveyRound}
                 onCloseActiveRound={handleCloseActiveRound}
+                onDepartmentSignoff={handleDepartmentSignoff}
+                onReopenSurveyRound={handleReopenSurveyRound}
                 currentUser={currentUser}
               />
             )}

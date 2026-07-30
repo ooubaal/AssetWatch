@@ -23,6 +23,7 @@ import {
   History,
   FileText,
   CheckSquare,
+  RotateCcw,
   Search
 } from 'lucide-react';
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
@@ -41,6 +42,8 @@ interface Module2ScanSurveyProps {
   onRedirectToAdd: (prefilledId: string) => void;
   onCreateSurveyRound: (name: string, operator: string) => Promise<void>;
   onCloseActiveRound: (operator: string) => Promise<void>;
+  onDepartmentSignoff?: (department: string, operatorName: string) => Promise<void>;
+  onReopenSurveyRound?: (roundId: string, operatorName: string, reason?: string) => Promise<void>;
   currentUser: UserAccount | null;
 }
 
@@ -55,6 +58,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   onRedirectToAdd,
   onCreateSurveyRound,
   onCloseActiveRound,
+  onDepartmentSignoff,
+  onReopenSurveyRound,
   currentUser
 }) => {
   const [operator, setOperator] = useState(() => localStorage.getItem('assetwatch_operator') || 'ผู้ตรวจการทั่วไป');
@@ -985,7 +990,49 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                         <Printer size={15} /> 🖨️ ออกรายงานรอบปัจจุบัน
                       </button>
 
-                      {(currentUser?.role === 'admin' || currentUser?.role === 'manager' || currentUser?.role === 'head') && !showCloseConfirm && (
+                      {/* Head: Department level signoff/close */}
+                      {currentUser?.role === 'head' && (
+                        (() => {
+                          const userDept = currentUser.department || '';
+                          const isSigned = activeRound.departmentSignoffs?.[userDept]?.status === 'signed';
+                          const deptAssetsCount = assets.filter(a => a.department === userDept).length;
+                          const deptSurveysCount = surveys.filter(s => {
+                            if (s.roundId !== activeRound.id) return false;
+                            const asset = assets.find(a => a.id === s.assetId);
+                            return asset?.department === userDept;
+                          }).length;
+                          const isComplete = deptAssetsCount > 0 && deptSurveysCount >= deptAssetsCount;
+
+                          if (isSigned) {
+                            return (
+                              <button type="button" className="btn btn-success" disabled style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', opacity: 0.9 }}>
+                                <CheckCircle size={15} /> ✓ ฝ่าย{userDept} ยืนยันปิดรอบแล้ว ({deptSurveysCount}/{deptAssetsCount})
+                              </button>
+                            );
+                          }
+
+                          return (
+                            <button 
+                              type="button" 
+                              className="btn btn-warning"
+                              disabled={!isComplete}
+                              title={!isComplete ? `ต้องสแกนครุภัณฑ์ของฝ่าย ${userDept} ให้ครบ 100% ก่อน (${deptSurveysCount}/${deptAssetsCount})` : ''}
+                              onClick={async () => {
+                                if (onDepartmentSignoff && userDept) {
+                                  await onDepartmentSignoff(userDept, currentUser.name || operator);
+                                  confetti({ particleCount: 120, spread: 70 });
+                                }
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                            >
+                              <Lock size={15} /> ✍️ หัวหน้าฝ่ายยืนยันปิดรอบ ({userDept}) {!isComplete ? `(${Math.round((deptSurveysCount/deptAssetsCount)*100 || 0)}%)` : '✓ ครบ 100%'}
+                            </button>
+                          );
+                        })()
+                      )}
+
+                      {/* Manager & Admin: Final round close */}
+                      {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && !showCloseConfirm && (
                         <button 
                           type="button" 
                           className="btn btn-danger"
@@ -995,14 +1042,14 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                           }}
                           style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
                         >
-                          <Lock size={15} /> {currentUser?.role === 'head' ? `🔒 ปิดรอบการสำรวจประจำฝ่าย (${currentUser.department})` : '🔒 ปิดรอบการสำรวจและบันทึกประวัติ (องค์กร)'}
+                          <Lock size={15} /> 🔒 ผู้บริหารกดปิดรอบสำรวจพัสดุ (องค์กร)
                         </button>
                       )}
                     </div>
 
-                    {(currentUser?.role === 'operator' || currentUser?.role === 'user') && (
+                    {currentUser?.role === 'operator' && (
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem' }}>
-                        <Lock size={14} /> บัญชีผู้ปฏิบัติงาน (Operator) — สแกนตรวจนับได้ แต่ไม่มีสิทธิ์ปิดรอบสำรวจพัสดุ (เฉพาะ Head/Manager/Admin)
+                        <Lock size={14} /> บัญชีผู้ปฏิบัติงาน ({currentUser.department || 'Operator'}) — สแกนครุภัณฑ์ของฝ่ายเมื่อครบ 100% แล้ว ให้ Head ฝ่ายกดยืนยันปิดรอบ
                       </div>
                     )}
 
@@ -1135,31 +1182,39 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 </p>
 
                 <div className="new-round-wizard" style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '500px', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    placeholder="เช่น รอบสำรวจประจำปีงบประมาณ 2570..." 
-                    value={newRoundName}
-                    onChange={(e) => setNewRoundName(e.target.value)}
-                    style={{ flex: 1, minWidth: '220px' }}
-                  />
-                  <button 
-                    type="button" 
-                    className="btn btn-primary"
-                    disabled={!newRoundName.trim()}
-                    onClick={async () => {
-                      if (!newRoundName.trim()) return;
-                      await onCreateSurveyRound(newRoundName, operator);
-                      setNewRoundName('');
-                      confetti({
-                        particleCount: 100,
-                        spread: 50
-                      });
-                    }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                  >
-                    <PlusCircle size={15} /> 🚀 เริ่มรอบการสำรวจใหม่
-                  </button>
+                  {(currentUser?.role === 'admin' || currentUser?.role === 'manager') ? (
+                    <>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        placeholder="เช่น รอบสำรวจประจำปีงบประมาณ 2570..." 
+                        value={newRoundName}
+                        onChange={(e) => setNewRoundName(e.target.value)}
+                        style={{ flex: 1, minWidth: '220px' }}
+                      />
+                      <button 
+                        type="button" 
+                        className="btn btn-primary"
+                        disabled={!newRoundName.trim()}
+                        onClick={async () => {
+                          if (!newRoundName.trim()) return;
+                          await onCreateSurveyRound(newRoundName, operator);
+                          setNewRoundName('');
+                          confetti({
+                            particleCount: 100,
+                            spread: 50
+                          });
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                      >
+                        <PlusCircle size={15} /> 🚀 ผู้บริหารเปิดรอบการสำรวจใหม่
+                      </button>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Lock size={15} /> เฉพาะระดับผู้บริหาร (Manager / Admin) เท่านั้นที่มีสิทธิ์เปิดรอบการสำรวจพัสดุใหม่
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1227,14 +1282,33 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                           </td>
                           <td style={{ padding: '0.75rem 0.5rem' }}>{round.operator}</td>
                           <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
-                            <button 
-                              type="button" 
-                              className="btn btn-secondary btn-xs"
-                              onClick={() => setPrintingRound(round)}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                            >
-                              <Printer size={12} /> พิมพ์รายงาน
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                              <button 
+                                type="button" 
+                                className="btn btn-secondary btn-xs"
+                                onClick={() => setPrintingRound(round)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                              >
+                                <Printer size={12} /> พิมพ์รายงาน
+                              </button>
+
+                              {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                                <button 
+                                  type="button" 
+                                  className="btn btn-warning btn-xs"
+                                  onClick={async () => {
+                                    const reason = prompt('กรุณาระบุเหตุผลในการดึงรอบกลับมาแก้ไข:', 'พบข้อมูลต้องตรวจนับเพิ่มเติม');
+                                    if (reason !== null && onReopenSurveyRound) {
+                                      await onReopenSurveyRound(round.id, currentUser.name || operator, reason);
+                                      confetti({ particleCount: 100, spread: 60 });
+                                    }
+                                  }}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                                >
+                                  <RotateCcw size={12} /> 🔄 ดึงรอบกลับมาแก้ไข
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
