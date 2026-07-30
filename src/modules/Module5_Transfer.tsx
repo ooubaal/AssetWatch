@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Move, Search, ArrowRight, CheckCircle2, AlertCircle, Building, Printer } from 'lucide-react';
 import { Asset, DepartmentLocationConfig, UserAccount, AuditTrail } from '../utils/mockData';
 import confetti from 'canvas-confetti';
+import { SearchableSelect } from '../components/SearchableSelect';
 
 interface Module5TransferProps {
   assets: Asset[];
@@ -409,42 +410,37 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
                       </>
                     ) : (
                       <>
-                        <div className="form-group flex-1">
-                          <label className="form-label">🏢 ฝ่าย/หน่วยงานที่รับโอนดูแล</label>
-                          <select 
-                            className="form-select"
+                        <div className="flex-1">
+                          <SearchableSelect
+                            label="🏢 ฝ่าย/หน่วยงานที่รับโอนดูแล"
+                            options={departments.map(d => d.name)}
                             value={newDepartment}
-                            onChange={handleDepartmentSelectChange}
+                            onChange={(val) => {
+                              setNewDepartment(val);
+                              const found = departments.find(d => d.name === val);
+                              if (found && found.locations.length > 0) {
+                                setNewLocation(found.locations[0]);
+                              } else {
+                                setNewLocation('');
+                              }
+                            }}
                             required
-                          >
-                            {departments.length === 0 ? (
-                              <option value="">ไม่มีหน่วยงาน (โปรดกดพิมพ์กรอกเอง)</option>
-                            ) : (
-                              departments.map(dept => (
-                                <option key={dept.id} value={dept.name}>{dept.name}</option>
-                              ))
-                            )}
-                          </select>
+                            placeholder="เลือกหน่วยงาน..."
+                          />
                         </div>
 
-                        <div className="form-group flex-1">
-                          <label className="form-label">📍 ปลายทางสถานที่ติดตั้งแห่งใหม่</label>
-                          <select 
-                            className="form-select"
-                            value={newLocation}
-                            onChange={(e) => setNewLocation(e.target.value)}
-                            required
-                          >
-                            {(() => {
+                        <div className="flex-1">
+                          <SearchableSelect
+                            label="📍 ปลายทางสถานที่ติดตั้งแห่งใหม่"
+                            options={(() => {
                               const currentDeptObj = departments.find(d => d.name === newDepartment);
-                              if (!currentDeptObj || currentDeptObj.locations.length === 0) {
-                                return <option value="">ไม่มีห้องระบุ (โปรดกดพิมพ์กรอกเอง)</option>;
-                              }
-                              return currentDeptObj.locations.map(loc => (
-                                <option key={loc} value={loc}>{loc}</option>
-                              ));
+                              return currentDeptObj ? currentDeptObj.locations : [];
                             })()}
-                          </select>
+                            value={newLocation}
+                            onChange={(val) => setNewLocation(val)}
+                            required
+                            placeholder="เลือกสถานที่ติดตั้ง..."
+                          />
                         </div>
                       </>
                     )}

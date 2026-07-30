@@ -3,6 +3,7 @@ import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Downloa
 import { Asset, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 import { uploadImage } from '../services/dbService';
 import confetti from 'canvas-confetti';
+import { SearchableSelect } from '../components/SearchableSelect';
 
 interface Module3AddAssetProps {
   assets: Asset[];
@@ -867,44 +868,35 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
               </>
             ) : (
               <>
-                <div className="form-group">
-                  <label className="form-label">🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน {currentUser?.role === 'user' && '(ล็อคสิทธิ์ตามหน่วยงานของคุณ)'}</label>
-                  <select 
-                    className="form-select"
-                    value={department}
-                    onChange={handleDepartmentSelectChange}
-                    disabled={currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user'}
-                    required
-                  >
-                    {departments.length === 0 ? (
-                      <option value="">ไม่มีหน่วยงาน (โปรดกดพิมพ์กรอกเอง)</option>
-                    ) : (
-                      departments.map(dept => (
-                        <option key={dept.id} value={dept.name}>{dept.name}</option>
-                      ))
-                    )}
-                  </select>
-                </div>
+                <SearchableSelect
+                  label={`🏢 ฝ่าย/หน่วยงานที่ดูแลทรัพย์สิน ${currentUser?.role === 'user' ? '(ล็อคสิทธิ์ตามหน่วยงานของคุณ)' : ''}`}
+                  options={departments.map(d => d.name)}
+                  value={department}
+                  onChange={(val) => {
+                    setDepartment(val);
+                    const found = departments.find(d => d.name === val);
+                    if (found && found.locations.length > 0) {
+                      setLocation(found.locations[0]);
+                    } else {
+                      setLocation('');
+                    }
+                  }}
+                  disabled={currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user'}
+                  required
+                  placeholder="เลือกหน่วยงาน..."
+                />
 
-                <div className="form-group">
-                  <label className="form-label">📍 สถานที่จัดเก็บ/ติดตั้งเริ่มต้น</label>
-                  <select 
-                    className="form-select"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    required
-                  >
-                    {(() => {
-                      const currentDeptObj = departments.find(d => d.name === department);
-                      if (!currentDeptObj || currentDeptObj.locations.length === 0) {
-                        return <option value="">ไม่มีห้องระบุ (โปรดกดพิมพ์กรอกเอง)</option>;
-                      }
-                      return currentDeptObj.locations.map(loc => (
-                        <option key={loc} value={loc}>{loc}</option>
-                      ));
-                    })()}
-                  </select>
-                </div>
+                <SearchableSelect
+                  label="📍 สถานที่จัดเก็บ/ติดตั้งเริ่มต้น"
+                  options={(() => {
+                    const currentDeptObj = departments.find(d => d.name === department);
+                    return currentDeptObj ? currentDeptObj.locations : [];
+                  })()}
+                  value={location}
+                  onChange={(val) => setLocation(val)}
+                  required
+                  placeholder="เลือกสถานที่ติดตั้ง..."
+                />
               </>
             )}
 
