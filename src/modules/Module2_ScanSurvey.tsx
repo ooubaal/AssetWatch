@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   QrCode, 
   CheckCircle2, 
@@ -22,7 +22,8 @@ import {
   Calendar,
   History,
   FileText,
-  CheckSquare
+  CheckSquare,
+  Search
 } from 'lucide-react';
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -95,6 +96,17 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     }
   }, [currentUser]);
 
+  // Checklist Searching, Filtering, and Sorting States
+  const [checklistSearch, setChecklistSearch] = useState('');
+  const [checklistLocationFilter, setChecklistLocationFilter] = useState('all');
+  const [checklistSortBy, setChecklistSortBy] = useState<'id' | 'name' | 'location'>('location');
+
+  // Reset filter/search on department change
+  useEffect(() => {
+    setChecklistSearch('');
+    setChecklistLocationFilter('all');
+  }, [selectedDept]);
+
   // Extract unique departments for dropdown
   const uniqueDepts = Array.from(new Set(assets.map(a => a.department).filter(Boolean)));
 
@@ -119,16 +131,74 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   };
 
   // Calculate filtered checklist based on selected department
-  const filteredChecklist = assets.filter(asset => {
-    if (selectedDept === 'all') return true;
-    return asset.department === selectedDept;
-  });
+  const filteredChecklist = useMemo(() => {
+    return assets.filter((asset: Asset) => {
+      if (selectedDept === 'all') return true;
+      return asset.department === selectedDept;
+    });
+  }, [assets, selectedDept]);
 
-  const pendingList = filteredChecklist.filter(asset => !isAssetSurveyedInRound(asset.id));
-  const completedList = filteredChecklist.filter(asset => isAssetSurveyedInRound(asset.id));
+  // Unique locations within the selected department (for filter dropdown)
+  const uniqueLocationsInList = useMemo(() => {
+    const locs = filteredChecklist.map((item: Asset) => item.location).filter(Boolean);
+    return Array.from(new Set(locs)).sort();
+  }, [filteredChecklist]);
+
+  // Helper to get survey information for scanned timestamp
+  const getSurveyInfo = (assetId: string) => {
+    if (!activeRound) return null;
+    return surveys.find(s => s.assetId === assetId && s.roundId === activeRound.id);
+  };
+
+  // Filtered and sorted checklist list
+  const processedList = useMemo(() => {
+    let list = [...filteredChecklist];
+
+    // 1. Apply search filter
+    if (checklistSearch.trim()) {
+      const q = checklistSearch.toLowerCase().trim();
+      list = list.filter((item: Asset) => 
+        item.name.toLowerCase().includes(q) || 
+        item.id.toLowerCase().includes(q) || 
+        (item.location && item.location.toLowerCase().includes(q))
+      );
+    }
+
+    // 2. Apply location/room filter
+    if (checklistLocationFilter !== 'all') {
+      list = list.filter((item: Asset) => item.location === checklistLocationFilter);
+    }
+
+    // 3. Apply sorting
+    list.sort((a: Asset, b: Asset) => {
+      if (checklistSortBy === 'location') {
+        const locA = a.location || '';
+        const locB = b.location || '';
+        return locA.localeCompare(locB, 'th');
+      }
+      if (checklistSortBy === 'name') {
+        return a.name.localeCompare(b.name, 'th');
+      }
+      // default: sort by id
+      return a.id.localeCompare(b.id, 'th');
+    });
+
+    return list;
+  }, [filteredChecklist, checklistSearch, checklistLocationFilter, checklistSortBy]);
+
+  const pendingList = useMemo(() => {
+    return processedList.filter((asset: Asset) => !isAssetSurveyedInRound(asset.id));
+  }, [processedList, surveys, activeRound]);
+
+  const completedList = useMemo(() => {
+    return processedList.filter((asset: Asset) => isAssetSurveyedInRound(asset.id));
+  }, [processedList, surveys, activeRound]);
 
   const totalInList = filteredChecklist.length;
-  const surveyedInList = completedList.length;
+  const surveyedInList = useMemo(() => {
+    return filteredChecklist.filter((asset: Asset) => isAssetSurveyedInRound(asset.id)).length;
+  }, [filteredChecklist, surveys, activeRound]);
+
   const progressPercent = totalInList > 0 ? Math.round((surveyedInList / totalInList) * 100) : 0;
 
   // Trigger celebration on 100% completion of selected list!
@@ -383,8 +453,76 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                   className={`checklist-tab-btn ${checklistTab === 'completed' ? 'tab-active' : ''}`}
                   onClick={() => setChecklistTab('completed')}
                 >
-                  🟢 ตรวจแล้ววันนี้ ({completedList.length})
+                  🟢 ตรวจแล้ว ({completedList.length})
                 </button>
+              </div>
+
+              {/* Checklist Search, Filter, Sort Controls */}
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                {/* Search Bar */}
+                <div style={{ position: 'relative', flex: 1.2, minWidth: '130px' }}>
+                  <Search size={13} color="var(--text-muted)" style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    className="form-input"
+                    style={{
+                      width: '100%',
+                      padding: '0.35rem 0.5rem 0.35rem 1.7rem',
+                      fontSize: '0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-secondary)',
+                      height: '32px'
+                    }}
+                    placeholder="ค้นหาชื่อ / รหัสครุภัณฑ์..."
+                    value={checklistSearch}
+                    onChange={(e) => setChecklistSearch(e.target.value)}
+                  />
+                </div>
+
+                {/* Filter by Room / Location */}
+                <div style={{ minWidth: '105px', flex: '0.8' }}>
+                  <select
+                    className="form-select"
+                    style={{
+                      width: '100%',
+                      padding: '0.35rem 0.5rem',
+                      fontSize: '0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-secondary)',
+                      height: '32px',
+                      cursor: 'pointer'
+                    }}
+                    value={checklistLocationFilter}
+                    onChange={(e) => setChecklistLocationFilter(e.target.value)}
+                  >
+                    <option value="all">ทุกห้อง/สถานที่</option>
+                    {uniqueLocationsInList.map((loc: string) => (
+                      <option key={loc} value={loc}>📍 {loc}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Sorting Select */}
+                <div style={{ minWidth: '90px', flex: '0.6' }}>
+                  <select
+                    className="form-select"
+                    style={{
+                      width: '100%',
+                      padding: '0.35rem 0.5rem',
+                      fontSize: '0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-secondary)',
+                      height: '32px',
+                      cursor: 'pointer'
+                    }}
+                    value={checklistSortBy}
+                    onChange={(e) => setChecklistSortBy(e.target.value as any)}
+                  >
+                    <option value="location">เรียง: ห้อง 📍</option>
+                    <option value="id">เรียง: รหัส 🔢</option>
+                    <option value="name">เรียง: ชื่อ 🔤</option>
+                  </select>
+                </div>
               </div>
 
               <div className="checklist-items-scroll">
@@ -393,21 +531,22 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                     <div className="empty-checklist-state">
                       <CheckCircle2 size={36} color="var(--success)" />
                       <h4>สแกนเสร็จสิ้นครบ 100% แล้ว!</h4>
-                      <p>ครุภัณฑ์ทั้งหมดของหน่วยงานนี้ได้รับการยืนยันประวัติเรียบร้อยแล้วในวันนี้</p>
+                      <p>ครุภัณฑ์ทั้งหมดของหน่วยงานนี้ได้รับการยืนยันประวัติเรียบร้อยแล้วในรอบนี้</p>
                     </div>
                   ) : (
-                    pendingList.map(item => (
-                      <div key={item.id} className="checklist-item-row animate-fade-in">
-                        <div className="item-meta">
-                          <code className="item-code">{item.id}</code>
-                          <h4 className="item-title">{item.name}</h4>
-                          <span className="item-loc">📍 {item.location}</span>
+                    pendingList.map((item: Asset) => (
+                      <div key={item.id} className="checklist-item-row animate-fade-in" style={{ padding: '0.5rem 0.75rem' }}>
+                        <div className="item-meta" style={{ maxWidth: '70%' }}>
+                          <code className="item-code" style={{ fontSize: '0.65rem' }}>{item.id}</code>
+                          <h4 className="item-title" style={{ fontSize: '0.8rem', margin: '0.1rem 0' }}>{item.name}</h4>
+                          <span className="item-loc" style={{ fontSize: '0.675rem' }}>📍 {item.location}</span>
                         </div>
                         <button 
                           type="button"
                           className="btn btn-secondary btn-xs btn-quick-survey"
                           onClick={() => handleManualCountSelect(item)}
                           title="กดเพื่อตรวจนับพัสดุชิ้นนี้ทันทีโดยไม่ต้องสแกนบาร์โค้ด"
+                          style={{ fontSize: '0.65rem', padding: '0.2rem 0.4rem' }}
                         >
                           ตรวจนับด้วยมือ <ChevronRight size={12} />
                         </button>
@@ -418,22 +557,40 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                   completedList.length === 0 ? (
                     <div className="empty-checklist-state">
                       <Clock size={36} color="var(--text-muted)" />
-                      <h4>ยังไม่มีการตรวจนับวันนี้</h4>
-                      <p>หันกล้องมือถือไปสแกนป้ายบาร์โค้ด หรือกดสแกนด้วยมือข้างลิสต์เพื่อทำรายการตรวจรับชิ้นแรก</p>
+                      <h4>ยังไม่มีการตรวจนับครุภัณฑ์</h4>
+                      <p>สแกนป้ายบาร์โค้ด หรือกดสแกนด้วยมือข้างลิสต์เพื่อทำรายการตรวจรับชิ้นแรก</p>
                     </div>
                   ) : (
-                    completedList.map(item => (
-                      <div key={item.id} className="checklist-item-row item-row-completed animate-fade-in">
-                        <div className="item-meta">
-                          <code className="item-code">{item.id}</code>
-                          <h4 className="item-title" style={{ textDecoration: 'line-through', color: 'var(--text-muted)' }}>{item.name}</h4>
-                          <span className="item-loc" style={{ color: 'var(--text-muted)' }}>📍 {item.location}</span>
+                    completedList.map((item: Asset) => {
+                      const survey = getSurveyInfo(item.id);
+                      const timeStr = survey ? new Date(survey.timestamp).toLocaleString('th-TH', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) + ' น.' : '';
+
+                      return (
+                        <div key={item.id} className="checklist-item-row item-row-completed animate-fade-in" style={{ padding: '0.5rem 0.75rem' }}>
+                          <div className="item-meta" style={{ maxWidth: '70%' }}>
+                            <code className="item-code" style={{ fontSize: '0.65rem' }}>{item.id}</code>
+                            <h4 className="item-title" style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.1rem 0' }}>{item.name}</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                              <span className="item-loc" style={{ color: 'var(--text-muted)', fontSize: '0.675rem' }}>📍 {item.location}</span>
+                              {timeStr && (
+                                <span style={{ color: 'var(--success)', fontSize: '0.625rem', fontWeight: 600 }}>
+                                  ⏱️ สแกนเมื่อ: {timeStr}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="badge badge-success check-mark-completed" style={{ fontSize: '0.65rem', padding: '0.2rem 0.4rem' }}>
+                            ✓ เช็คแล้ว ({item.status})
+                          </span>
                         </div>
-                        <span className="badge badge-success check-mark-completed">
-                          ✓ เช็คแล้ว ({item.status})
-                        </span>
-                      </div>
-                    ))
+                      );
+                    })
                   )
                 )}
               </div>
@@ -1184,8 +1341,22 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           padding: 1.25rem;
           display: flex;
           flex-direction: column;
-          max-height: 400px;
-          height: 100%;
+          height: 440px; /* Fixed height for exact visual alignment */
+          box-sizing: border-box;
+        }
+
+        .scan-frame {
+          height: 440px; /* Matching height */
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          box-sizing: border-box;
+        }
+
+        .scan-frame .video-container {
+          aspect-ratio: auto !important; /* Forces scanner to fill height stretch */
+          flex: 1 !important;
+          height: auto !important;
         }
 
         .checklist-header-tabs {
@@ -1340,12 +1511,15 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         }
 
         .scan-placeholder {
-          padding: 4rem 2rem;
+          height: 440px; /* Matching height */
+          padding: 2rem;
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
           gap: 1rem;
           text-align: center;
+          box-sizing: border-box;
         }
 
         .scanned-code-pill {
