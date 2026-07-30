@@ -210,25 +210,63 @@ export const uploadImage = async (file: File, path: string = 'assets'): Promise<
 // --- ASSET SERVICES ---
 // Helper to ensure all Blood Bag assets from PDF are synced into LocalStorage and Firestore
 const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: any): Promise<Asset[]> => {
-  const existingIdSet = new Set(assetsList.map(a => a.id));
+  // Normalize all incoming assets in the list first
+  let listHasChanged = false;
+  const normalizedList = assetsList.map(a => {
+    let changed = false;
+    let dept = a.department;
+    let resp = a.responsiblePerson;
+    
+    // Normalize both variants of the department name to the correct longer name
+    if (dept === "ฝ่ายผลิตถุงบรรจุโลหิต" || dept === "ฝ่ายผลิตถุงบรรจุโลหิต ") {
+      dept = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา";
+      changed = true;
+    }
+    if (resp === "ฝ่ายผลิตถุงบรรจุโลหิต" || resp === "ฝ่ายผลิตถุงบรรจุโลหิต ") {
+      resp = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา";
+      changed = true;
+    }
+    
+    if (changed) {
+      listHasChanged = true;
+      return { ...a, department: dept, responsiblePerson: resp };
+    }
+    return a;
+  });
+
+  const existingIdSet = new Set(normalizedList.map(a => a.id));
   const missingAssets = BLOOD_BAG_ASSETS.filter(a => !existingIdSet.has(a.id));
 
-  if (missingAssets.length === 0) return assetsList;
+  let updatedList = normalizedList;
+  if (missingAssets.length > 0) {
+    console.log(`Syncing ${missingAssets.length} missing Blood Bag assets...`);
+    updatedList = [...normalizedList, ...missingAssets];
+    listHasChanged = true;
+  }
 
-  console.log(`Syncing ${missingAssets.length} missing Blood Bag assets...`);
-  const updatedList = [...assetsList, ...missingAssets];
+  if (listHasChanged) {
+    localStorage.setItem('assetwatch_assets', JSON.stringify(updatedList));
 
-  // Update LocalStorage
-  localStorage.setItem('assetwatch_assets', JSON.stringify(updatedList));
+    if (isFirebase && db) {
+      try {
+        // Also update any normalized/migrated/missing assets in Firestore
+        const changedAssets = updatedList.filter(a => {
+          const original = assetsList.find(orig => orig.id === a.id);
+          // Update in Firestore if it was missing or had the old value
+          return !original || 
+                 original.department === "ฝ่ายผลิตถุงบรรจุโลหิต" || 
+                 original.department === "ฝ่ายผลิตถุงบรรจุโลหิต " ||
+                 original.responsiblePerson === "ฝ่ายผลิตถุงบรรจุโลหิต" ||
+                 original.responsiblePerson === "ฝ่ายผลิตถุงบรรจุโลหิต ";
+        });
 
-  // Update Firestore if online
-  if (isFirebase && db) {
-    try {
-      for (const asset of missingAssets) {
-        await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
+        for (const asset of changedAssets) {
+          await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
+        }
+        console.log(`Successfully migrated/synced ${changedAssets.length} assets to Firestore.`);
+      } catch (e) {
+        console.error('Failed to sync migrated/missing assets to Firestore:', e);
       }
-    } catch (e) {
-      console.error('Failed to sync missing Blood Bag assets to Firestore:', e);
     }
   }
 

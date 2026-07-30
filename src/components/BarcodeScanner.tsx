@@ -1,15 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { Camera, AlertTriangle, Keyboard, RefreshCw } from 'lucide-react';
+import { Camera, AlertTriangle, Keyboard, RefreshCw, VideoOff } from 'lucide-react';
 
 interface BarcodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
   onScanFailure?: (error: string) => void;
+  onCloseCamera?: () => void;
 }
 
 export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ 
   onScanSuccess, 
-  onScanFailure 
+  onScanFailure,
+  onCloseCamera
 }) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [fallbackMode, setFallbackMode] = useState<boolean>(false);
@@ -200,6 +202,17 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           >
             <Keyboard size={16} color="#ffffff" />
           </button>
+          {onCloseCamera && (
+            <button 
+              type="button" 
+              className="scanner-control-btn btn-close-cam"
+              onClick={onCloseCamera}
+              title="ปิดกล้องสแกนเนอร์"
+              style={{ background: 'rgba(239, 68, 68, 0.2)' }}
+            >
+              <VideoOff size={16} color="#ef4444" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -310,6 +323,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         /* Target Reticle Styles */
         .scanner-overlay-aim {
           position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
           width: 75%;
           height: 40%;
           border: 1px dashed rgba(255, 255, 255, 0.3);

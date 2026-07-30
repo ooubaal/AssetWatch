@@ -89,10 +89,18 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [roundHistoryTab, setRoundHistoryTab] = useState<'active' | 'history'>('active');
   const [selectedRoundDept, setSelectedRoundDept] = useState('all');
 
-  // Lock selectedRoundDept to operator's department on load
+  const [isCameraActive, setIsCameraActive] = useState(true);
+
+  // Lock selectedDept and selectedRoundDept on currentUser load (for user, operator, and head roles)
   useEffect(() => {
-    if (currentUser?.role === 'user') {
-      setSelectedRoundDept(currentUser.department);
+    if (currentUser) {
+      if (currentUser.role === 'user' || currentUser.role === 'operator' || currentUser.role === 'head') {
+        setSelectedDept(currentUser.department);
+        setSelectedRoundDept(currentUser.department);
+      } else {
+        const savedDept = localStorage.getItem('assetwatch_selected_dept') || 'all';
+        setSelectedDept(savedDept);
+      }
     }
   }, [currentUser]);
 
@@ -369,11 +377,18 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
             className="form-select select-survey-target"
             value={selectedDept}
             onChange={handleDeptChange}
+            disabled={currentUser?.role === 'user' || currentUser?.role === 'operator' || currentUser?.role === 'head'}
           >
-            <option value="all">ทุกหน่วยงาน (ครุภัณฑ์ทั้งหมดในคลัง)</option>
-            {uniqueDepts.map(dept => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
+            {!(currentUser?.role === 'user' || currentUser?.role === 'operator' || currentUser?.role === 'head') && (
+              <option value="all">ทุกหน่วยงาน (ครุภัณฑ์ทั้งหมดในคลัง)</option>
+            )}
+            {currentUser?.role === 'user' || currentUser?.role === 'operator' || currentUser?.role === 'head' ? (
+              <option value={currentUser.department}>{currentUser.department}</option>
+            ) : (
+              uniqueDepts.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))
+            )}
           </select>
         </div>
       </div>
@@ -409,9 +424,30 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         {/* Left Column: Barcode scanner camera */}
         <div className="scanner-column">
           {isNewScanNeeded ? (
-            <div className="scan-frame glass-panel">
-              <BarcodeScanner onScanSuccess={handleScanSuccess} />
-            </div>
+            isCameraActive ? (
+              <div className="scan-frame glass-panel">
+                <BarcodeScanner 
+                  onScanSuccess={handleScanSuccess} 
+                  onCloseCamera={() => setIsCameraActive(false)}
+                />
+              </div>
+            ) : (
+              <div className="scan-placeholder glass-panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '0.85rem' }}>
+                <Camera size={44} color="var(--text-muted)" style={{ opacity: 0.6 }} />
+                <h3>กล้องสแกนเนอร์ปิดทำงานอยู่</h3>
+                <p style={{ maxWidth: '280px', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', lineHeight: 1.4 }}>
+                  สแตนด์บายกล้องปิดไว้ชั่วคราวเพื่อประหยัดแบตเตอรี่และความเป็นส่วนตัว คุณสามารถเปิดกล้องเมื่อพร้อมเดินสายสแกนบาร์โค้ดครุภัณฑ์
+                </p>
+                <button 
+                  type="button" 
+                  className="btn btn-primary animate-pulse" 
+                  onClick={() => setIsCameraActive(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem' }}
+                >
+                  <Camera size={14} /> 📸 เปิดใช้งานกล้องตรวจนับ
+                </button>
+              </div>
+            )
           ) : (
             <div className="scan-placeholder glass-panel">
               <CheckCircle2 size={48} color="var(--success)" className="success-bounce" />
@@ -753,11 +789,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 className="form-select select-survey-target" 
                 value={selectedRoundDept} 
                 onChange={(e) => setSelectedRoundDept(e.target.value)}
-                disabled={currentUser?.role === 'user'}
+                disabled={currentUser?.role === 'user' || currentUser?.role === 'operator' || currentUser?.role === 'head'}
                 style={{ padding: '0.15rem 1.5rem 0.15rem 0.35rem', fontSize: '0.75rem', border: 'none', background: 'transparent', width: 'auto', fontWeight: 'bold', color: 'var(--primary)', height: 'auto', outline: 'none', boxShadow: 'none' }}
               >
-                {currentUser?.role !== 'user' && <option value="all">ทุกหน่วยงาน</option>}
-                {currentUser?.role === 'user' ? (
+                {!(currentUser?.role === 'user' || currentUser?.role === 'operator' || currentUser?.role === 'head') && (
+                  <option value="all">ทุกหน่วยงาน</option>
+                )}
+                {currentUser?.role === 'user' || currentUser?.role === 'operator' || currentUser?.role === 'head' ? (
                   <option value={currentUser.department}>{currentUser.department}</option>
                 ) : (
                   uniqueDepts.map(dept => (
@@ -929,6 +967,54 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                       })}
                     </div>
                   </div>
+
+                  {/* If selectedRoundDept is 'all' and user is admin/manager, show side-by-side department breakdown */}
+                  {selectedRoundDept === 'all' && (currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                    <div style={{ flex: 1.2, minWidth: '320px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '1.25rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <ClipboardList size={16} color="var(--primary)" />
+                        📊 ความก้าวหน้าแยกรายฝ่าย/หน่วยงาน
+                      </h4>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '220px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                        {uniqueDepts.map(dept => {
+                          const deptAssets = assets.filter(a => a.department === dept);
+                          const deptSurveys = surveys.filter(s => {
+                            if (s.roundId !== activeRound.id) return false;
+                            const asset = assets.find(a => a.id === s.assetId);
+                            return asset?.department === dept;
+                          });
+                          const total = deptAssets.length;
+                          const completed = deptSurveys.length;
+                          const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+                          
+                          return (
+                            <div key={dept} style={{ background: 'var(--bg-primary)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 750, color: 'var(--text-primary)' }}>{dept}</span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 850, color: rate === 100 ? 'var(--success)' : 'var(--primary)' }}>{rate}%</span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.675rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                                <span>เช็คแล้ว {completed} จาก {total} ชิ้น</span>
+                                <span>{total - completed} ชิ้นค้างตรวจ</span>
+                              </div>
+                              <div className="progress-bar-bg" style={{ height: '6px', background: 'var(--bg-secondary)' }}>
+                                <div 
+                                  className="progress-bar-fill"
+                                  style={{ 
+                                    width: `${rate}%`, 
+                                    height: '100%', 
+                                    borderRadius: 'inherit',
+                                    background: rate === 100 ? 'var(--success)' : 'var(--primary)'
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })() : (
