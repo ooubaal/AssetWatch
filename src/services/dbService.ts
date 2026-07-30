@@ -513,49 +513,56 @@ export const addAuditTrail = async (trail: Omit<AuditTrail, 'id'>): Promise<void
 
 // --- SURVEY SERVICES ---
 export const getSurveys = async (): Promise<SurveyRecord[]> => {
+  // Read local cache first
+  initLocalStorageIfNeeded();
+  const localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
+
   const { isFirebase, db } = getServices();
-  
   if (isFirebase && db) {
     try {
-      const q = query(collection(db, 'surveys'), orderBy('timestamp', 'desc'));
+      const q = query(collection(db, 'surveys'));
       const snapshot = await getDocs(q);
-      const list: SurveyRecord[] = [];
+      const fbList: SurveyRecord[] = [];
       snapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as SurveyRecord);
+        fbList.push({ id: doc.id, ...doc.data() } as SurveyRecord);
       });
-      return list;
+
+      // Merge local and remote avoiding duplicates
+      const mergedMap = new Map<string, SurveyRecord>();
+      localSurveys.forEach(s => mergedMap.set(s.id, s));
+      fbList.forEach(s => mergedMap.set(s.id, s));
+      
+      const mergedList = Array.from(mergedMap.values());
+      localStorage.setItem('assetwatch_surveys', JSON.stringify(mergedList));
+      return mergedList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     } catch (e) {
-      console.error('Firebase getSurveys failed, falling back to localStorage:', e);
+      console.error('Firebase getSurveys failed, returning local cache:', e);
     }
   }
 
-  // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const surveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
-  return surveys.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return localSurveys.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
 export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void> => {
   const id = `survey-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const fullSurvey: SurveyRecord = { id, ...survey };
   
+  // 1. Always write to local storage first as a secure offline cache
+  initLocalStorageIfNeeded();
+  const localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
+  localSurveys.push(fullSurvey);
+  localStorage.setItem('assetwatch_surveys', JSON.stringify(localSurveys));
+
+  // 2. Then try to sync to Firebase Firestore
   const { isFirebase, db } = getServices();
-  
   if (isFirebase && db) {
     try {
       const docRef = doc(db, 'surveys', id);
       await setDoc(docRef, fullSurvey);
-      return;
     } catch (e) {
-      console.error('Firebase addSurvey failed, falling back to localStorage:', e);
+      console.error('Firebase addSurvey failed, but saved locally:', e);
     }
   }
-
-  // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const surveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
-  surveys.push(fullSurvey);
-  localStorage.setItem('assetwatch_surveys', JSON.stringify(surveys));
 };
 
 // --- REPAIR SERVICES ---
