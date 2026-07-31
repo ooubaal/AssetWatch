@@ -1922,7 +1922,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       {/* --- MODAL 1: PM RECORDING FORM --- */}
       {isPMFormOpen && selectedSchedule && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
           <form onSubmit={handlePMSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '580px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem', flexShrink: 0 }}>
@@ -2071,7 +2071,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       {/* --- MODAL 2: A4 PM REPORT PRINT PREVIEW --- */}
       {isPrintReportOpen && selectedSchedule && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
           
           <div className="print-actions-bar glass-panel" style={{ maxWidth: '800px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
             <div>
