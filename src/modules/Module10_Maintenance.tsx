@@ -52,11 +52,19 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth()); // 0-indexed
 
-  // Search & Filter States
-  const [searchTerm, setSearchTerm] = useState('');
+  // Role permission helpers
+  const isOrgWideUser = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+
   const [selectedDeptFilter, setSelectedDeptFilter] = useState(() => {
-    return (currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') ? currentUser.department : 'all';
+    return isOrgWideUser ? 'all' : (currentUser?.department || 'all');
   });
+
+  // Lock department filter for Head and Operator roles
+  useEffect(() => {
+    if (!isOrgWideUser && currentUser?.department) {
+      setSelectedDeptFilter(currentUser.department);
+    }
+  }, [currentUser, isOrgWideUser]);
 
   // Modal Dialog states
   const [selectedSchedule, setSelectedSchedule] = useState<PMSchedule | null>(null);
@@ -116,6 +124,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
   // Asset-Based PM Tab States
   const [assetPMSearch, setAssetPMSearch] = useState('');
+  const [cmRepairSearch, setCmRepairSearch] = useState('');
   const [assetPMTypeFilter, setAssetPMTypeFilter] = useState<'all' | 'has_plan' | 'no_plan' | 'outsource' | 'internal'>('all');
   
   // Logbook Modal States
@@ -1133,16 +1142,18 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                 className="form-select filter-select"
                 value={selectedDeptFilter}
                 onChange={(e) => setSelectedDeptFilter(e.target.value)}
-                disabled={currentUser?.role === 'user'}
-                style={{ minWidth: '180px' }}
+                disabled={!isOrgWideUser}
+                style={{ minWidth: '200px' }}
               >
-                {currentUser?.role !== 'user' && <option value="all">ทุกแผนก</option>}
-                {currentUser?.role === 'user' ? (
-                  <option value={currentUser.department}>{currentUser.department}</option>
+                {isOrgWideUser ? (
+                  <>
+                    <option value="all">🌐 ทุกหน่วยงาน (ภาพรวมทั้งองค์กร)</option>
+                    {Array.from(new Set(assets.map(a => a.department).filter(Boolean))).map(dept => (
+                      <option key={dept} value={dept}>🏢 ฝ่าย: {dept}</option>
+                    ))}
+                  </>
                 ) : (
-                  Array.from(new Set(assets.map(a => a.department).filter(Boolean))).map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))
+                  <option value={currentUser?.department}>🏢 เฉพาะหน่วยงาน: {currentUser?.department}</option>
                 )}
               </select>
             </div>
@@ -1354,6 +1365,29 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                     ✕
                   </button>
                 )}
+              </div>
+
+              {/* Department Filter Dropdown */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Building size={16} color="var(--text-muted)" />
+                <select 
+                  className="form-select filter-select"
+                  value={selectedDeptFilter}
+                  onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                  disabled={!isOrgWideUser}
+                  style={{ height: '38px', fontSize: '0.85rem', minWidth: '180px' }}
+                >
+                  {isOrgWideUser ? (
+                    <>
+                      <option value="all">🌐 ทุกหน่วยงาน (ภาพรวมทั้งองค์กร)</option>
+                      {Array.from(new Set(assets.map(a => a.department).filter(Boolean))).map(dept => (
+                        <option key={dept} value={dept}>🏢 ฝ่าย: {dept}</option>
+                      ))}
+                    </>
+                  ) : (
+                    <option value={currentUser?.department}>🏢 เฉพาะหน่วยงาน: {currentUser?.department}</option>
+                  )}
+                </select>
               </div>
 
               {/* Status Filter */}
@@ -1677,17 +1711,39 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
             </button>
           </div>
 
-          {/* Search box */}
-          <div className="filter-panel glass-panel" style={{ padding: '0.75rem 1rem' }}>
-            <div className="search-box" style={{ minWidth: '100%' }}>
+          {/* Search & Filter Toolbar */}
+          <div className="filter-panel glass-panel" style={{ padding: '0.75rem 1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="search-box" style={{ flex: '1 1 300px' }}>
               <Search size={18} className="search-icon" />
               <input 
                 type="text" 
                 placeholder="สืบค้นรหัสครุภัณฑ์ หรืออาการเสียใน CM Logs..." 
                 className="form-input search-input"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={cmRepairSearch}
+                onChange={(e) => setCmRepairSearch(e.target.value)}
               />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Building size={16} color="var(--text-muted)" />
+              <select 
+                className="form-select filter-select"
+                value={selectedDeptFilter}
+                onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                disabled={!isOrgWideUser}
+                style={{ height: '38px', fontSize: '0.85rem', minWidth: '200px' }}
+              >
+                {isOrgWideUser ? (
+                  <>
+                    <option value="all">🌐 ทุกหน่วยงาน (ภาพรวมทั้งองค์กร)</option>
+                    {Array.from(new Set(assets.map(a => a.department).filter(Boolean))).map(dept => (
+                      <option key={dept} value={dept}>🏢 ฝ่าย: {dept}</option>
+                    ))}
+                  </>
+                ) : (
+                  <option value={currentUser?.department}>🏢 เฉพาะหน่วยงาน: {currentUser?.department}</option>
+                )}
+              </select>
             </div>
           </div>
 
@@ -1708,9 +1764,11 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               <tbody>
                 {(() => {
                   const filteredCM = repairs.filter(r => {
-                    const matchesSearch = r.assetId.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                          r.assetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                          r.symptom.toLowerCase().includes(searchTerm.toLowerCase());
+                    const q = cmRepairSearch.toLowerCase().trim();
+                    const matchesSearch = !q || 
+                                          r.assetId.toLowerCase().includes(q) || 
+                                          r.assetName.toLowerCase().includes(q) ||
+                                          r.symptom.toLowerCase().includes(q);
                     
                     const asset = assets.find(a => a.id === r.assetId);
                     const matchesDept = selectedDeptFilter === 'all' || (asset && asset.department === selectedDeptFilter);

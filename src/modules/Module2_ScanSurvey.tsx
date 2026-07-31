@@ -2084,6 +2084,19 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         @media (max-width: 768px) {
           .survey-layout-grid {
             grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+          .scan-frame {
+            height: 380px;
+          }
+          .scan-placeholder {
+            height: auto;
+            min-height: 280px;
+            padding: 1.5rem 1rem;
+          }
+          .checklist-board-card {
+            height: 420px;
+            padding: 1rem;
           }
           .operator-card {
             flex-direction: column;
