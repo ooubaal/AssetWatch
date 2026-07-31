@@ -545,6 +545,10 @@ export const AssetModal: React.FC<AssetModalProps> = ({
           align-items: flex-start;
           justify-content: space-between;
           background-color: var(--bg-secondary);
+          position: sticky;
+          top: 0;
+          z-index: 10;
+          flex-shrink: 0;
         }
 
         .modal-title-group {
@@ -590,6 +594,10 @@ export const AssetModal: React.FC<AssetModalProps> = ({
           padding: 0 1rem;
           overflow-x: auto;
           gap: 0.5rem;
+          position: sticky;
+          top: 0;
+          z-index: 9;
+          flex-shrink: 0;
         }
 
         .modal-tab-btn {
