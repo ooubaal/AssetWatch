@@ -44,6 +44,61 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     }
   }, [currentUser, isOrgWide, userDept]);
 
+  // Export to Excel / CSV (supports UTF-8 with BOM for Excel & Google Sheets)
+  const handleExportExcel = () => {
+    if (filteredAssets.length === 0) {
+      alert('ไม่พบข้อมูลครุภัณฑ์สำหรับส่งออกรายงาน');
+      return;
+    }
+
+    const headers = [
+      'ลำดับ',
+      'รหัสครุภัณฑ์',
+      'ชื่อรายการครุภัณฑ์',
+      'สถานะ',
+      'หน่วยงาน/ฝ่าย',
+      'สถานที่จัดเก็บ/ห้อง',
+      'ผู้รับผิดชอบ',
+      'ที่มา/งบประมาณ',
+      'วันที่รับเข้า',
+      'หมายเหตุ',
+      'ผู้ลงทะเบียน'
+    ];
+
+    const rows = filteredAssets.map((asset, idx) => [
+      idx + 1,
+      `"${asset.id.replace(/"/g, '""')}"`,
+      `"${(asset.name || '').replace(/"/g, '""')}"`,
+      `"${(asset.status || '').replace(/"/g, '""')}"`,
+      `"${(asset.department || '').replace(/"/g, '""')}"`,
+      `"${(asset.location || '').replace(/"/g, '""')}"`,
+      `"${(asset.responsiblePerson || '').replace(/"/g, '""')}"`,
+      `"${(asset.source || '').replace(/"/g, '""')}"`,
+      `"${(asset.receivedDate || '').replace(/"/g, '""')}"`,
+      `"${(asset.note || '').replace(/"/g, '""')}"`,
+      `"${(asset.createdBy || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\r\n');
+
+    // UTF-8 BOM byte sequence (\uFEFF) ensures Thai characters render properly in Excel & Google Sheets
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    const scopeLabel = isOrgWide ? (deptFilter ? deptFilter : 'ทั้งองค์กร') : userDept;
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.setAttribute('download', `รายงานบัญชีครุภัณฑ์_${scopeLabel}_${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Extract unique departments & locations for filter dropdowns
   const uniqueDepts = Array.from(new Set(assets.map(a => a.department).filter(Boolean)));
 
@@ -149,6 +204,16 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
               )}
             </select>
           </div>
+
+          <button 
+            type="button" 
+            className="btn btn-secondary"
+            onClick={handleExportExcel}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', color: '#10b981', borderColor: '#10b981' }}
+            title="ส่งออกรายงานเป็นไฟล์ Excel / Spreadsheet (CSV)"
+          >
+            <FileSpreadsheet size={15} /> Export Excel / Sheet
+          </button>
 
           <button 
             type="button" 
@@ -527,6 +592,14 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
             </div>
 
             <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                type="button" 
+                className="btn btn-success"
+                onClick={handleExportExcel}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#10b981', borderColor: '#10b981', color: '#fff' }}
+              >
+                <FileSpreadsheet size={16} /> ส่งออก Excel / Sheet
+              </button>
               <button 
                 type="button" 
                 className="btn btn-primary"
