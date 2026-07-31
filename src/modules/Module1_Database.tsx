@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet } from 'lucide-react';
+import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet, QrCode, Camera } from 'lucide-react';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
+import { BarcodeScanner } from '../components/BarcodeScanner';
 
 interface Module1DatabaseProps {
   assets: Asset[];
@@ -30,8 +31,9 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   // Selected asset for viewing details in modal
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   
-  // State for Report Print Modal
+  // State for Report Print Modal & Scanner Modal
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   // Role permissions check
   const isOrgWide = currentUser?.role === 'admin' || currentUser?.role === 'manager';
@@ -156,7 +158,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
 
       {/* Filter and search panel */}
       <div className="filter-panel glass-panel">
-        <div className="search-box">
+        <div className="search-box" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <Search size={18} className="search-icon" />
           <input 
             type="text" 
@@ -164,7 +166,32 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
             className="form-input search-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ paddingRight: '2.5rem' }}
           />
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setIsScannerOpen(true)}
+            title="เปิดกล้องสแกนบาร์โค้ด/QR Code รหัสครุภัณฑ์"
+            style={{
+              position: 'absolute',
+              right: '0.35rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              padding: '0.35rem 0.5rem',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--primary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              background: 'rgba(59, 130, 246, 0.1)',
+              border: '1px solid rgba(59, 130, 246, 0.2)'
+            }}
+          >
+            <QrCode size={15} /> สแกน
+          </button>
         </div>
 
         <div className="filter-dropdowns">
@@ -678,6 +705,83 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                 <p style={{ marginTop: '0.25rem' }}>(....................................................)</p>
                 <p style={{ color: '#555', fontSize: '0.8rem' }}>หัวหน้างาน / ผู้รับรองรายงาน</p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CAMERA BARCODE / QR SCANNER MODAL */}
+      {isScannerOpen && (
+        <div 
+          className="modal-overlay animate-fade-in" 
+          style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            width: '100%', 
+            height: '100%', 
+            background: 'rgba(0,0,0,0.85)', 
+            zIndex: 99999, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '1rem' 
+          }}
+        >
+          <div 
+            className="glass-panel animate-scale-up" 
+            style={{ 
+              maxWidth: '500px', 
+              width: '100%', 
+              padding: '1.25rem', 
+              borderRadius: 'var(--radius-lg)', 
+              background: 'var(--bg-secondary)', 
+              border: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h4 style={{ fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                <Camera size={18} color="var(--primary)" /> สแกนป้ายรหัสครุภัณฑ์
+              </h4>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm" 
+                onClick={() => setIsScannerOpen(false)}
+                style={{ padding: '0.25rem 0.5rem' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+              <BarcodeScanner 
+                onScanSuccess={(decodedText) => {
+                  const cleanedCode = decodedText.trim();
+                  setSearchTerm(cleanedCode);
+                  setIsScannerOpen(false);
+
+                  // If exact asset match found, auto open asset detail modal
+                  const matchedAsset = assets.find(a => a.id.toLowerCase() === cleanedCode.toLowerCase());
+                  if (matchedAsset) {
+                    setSelectedAsset(matchedAsset);
+                  }
+                }}
+                onCloseCamera={() => setIsScannerOpen(false)}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <span>📷 ส่องกล้องไปที่ป้ายบาร์โค้ด หรือ QR Code</span>
+              <button 
+                type="button" 
+                className="btn btn-secondary btn-sm" 
+                onClick={() => setIsScannerOpen(false)}
+              >
+                ปิดกล้อง
+              </button>
             </div>
           </div>
         </div>
