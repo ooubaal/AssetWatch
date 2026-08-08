@@ -217,6 +217,11 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [cmSavingDetail, setCmSavingDetail] = useState<boolean>(false);
   const [isCMPrintReportOpen, setIsCMPrintReportOpen] = useState(false);
 
+  // Universal Media / PDF Fullscreen Lightbox Viewer States
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxTitle, setLightboxTitle] = useState<string>('');
+  const [lightboxZoom, setLightboxZoom] = useState<number>(1);
+
   // Reschedule (change planned date) states
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<PMSchedule | null>(null);
@@ -980,6 +985,25 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     } finally {
       setSubmittingReceive(false);
     }
+  };
+
+  // Universal Lightbox Open & Download Helpers
+  const handleOpenLightbox = (url: string, title?: string) => {
+    if (!url) return;
+    setLightboxUrl(url);
+    setLightboxTitle(title || 'ไฟล์เอกสาร / รูปภาพหลักฐาน');
+    setLightboxZoom(1);
+  };
+
+  const handleDownloadLightbox = () => {
+    if (!lightboxUrl) return;
+    const a = document.createElement('a');
+    a.href = lightboxUrl;
+    const isPdf = lightboxUrl.toLowerCase().includes('application/pdf') || lightboxUrl.toLowerCase().endsWith('.pdf') || lightboxUrl.startsWith('data:application/pdf');
+    a.download = `AssetWatch_${(lightboxTitle || 'file').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F]/g, '_')}_${new Date().toISOString().split('T')[0]}.${isPdf ? 'pdf' : 'jpg'}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   // Open CM Details & Edit modal
@@ -2185,13 +2209,40 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                         <div style={{ wordBreak: 'break-word' }}>{r.assetName}</div>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                           <span style={{ lineHeight: '1.35', fontSize: '0.775rem' }}>{r.symptom}</span>
-                          {r.symptomImageUrl && (
-                            <a href={r.symptomImageUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.725rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 550, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                              🖼️ ดูรูปถ่ายอาการเสีย
-                            </a>
-                          )}
+                          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                            {r.symptomImageUrl && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenLightbox(r.symptomImageUrl!, `รูปถ่ายอาการเสีย - ${r.assetName}`)}
+                                style={{ fontSize: '0.7rem', color: 'var(--primary)', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '3px', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600 }}
+                                title="คลิกเพื่อเปิดดูรูปถ่ายอาการเสียขนาดเต็ม HD"
+                              >
+                                🖼️ รูปอาการเสีย (HD)
+                              </button>
+                            )}
+                            {r.sentProofUrl && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenLightbox(r.sentProofUrl!, `หลักฐานการนำส่งช่าง - ${r.assetName}`)}
+                                style={{ fontSize: '0.7rem', color: 'var(--warning)', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '3px', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600 }}
+                                title="คลิกเพื่อเปิดดูหลักฐานนำส่งช่าง"
+                              >
+                                🚚 รูปส่งช่าง (HD)
+                              </button>
+                            )}
+                            {r.receivedProofUrl && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenLightbox(r.receivedProofUrl!, `หลักฐานการตรวจรับของคืน - ${r.assetName}`)}
+                                style={{ fontSize: '0.7rem', color: 'var(--success)', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '3px', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600 }}
+                                title="คลิกเพื่อเปิดดูหลักฐานตรวจรับของคืน"
+                              >
+                                ✅ รูปตรวจรับคืน (HD)
+                              </button>
+                            )}
+                          </div>
                           {r.dateSent && (
                             <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                               🚚 ร้านซ่อม: {r.repairCompany} {r.contactPerson ? `(โทร: ${r.contactPerson})` : ''}
@@ -3634,9 +3685,15 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                                 </td>
                                 <td style={{ padding: '0.4rem' }}>
                                   {sched.proofImageUrl ? (
-                                    <a href={sched.proofImageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>
-                                      📷 ดูรูปภาพ
-                                    </a>
+                                    <button 
+                                      type="button"
+                                      onClick={() => handleOpenLightbox(sched.proofImageUrl!, `รูปภาพหลักฐาน PM - ${selectedLogbookAsset?.name || sched.assetName}`)}
+                                      className="btn btn-ghost btn-xs"
+                                      style={{ color: 'var(--primary)', border: '1px solid var(--border)', padding: '0.15rem 0.4rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: 'var(--bg-primary)' }}
+                                      title="คลิกเพื่อเปิดดูรูปภาพหรือไฟล์ PDF ขนาดเต็ม HD"
+                                    >
+                                      📷 ดูรูปภาพ / PDF
+                                    </button>
                                   ) : '-'}
                                 </td>
                                 <td style={{ padding: '0.4rem', textAlign: 'center' }}>
@@ -3800,10 +3857,25 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.825rem', lineHeight: '1.45' }}>{selectedCMDetailCase.symptom}</p>
                 {selectedCMDetailCase.symptomImageUrl && (
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <a href={selectedCMDetailCase.symptomImageUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                      🖼️ ดูรูปถ่ายอาการชำรุดต้นฉบับ
-                    </a>
+                  <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div 
+                      onClick={() => handleOpenLightbox(selectedCMDetailCase.symptomImageUrl!, `รูปถ่ายอาการชำรุด - ${selectedCMDetailCase.assetName}`)}
+                      style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
+                      title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
+                    >
+                      <img src={selectedCMDetailCase.symptomImageUrl} alt="Symptom" style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
+                        🔍 ซูมดูรูป
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => handleOpenLightbox(selectedCMDetailCase.symptomImageUrl!, `รูปถ่ายอาการชำรุด - ${selectedCMDetailCase.assetName}`)}
+                      style={{ fontSize: '0.75rem', color: 'var(--primary)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem' }}
+                    >
+                      🖼️ ดูรูปถ่ายอาการชำรุด (HD)
+                    </button>
                   </div>
                 )}
               </div>
@@ -3820,10 +3892,25 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                     <div>วันที่ส่งซ่อม: <strong>{selectedCMDetailCase.dateSent ? getThaiDateFormatted(selectedCMDetailCase.dateSent) : '-'}</strong></div>
                   </div>
                   {selectedCMDetailCase.sentProofUrl && (
-                    <div style={{ marginTop: '0.4rem' }}>
-                      <a href={selectedCMDetailCase.sentProofUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 600 }}>
-                        📷 ดูรูปหลักฐานการนำส่งช่าง
-                      </a>
+                    <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <div 
+                        onClick={() => handleOpenLightbox(selectedCMDetailCase.sentProofUrl!, `หลักฐานการนำส่งช่าง - ${selectedCMDetailCase.assetName}`)}
+                        style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
+                        title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
+                      >
+                        <img src={selectedCMDetailCase.sentProofUrl} alt="Sent Proof" style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
+                          🔍 ซูมดูรูป
+                        </div>
+                      </div>
+                      <button 
+                        type="button" 
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => handleOpenLightbox(selectedCMDetailCase.sentProofUrl!, `หลักฐานการนำส่งช่าง - ${selectedCMDetailCase.assetName}`)}
+                        style={{ fontSize: '0.75rem', color: 'var(--warning)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem' }}
+                      >
+                        🚚 ดูหลักฐานการนำส่งช่าง (HD)
+                      </button>
                     </div>
                   )}
                 </div>
@@ -3839,10 +3926,25 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                     วันที่รับของคืน: <strong>{selectedCMDetailCase.dateReceived ? getThaiDateFormatted(selectedCMDetailCase.dateReceived) : '-'}</strong>
                   </div>
                   {selectedCMDetailCase.receivedProofUrl && (
-                    <div style={{ marginTop: '0.4rem' }}>
-                      <a href={selectedCMDetailCase.receivedProofUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 600 }}>
-                        📷 ดูรูปหลักฐานการตรวจรับของคืน
-                      </a>
+                    <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <div 
+                        onClick={() => handleOpenLightbox(selectedCMDetailCase.receivedProofUrl!, `หลักฐานการตรวจรับของคืน - ${selectedCMDetailCase.assetName}`)}
+                        style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
+                        title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
+                      >
+                        <img src={selectedCMDetailCase.receivedProofUrl} alt="Return Proof" style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
+                          🔍 ซูมดูรูป
+                        </div>
+                      </div>
+                      <button 
+                        type="button" 
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => handleOpenLightbox(selectedCMDetailCase.receivedProofUrl!, `หลักฐานการตรวจรับของคืน - ${selectedCMDetailCase.assetName}`)}
+                        style={{ fontSize: '0.75rem', color: 'var(--success)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem' }}
+                      >
+                        ✅ ดูหลักฐานการตรวจรับของคืน (HD)
+                      </button>
                     </div>
                   )}
                 </div>
@@ -3916,7 +4018,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                 </div>
               </div>
 
-              {/* Extra File Attachment with HD Compression */}
+              {/* Extra File Attachment with HD Compression & Interactive Preview */}
               <div style={{ marginTop: '0.25rem' }}>
                 <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>
                   📎 แนบเอกสาร/ใบเสร็จ/รูปภาพผลงานซ่อมเพิ่มเติม (รองรับ PDF และภาพคมชัดระดับ HD พร้อมบีบอัดอัตโนมัติ):
@@ -3939,8 +4041,25 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                   </div>
                 )}
                 {cmEditProofPreview && (
-                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <img src={cmEditProofPreview} alt="Preview" style={{ maxHeight: '80px', borderRadius: '4px', border: '1px solid var(--border)' }} />
+                  <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div 
+                      onClick={() => handleOpenLightbox(cmEditProofPreview, `รูปภาพ/เอกสารแนบ - ${selectedCMDetailCase.assetName}`)}
+                      style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--primary)', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)', background: '#000' }}
+                      title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
+                    >
+                      <img src={cmEditProofPreview} alt="Preview" style={{ height: '80px', maxWidth: '140px', objectFit: 'cover', display: 'block' }} />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '2px 0' }}>
+                        🔍 คลิกซูมดูรูป
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="btn btn-primary btn-xs"
+                      onClick={() => handleOpenLightbox(cmEditProofPreview, `รูปภาพ/เอกสารแนบ - ${selectedCMDetailCase.assetName}`)}
+                      style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem' }}
+                    >
+                      🔍 เปิดดูภาพขยาย / ตรวจสอบเอกสาร (HD)
+                    </button>
                   </div>
                 )}
               </div>
@@ -4134,6 +4253,119 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* --- UNIVERSAL MEDIA / PDF FULLSCREEN LIGHTBOX VIEWER --- */}
+      {lightboxUrl && (
+        <div 
+          className="print-preview-overlay animate-fade-in" 
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.92)', zIndex: 100050, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={() => setLightboxUrl(null)}
+        >
+          {/* Lightbox Toolbar */}
+          <div 
+            style={{ position: 'absolute', top: '1rem', left: '1rem', right: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(20, 24, 33, 0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.15)', padding: '0.65rem 1.25rem', borderRadius: 'var(--radius-md)', zIndex: 10, color: '#fff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', maxWidth: '60%' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                🔍 {lightboxTitle || 'ไฟล์เอกสาร / รูปภาพหลักฐาน (HD)'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm"
+                onClick={() => setLightboxZoom(prev => Math.min(prev + 0.25, 3))}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem', padding: '0.25rem 0.55rem' }}
+                title="ซูมขยายภาพ"
+              >
+                🔍+ ซูมเข้า
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm"
+                onClick={() => setLightboxZoom(prev => Math.max(prev - 0.25, 0.5))}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem', padding: '0.25rem 0.55rem' }}
+                title="ย่อขนาดภาพ"
+              >
+                🔍- ซูมออก
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm"
+                onClick={() => setLightboxZoom(1)}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem', padding: '0.25rem 0.55rem' }}
+                title="รีเซ็ตขนาดเท่าเดิม"
+              >
+                🔄 {Math.round(lightboxZoom * 100)}%
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary btn-sm"
+                onClick={handleDownloadLightbox}
+                style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.65rem' }}
+                title="บันทึกไฟล์ลงเครื่องคอมพิวเตอร์"
+              >
+                ⬇️ ดาวน์โหลด
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm"
+                onClick={() => setLightboxUrl(null)}
+                style={{ color: '#ef4444', border: '1px solid #ef4444', fontSize: '0.85rem', fontWeight: 800, padding: '0.25rem 0.65rem', marginLeft: '0.25rem' }}
+                title="ปิดหน้าต่างรูปภาพ"
+              >
+                ✕ ปิด
+              </button>
+            </div>
+          </div>
+
+          {/* Lightbox Content Viewer */}
+          <div 
+            style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: '4.5rem 1rem 1rem 1rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {lightboxUrl.startsWith('data:application/pdf') || lightboxUrl.toLowerCase().includes('.pdf') ? (
+              <div style={{ width: '90vw', height: '82vh', background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)' }}>
+                <iframe 
+                  src={lightboxUrl} 
+                  title="PDF Viewer" 
+                  style={{ width: '100%', height: '100%', border: 'none' }} 
+                />
+              </div>
+            ) : (
+              <div 
+                style={{ 
+                  transform: `scale(${lightboxZoom})`, 
+                  transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  maxHeight: '82vh',
+                  maxWidth: '92vw'
+                }}
+              >
+                <img 
+                  src={lightboxUrl} 
+                  alt="Lightbox Preview" 
+                  style={{ 
+                    maxHeight: '82vh', 
+                    maxWidth: '92vw', 
+                    objectFit: 'contain', 
+                    borderRadius: '8px', 
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    cursor: lightboxZoom > 1 ? 'grab' : 'zoom-in'
+                  }}
+                  onClick={() => setLightboxZoom(prev => (prev === 1 ? 1.75 : 1))}
+                  title="คลิกที่รูปเพื่อซูมเข้า/ซูมออกทันที"
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
