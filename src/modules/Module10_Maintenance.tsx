@@ -1020,6 +1020,39 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setIsRescheduleOpen(true);
   };
 
+  const handleShiftRescheduleMonth = (monthsToAdd: number) => {
+    if (!rescheduleTarget) return;
+    const baseStr = rescheduleNewDate || rescheduleTarget.plannedDate;
+    const d = new Date(baseStr);
+    if (!isNaN(d.getTime())) {
+      d.setMonth(d.getMonth() + monthsToAdd);
+      setRescheduleNewDate(d.toISOString().split('T')[0]);
+    }
+  };
+
+  const handleSetRescheduleYearMonth = (yearAD: number, monthIdx: number) => {
+    if (!rescheduleTarget) return;
+    const baseStr = rescheduleNewDate || rescheduleTarget.plannedDate;
+    const d = new Date(baseStr);
+    const day = isNaN(d.getTime()) ? 1 : Math.min(d.getDate(), 28);
+    const newD = new Date(yearAD, monthIdx, day);
+    setRescheduleNewDate(newD.toISOString().split('T')[0]);
+  };
+
+  const getRescheduleDiffText = () => {
+    if (!rescheduleTarget || !rescheduleNewDate || rescheduleNewDate === rescheduleTarget.plannedDate) return null;
+    const d1 = new Date(rescheduleTarget.plannedDate);
+    const d2 = new Date(rescheduleNewDate);
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null;
+    const diffDays = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+    const monthDiff = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+    if (monthDiff !== 0) {
+      const sign = monthDiff > 0 ? '+' : '';
+      return `${sign}${monthDiff} เดือน (${diffDays > 0 ? `+${diffDays}` : diffDays} วัน)`;
+    }
+    return `${diffDays > 0 ? `+${diffDays}` : diffDays} วัน`;
+  };
+
   const handleRescheduleSubmit = async () => {
     if (!rescheduleTarget || !rescheduleNewDate) return;
     try {
@@ -1214,13 +1247,48 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           {/* Calendar Controller & Filter Header */}
           <div className="filter-panel glass-panel" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '1rem', padding: '1rem 1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <button className="btn btn-ghost btn-sm" onClick={handlePrevMonth} style={{ padding: '0.25rem', height: 'auto', border: '1px solid var(--border)', background: 'var(--bg-primary)' }}>
+              <button 
+                className="btn btn-ghost btn-sm" 
+                onClick={handlePrevMonth} 
+                onDragOver={(e) => { e.preventDefault(); handlePrevMonth(); }}
+                style={{ padding: '0.25rem', height: 'auto', border: '1px solid var(--border)', background: 'var(--bg-primary)' }}
+                title="เดือนก่อนหน้า (ลากมาวางเพื่อสลับเดือน)"
+              >
                 <ChevronLeft size={16} />
               </button>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, minWidth: '130px', textAlign: 'center', margin: 0 }}>
-                {monthNames[currentMonth]} {currentYear + 543}
-              </h3>
-              <button className="btn btn-ghost btn-sm" onClick={handleNextMonth} style={{ padding: '0.25rem', height: 'auto', border: '1px solid var(--border)', background: 'var(--bg-primary)' }}>
+
+              {/* Quick Month & Year Dropdowns */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <select
+                  className="form-select"
+                  value={currentMonth}
+                  onChange={(e) => setCurrentMonth(parseInt(e.target.value, 10))}
+                  style={{ fontWeight: 800, fontSize: '1rem', height: '36px', minWidth: '130px' }}
+                >
+                  {monthNames.map((name, idx) => (
+                    <option key={idx} value={idx}>{name}</option>
+                  ))}
+                </select>
+
+                <select
+                  className="form-select"
+                  value={currentYear}
+                  onChange={(e) => setCurrentYear(parseInt(e.target.value, 10))}
+                  style={{ fontWeight: 800, fontSize: '1rem', height: '36px', minWidth: '110px' }}
+                >
+                  {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map((y) => (
+                    <option key={y} value={y}>พ.ศ. {y + 543}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button 
+                className="btn btn-ghost btn-sm" 
+                onClick={handleNextMonth} 
+                onDragOver={(e) => { e.preventDefault(); handleNextMonth(); }}
+                style={{ padding: '0.25rem', height: 'auto', border: '1px solid var(--border)', background: 'var(--bg-primary)' }}
+                title="เดือนถัดไป (ลากมาวางเพื่อสลับเดือน)"
+              >
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -1248,6 +1316,95 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
             </div>
           </div>
 
+          {/* Cross-Month Drag and Drop Target Bar */}
+          {draggedSchedule && (
+            <div 
+              className="animate-scale-up" 
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(16, 185, 129, 0.12))', 
+                border: '2px dashed var(--primary)', 
+                borderRadius: 'var(--radius-md)', 
+                padding: '0.85rem 1rem', 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Calendar size={20} color="var(--primary)" />
+                <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+                  🚀 กำลังลาก: <span style={{ color: 'var(--primary)' }}>{draggedSchedule.assetName}</span> (ลากมาวางที่ปุ่มลัดเพื่อย้ายข้ามเดือน)
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {/* Prev Month Drop Zone */}
+                <div 
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }}
+                  onDragLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'inherit'; }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const d = new Date(draggedSchedule.plannedDate);
+                    d.setMonth(d.getMonth() - 1);
+                    handleCalendarDrop(draggedSchedule, d.toISOString().split('T')[0]);
+                    setDraggedSchedule(null);
+                  }}
+                  style={{ padding: '0.4rem 0.85rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 650, cursor: 'pointer', transition: 'all 0.15s ease' }}
+                >
+                  👈 วางย้ายไปเดือนก่อนหน้า (-1 เดือน)
+                </div>
+
+                {/* Next Month Drop Zone */}
+                <div 
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }}
+                  onDragLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'inherit'; }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const d = new Date(draggedSchedule.plannedDate);
+                    d.setMonth(d.getMonth() + 1);
+                    handleCalendarDrop(draggedSchedule, d.toISOString().split('T')[0]);
+                    setDraggedSchedule(null);
+                  }}
+                  style={{ padding: '0.4rem 0.85rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 650, cursor: 'pointer', transition: 'all 0.15s ease' }}
+                >
+                  👉 วางย้ายไปเดือนถัดไป (+1 เดือน)
+                </div>
+
+                {/* +3 Months */}
+                <div 
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }}
+                  onDragLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'inherit'; }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const d = new Date(draggedSchedule.plannedDate);
+                    d.setMonth(d.getMonth() + 3);
+                    handleCalendarDrop(draggedSchedule, d.toISOString().split('T')[0]);
+                    setDraggedSchedule(null);
+                  }}
+                  style={{ padding: '0.4rem 0.85rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 650, cursor: 'pointer', transition: 'all 0.15s ease' }}
+                >
+                  ⏩ วางย้ายไปอีก 3 เดือน (+3 เดือน)
+                </div>
+
+                {/* Open Full Reschedule Modal Drop */}
+                <div 
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.transform = 'scale(1.05)'; }}
+                  onDragLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleOpenReschedule(draggedSchedule);
+                    setDraggedSchedule(null);
+                  }}
+                  style={{ padding: '0.4rem 0.85rem', background: 'var(--warning)', color: '#000', border: '1px solid var(--warning)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s ease' }}
+                >
+                  📅 วางเพื่อเปิดเลือกเดือน/ปีอิสระ
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Interactive Month Calendar Grid */}
           <div className="calendar-grid-wrapper glass-panel" style={{ padding: '1.25rem' }}>
             <div className="calendar-weekday-header" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
@@ -1257,7 +1414,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               <div>พ.</div>
               <div>พฤ.</div>
               <div>ศ.</div>
-              <div style={{ color: 'var(--primary)' }}>ส.</div>
+              <div>ส.</div>
             </div>
 
             <div className="calendar-days-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
@@ -1338,52 +1495,79 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                         }
                         
                         return (
-                          <button 
-                            key={sched.id} 
-                            draggable={isDraggable}
-                            onDragStart={(e) => {
-                              if (!isDraggable) { e.preventDefault(); return; }
-                              setDraggedSchedule(sched);
-                              e.dataTransfer.effectAllowed = 'move';
-                              // Make ghost slightly transparent
-                              if (e.currentTarget) {
-                                setTimeout(() => { (e.target as HTMLElement).style.opacity = '0.4'; }, 0);
-                              }
-                            }}
-                            onDragEnd={(e) => {
-                              (e.target as HTMLElement).style.opacity = '1';
-                              setDraggedSchedule(null);
-                            }}
-                            onClick={() => {
-                              setSelectedSchedule(sched);
-                              if (sched.status !== 'pending') {
-                                setIsPrintReportOpen(true);
-                              } else {
-                                handleOpenPMForm(sched);
-                              }
-                            }}
-                            className="calendar-schedule-tag"
-                            style={{
-                              width: '100%',
-                              textAlign: 'left',
-                              fontSize: '0.675rem',
-                              padding: '0.15rem 0.35rem',
-                              borderRadius: '4px',
-                              backgroundColor: bgColor,
-                              color: statusColor,
-                              border: `1.25px solid ${statusColor}`,
-                              cursor: isDraggable ? 'grab' : 'pointer',
-                              fontWeight: 650,
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              outline: 'none',
-                              transition: 'opacity 0.2s ease'
-                            }}
-                            title={isDraggable ? `${sched.assetName} — ลากเพื่อเลื่อนวันนัด` : `${sched.assetName} (${sched.status})`}
+                          <div 
+                            key={sched.id}
+                            style={{ display: 'flex', alignItems: 'center', gap: '2px', width: '100%' }}
                           >
-                            {labelPrefix} {sched.assetName}
-                          </button>
+                            <button 
+                              draggable={isDraggable}
+                              onDragStart={(e) => {
+                                if (!isDraggable) { e.preventDefault(); return; }
+                                setDraggedSchedule(sched);
+                                e.dataTransfer.effectAllowed = 'move';
+                                if (e.currentTarget) {
+                                  setTimeout(() => { (e.target as HTMLElement).style.opacity = '0.4'; }, 0);
+                                }
+                              }}
+                              onDragEnd={(e) => {
+                                (e.target as HTMLElement).style.opacity = '1';
+                                setDraggedSchedule(null);
+                              }}
+                              onClick={() => {
+                                setSelectedSchedule(sched);
+                                if (sched.status !== 'pending') {
+                                  setIsPrintReportOpen(true);
+                                } else {
+                                  handleOpenPMForm(sched);
+                                }
+                              }}
+                              className="calendar-schedule-tag"
+                              style={{
+                                flex: 1,
+                                textAlign: 'left',
+                                fontSize: '0.675rem',
+                                padding: '0.15rem 0.35rem',
+                                borderRadius: '4px',
+                                backgroundColor: bgColor,
+                                color: statusColor,
+                                border: `1.25px solid ${statusColor}`,
+                                cursor: isDraggable ? 'grab' : 'pointer',
+                                fontWeight: 650,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                outline: 'none',
+                                transition: 'opacity 0.2s ease'
+                              }}
+                              title={isDraggable ? `${sched.assetName} — คลิกบันทึก PM หรือลากเพื่อเลื่อนวัน` : `${sched.assetName} (${sched.status})`}
+                            >
+                              {labelPrefix} {sched.assetName}
+                            </button>
+
+                            {isDraggable && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenReschedule(sched);
+                                }}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  padding: '1px 3px',
+                                  borderRadius: '3px',
+                                  fontSize: '0.65rem',
+                                  color: 'var(--text-muted)',
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                                title="📅 เลื่อนวันนัด / ย้ายข้ามเดือน"
+                              >
+                                📅
+                              </button>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
@@ -1958,23 +2142,128 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         </div>
       )}
 
-      {/* --- MODAL: RESCHEDULE DATE PICKER --- */}
+      {/* --- MODAL: RESCHEDULE DATE PICKER (MOVE ACROSS MONTHS/YEARS) --- */}
       {isRescheduleOpen && rescheduleTarget && (
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
-          <div className="glass-panel animate-scale-up" style={{ maxWidth: '420px', width: '100%', padding: '1.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
+          <div className="glass-panel animate-scale-up" style={{ maxWidth: '480px', width: '100%', padding: '1.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>📅 เลื่อนวันนัดบำรุงรักษา</h3>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Calendar size={18} color="var(--primary)" /> 📅 เลื่อนวันนัด / ย้ายกำหนดการข้ามเดือน
+              </h3>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setIsRescheduleOpen(false); setRescheduleTarget(null); }} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>✕</button>
             </div>
 
             <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>รหัสครุภัณฑ์: <code>{rescheduleTarget.assetId}</code></div>
               <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{resolveAssetName(rescheduleTarget.assetId, rescheduleTarget.assetName)}</h4>
-              <span style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 650 }}>📅 วันที่เดิม: {getThaiDateFormatted(rescheduleTarget.plannedDate)}</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 650 }}>📅 วันที่ตามแผนเดิม: {getThaiDateFormatted(rescheduleTarget.plannedDate)}</span>
             </div>
 
+            {/* Quick Month Shift Shortcuts */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.4rem' }}>
+                ⚡ ปุ่มลัดเลื่อนข้ามเดือนด่วน (Quick Month Jump):
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-ghost btn-xs" 
+                  onClick={() => handleShiftRescheduleMonth(1)} 
+                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
+                >
+                  ⏩ +1 เดือน (เดือนหน้า)
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-ghost btn-xs" 
+                  onClick={() => handleShiftRescheduleMonth(2)} 
+                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
+                >
+                  ⏩ +2 เดือน
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-ghost btn-xs" 
+                  onClick={() => handleShiftRescheduleMonth(3)} 
+                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
+                >
+                  ⏩ +3 เดือน (ไตรมาส)
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-ghost btn-xs" 
+                  onClick={() => handleShiftRescheduleMonth(6)} 
+                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
+                >
+                  ⏩ +6 เดือน (ครึ่งปี)
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-ghost btn-xs" 
+                  onClick={() => handleShiftRescheduleMonth(12)} 
+                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
+                >
+                  ⏩ +1 ปี (ปีถัดไป)
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-ghost btn-xs" 
+                  onClick={() => handleShiftRescheduleMonth(-1)} 
+                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
+                >
+                  ⏪ -1 เดือน (ย้อนกลับ)
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Month & Year Selectors */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.85rem' }}>
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>🗓️ เลือกเดือนเป้าหมาย</label>
+                <select 
+                  className="form-select"
+                  value={(() => {
+                    const d = new Date(rescheduleNewDate || rescheduleTarget.plannedDate);
+                    return isNaN(d.getTime()) ? 0 : d.getMonth();
+                  })()}
+                  onChange={(e) => {
+                    const d = new Date(rescheduleNewDate || rescheduleTarget.plannedDate);
+                    const y = isNaN(d.getTime()) ? currentYear : d.getFullYear();
+                    handleSetRescheduleYearMonth(y, parseInt(e.target.value, 10));
+                  }}
+                  style={{ fontSize: '0.8rem', height: '36px' }}
+                >
+                  {monthNames.map((name, idx) => (
+                    <option key={idx} value={idx}>{name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>📅 เลือกปี พ.ศ.</label>
+                <select 
+                  className="form-select"
+                  value={(() => {
+                    const d = new Date(rescheduleNewDate || rescheduleTarget.plannedDate);
+                    return isNaN(d.getTime()) ? currentYear : d.getFullYear();
+                  })()}
+                  onChange={(e) => {
+                    const d = new Date(rescheduleNewDate || rescheduleTarget.plannedDate);
+                    const m = isNaN(d.getTime()) ? currentMonth : d.getMonth();
+                    handleSetRescheduleYearMonth(parseInt(e.target.value, 10), m);
+                  }}
+                  style={{ fontSize: '0.8rem', height: '36px' }}
+                >
+                  {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(y => (
+                    <option key={y} value={y}>พ.ศ. {y + 543} ({y})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Exact Date Picker Input */}
             <div className="form-group" style={{ marginBottom: '1rem' }}>
-              <label className="form-label" style={{ fontWeight: 700 }}>📅 เลือกวันที่ใหม่</label>
+              <label className="form-label" style={{ fontWeight: 700 }}>📅 หรือระบุวันที่ใหม่อย่างละเอียด</label>
               <input 
                 type="date" 
                 className="form-input"
@@ -1983,14 +2272,18 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                 required
               />
               {rescheduleNewDate && rescheduleNewDate !== rescheduleTarget.plannedDate && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600 }}>
-                  ➡️ จะเลื่อนเป็น: <strong>{getThaiDateFormatted(rescheduleNewDate)}</strong>
+                <div style={{ marginTop: '0.65rem', padding: '0.5rem 0.75rem', background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 650, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>➡️ ย้ายเป็น: <strong>{getThaiDateFormatted(rescheduleNewDate)}</strong></span>
+                  <span style={{ fontSize: '0.72rem', background: 'var(--primary)', color: '#fff', padding: '0.15rem 0.4rem', borderRadius: '3px' }}>
+                    {getRescheduleDiffText()}
+                  </span>
                 </div>
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
               <button 
+                type="button"
                 className="btn btn-ghost" 
                 onClick={() => { setIsRescheduleOpen(false); setRescheduleTarget(null); }}
                 style={{ border: '1px solid var(--border)' }}
@@ -1998,11 +2291,12 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                 ยกเลิก
               </button>
               <button 
+                type="button"
                 className="btn btn-primary" 
                 onClick={handleRescheduleSubmit}
                 disabled={!rescheduleNewDate || rescheduleNewDate === rescheduleTarget.plannedDate}
               >
-                💾 บันทึกวันนัดใหม่
+                💾 บันทึกการย้ายกำหนดการ
               </button>
             </div>
           </div>
@@ -2016,9 +2310,23 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem', flexShrink: 0 }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}><Wrench size={18} style={{ display: 'inline', marginRight: '0.35rem', color: 'var(--primary)' }} /> บันทึกผลการบำรุงรักษา PM</h3>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsPMFormOpen(false)} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>
-                ✕
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-ghost btn-sm" 
+                  onClick={() => { 
+                    setIsPMFormOpen(false); 
+                    handleOpenReschedule(selectedSchedule); 
+                  }} 
+                  style={{ fontSize: '0.75rem', color: 'var(--warning)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.5rem' }}
+                  title="เลื่อนวันนัด PM ไปเดือนอื่น"
+                >
+                  <Calendar size={14} /> 📅 ย้ายแผน/เลื่อนวัน
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsPMFormOpen(false)} style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}>
+                  ✕
+                </button>
+              </div>
             </div>
 
             <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem', flexShrink: 0 }}>
