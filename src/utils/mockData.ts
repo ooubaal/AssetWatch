@@ -81,6 +81,42 @@ export interface DepartmentLocationConfig {
   locations: string[];
 }
 
+export interface SparePartTransaction {
+  id: string;
+  partId: string;
+  assetId: string;
+  date: string;
+  type: 'in' | 'out' | 'adjust'; // 'in' = รับเข้าสต็อก, 'out' = เบิกใช้งาน, 'adjust' = ปรับยอด
+  quantity: number; // + or -
+  balanceAfter: number;
+  unitPrice?: number;
+  totalPrice?: number;
+  referenceDoc?: string; // e.g. "PO-6908-01", "PM รอบ ส.ค. 69", "ใบเบิกพัสดุ 102/69"
+  operator: string;
+  note?: string;
+  createdAt: string;
+}
+
+export interface SparePart {
+  id: string;
+  assetId: string; // Foreign key to Asset ID
+  partCode: string; // e.g. "SP-PUMP-001"
+  name: string; // e.g. "ไส้กรองอากาศ (Air Filter)"
+  specification?: string; // e.g. "Atlas Copco Part No. 1613-8720-00"
+  brand?: string; // e.g. "Atlas Copco"
+  storageLocation?: string; // e.g. "ตู้เก็บอะไหล่ ช่างบำรุงรักษา ชั้น 2 (BR 43)"
+  quantity: number; // Current quantity on hand
+  minQuantity: number; // Safety stock / reorder alert point
+  unit: string; // e.g. "ชิ้น", "ชุด", "ลิตร", "แกลลอน", "กล่อง"
+  unitPrice?: number; // Cost per unit (THB)
+  supplier?: string; // e.g. "บริษัท แอตลาส คอปโก้ (ประเทศไทย) จำกัด"
+  supplierContact?: string; // e.g. "02-XXX-XXXX"
+  notes?: string;
+  imageUrl?: string;
+  updatedAt: string;
+  transactions?: SparePartTransaction[];
+}
+
 export interface RepairCase {
   id: string;
   assetId: string;
@@ -536,6 +572,280 @@ export const INITIAL_SCHEDULES: PMSchedule[] = [
   }
 ];
 
+export const INITIAL_SPARE_PARTS: SparePart[] = [
+  // Spare parts for 0725634310001030003 (เครื่องผลิตอากาศอัด (pump) BAG)
+  {
+    id: "sp-pump-01",
+    assetId: "0725634310001030003",
+    partCode: "SP-PUMP-FLT01",
+    name: "ไส้กรองอากาศและแผ่นกรองฝุ่นไอดี (Air Intake Filter)",
+    specification: "Atlas Copco OEM No. 1613-8720-00 (Grade High-Efficiency)",
+    brand: "Atlas Copco",
+    storageLocation: "ตู้เก็บอะไหล่ ช่างบำรุงรักษา ชั้น 2 (BR 43 Air Compressor Room)",
+    quantity: 6,
+    minQuantity: 2,
+    unit: "ชิ้น",
+    unitPrice: 1450,
+    supplier: "บริษัท โอซาร่า วิศวกรรม จำกัด / Atlas Copco Thailand",
+    supplierContact: "02-762-8000",
+    notes: "เปลี่ยนทุกๆ 2,000 ชั่วโมงการทำงาน หรือทุกรอบ PM 6 เดือน",
+    imageUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=60",
+    updatedAt: "2026-06-15T10:00:00.000Z",
+    transactions: [
+      {
+        id: "tx-pump-01",
+        partId: "sp-pump-01",
+        assetId: "0725634310001030003",
+        date: "2026-01-15",
+        type: "in",
+        quantity: 8,
+        balanceAfter: 8,
+        unitPrice: 1450,
+        totalPrice: 11600,
+        referenceDoc: "PO-6901-14 / ใบรับพัสดุ 014/69",
+        operator: "นายช่างสมชาย",
+        note: "สั่งซื้ออะไหล่สต็อกสำรองประจำปีงบประมาณ 2569",
+        createdAt: "2026-01-15T09:30:00.000Z"
+      },
+      {
+        id: "tx-pump-02",
+        partId: "sp-pump-01",
+        assetId: "0725634310001030003",
+        date: "2026-06-15",
+        type: "out",
+        quantity: -2,
+        balanceAfter: 6,
+        referenceDoc: "PM รอบที่ 1 (มิ.ย. 69)",
+        operator: "ประเสริฐพงษ์",
+        note: "เบิกเปลี่ยนไส้กรองรอบบำรุงรักษาเชิงป้องกันประจำปี",
+        createdAt: "2026-06-15T14:20:00.000Z"
+      }
+    ]
+  },
+  {
+    id: "sp-pump-02",
+    assetId: "0725634310001030003",
+    partCode: "SP-PUMP-OIL46",
+    name: "น้ำมันหล่อลื่นคอมเพรสเซอร์ Roto-Inject Fluid (5L)",
+    specification: "Atlas Copco Synthetic Lubricant ISO VG 46 (High Temp 100°C)",
+    brand: "Atlas Copco Genuine Fluid",
+    storageLocation: "ห้องสโตร์สารหล่อลื่น ชั้น 1 อาคารบำรุงรักษา",
+    quantity: 4,
+    minQuantity: 2,
+    unit: "แกลลอน",
+    unitPrice: 2850,
+    supplier: "บริษัท โอซาร่า วิศวกรรม จำกัด",
+    supplierContact: "081-987-6543",
+    notes: "ใช้สำหรับถ่ายเปลี่ยนน้ำมันเครื่องปั๊มลมหล่อเย็น",
+    imageUrl: "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=600&auto=format&fit=crop&q=60",
+    updatedAt: "2026-06-20T11:00:00.000Z",
+    transactions: [
+      {
+        id: "tx-pump-03",
+        partId: "sp-pump-02",
+        assetId: "0725634310001030003",
+        date: "2026-02-20",
+        type: "in",
+        quantity: 5,
+        balanceAfter: 5,
+        unitPrice: 2850,
+        totalPrice: 14250,
+        referenceDoc: "PO-6902-09",
+        operator: "เจ้าหน้าที่พัสดุ",
+        note: "รับเข้าสต็อกสำรอง 5 แกลลอน",
+        createdAt: "2026-02-20T10:00:00.000Z"
+      },
+      {
+        id: "tx-pump-04",
+        partId: "sp-pump-02",
+        assetId: "0725634310001030003",
+        date: "2026-06-20",
+        type: "out",
+        quantity: -1,
+        balanceAfter: 4,
+        referenceDoc: "PM รอบเปลี่ยนถ่ายน้ำมันหล่อลื่น",
+        operator: "ประเสริฐพงษ์",
+        note: "เบิกเติม 1 แกลลอน ระดับน้ำมันเต็มเกจ์วัดปกติ",
+        createdAt: "2026-06-20T11:00:00.000Z"
+      }
+    ]
+  },
+  {
+    id: "sp-pump-03",
+    assetId: "0725634310001030003",
+    partCode: "SP-PUMP-SEAL02",
+    name: "ชุดซีลโอริงและปะเก็นฝาครอบ (Gasket & O-Ring Kit)",
+    specification: "Viton High-Temp Resistance Set (Kit 2901-0999-00)",
+    brand: "Atlas Copco",
+    storageLocation: "ตู้เก็บอะไหล่ ช่างบำรุงรักษา ชั้น 2 (BR 43)",
+    quantity: 3,
+    minQuantity: 1,
+    unit: "ชุด",
+    unitPrice: 1850,
+    supplier: "Atlas Copco Thailand",
+    supplierContact: "02-762-8000",
+    notes: "ชุดซ่อมกันรั่วซึมฝาครอบวาล์วไอดี/ไอเสีย",
+    imageUrl: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=600&auto=format&fit=crop&q=60",
+    updatedAt: "2026-03-01T09:00:00.000Z",
+    transactions: [
+      {
+        id: "tx-pump-05",
+        partId: "sp-pump-03",
+        assetId: "0725634310001030003",
+        date: "2026-03-01",
+        type: "in",
+        quantity: 3,
+        balanceAfter: 3,
+        unitPrice: 1850,
+        totalPrice: 5550,
+        referenceDoc: "PO-6903-12",
+        operator: "เจ้าหน้าที่พัสดุ",
+        note: "สั่งซื้อชุดซีลสำรอง 3 ชุด",
+        createdAt: "2026-03-01T09:00:00.000Z"
+      }
+    ]
+  },
+  {
+    id: "sp-pump-04",
+    assetId: "0725634310001030003",
+    partCode: "SP-PUMP-VLV04",
+    name: "โซลินอยด์วาล์วระบายแรงดัน (Solenoid Blow-off Valve 24V)",
+    specification: "24VDC 0.8 MPa Brass Body (NC Type)",
+    brand: "SMC Pneumatics",
+    storageLocation: "ชั้นวางอะไหล่ระบบนิวเมติกส์ ตู้ A-04",
+    quantity: 2,
+    minQuantity: 1,
+    unit: "ชิ้น",
+    unitPrice: 3200,
+    supplier: "SMC Thailand",
+    supplierContact: "02-019-5656",
+    notes: "สำหรับควบคุมการคายแรงดันตกค้างช่วง Unload",
+    imageUrl: "https://images.unsplash.com/photo-1581092162384-8987c1d64718?w=600&auto=format&fit=crop&q=60",
+    updatedAt: "2026-04-12T14:00:00.000Z",
+    transactions: [
+      {
+        id: "tx-pump-06",
+        partId: "sp-pump-04",
+        assetId: "0725634310001030003",
+        date: "2026-04-12",
+        type: "in",
+        quantity: 2,
+        balanceAfter: 2,
+        unitPrice: 3200,
+        totalPrice: 6400,
+        referenceDoc: "PO-6904-05",
+        operator: "นายช่างสมชาย",
+        note: "รับเข้าสต็อก 2 ชิ้น",
+        createdAt: "2026-04-12T14:00:00.000Z"
+      }
+    ]
+  },
+
+  // Spare parts for 0725499999001990002 (ระบบผลิตน้ำกลั่นและระบบผลิตน้ำอ่อน)
+  {
+    id: "sp-water-01",
+    assetId: "0725499999001990002",
+    partCode: "SP-WATER-RO01",
+    name: "ไส้กรองเมมเบรนกรองน้ำ RO Membrane 8040 (Filmtec)",
+    specification: "Dow Filmtec BW30-400 (High Rejection 99.5%)",
+    brand: "DuPont / Filmtec",
+    storageLocation: "ห้องเก็บไส้กรองระบบบำบัดน้ำ ชั้น 1",
+    quantity: 4,
+    minQuantity: 2,
+    unit: "ท่อน",
+    unitPrice: 8500,
+    supplier: "บริษัท วอเตอร์ทรีทเม้นท์ เอ็นจิเนียริ่ง จำกัด",
+    supplierContact: "02-555-1234",
+    notes: "เปลี่ยนทุก 2 ปี หรือเมื่อค่า TDS หลังกรองสูงเกิน 15 ppm",
+    updatedAt: "2026-05-01T09:00:00.000Z",
+    transactions: [
+      {
+        id: "tx-water-01",
+        partId: "sp-water-01",
+        assetId: "0725499999001990002",
+        date: "2026-05-01",
+        type: "in",
+        quantity: 4,
+        balanceAfter: 4,
+        unitPrice: 8500,
+        totalPrice: 34000,
+        referenceDoc: "PO-6905-20",
+        operator: "เจ้าหน้าที่พัสดุ",
+        note: "รับเข้าสต็อกสำรอง 4 ท่อน",
+        createdAt: "2026-05-01T09:00:00.000Z"
+      }
+    ]
+  },
+  {
+    id: "sp-water-02",
+    assetId: "0725499999001990002",
+    partCode: "SP-WATER-RESIN",
+    name: "สารกรองเรซินแลกเปลี่ยนไอออน Cation Resin (25L)",
+    specification: "Strong Acid Cation Exchange Resin (Food Grade Na+ form)",
+    brand: "Purolite C100E",
+    storageLocation: "คลังเก็บสารเคมีและสารกรองน้ำ",
+    quantity: 8,
+    minQuantity: 3,
+    unit: "ถุง",
+    unitPrice: 1950,
+    supplier: "บริษัท วอเตอร์ทรีทเม้นท์ เอ็นจิเนียริ่ง จำกัด",
+    supplierContact: "02-555-1234",
+    notes: "ใช้สำหรับฟื้นฟูและเปลี่ยนสารกรองถัง Softener",
+    updatedAt: "2026-05-10T10:00:00.000Z",
+    transactions: [
+      {
+        id: "tx-water-02",
+        partId: "sp-water-02",
+        assetId: "0725499999001990002",
+        date: "2026-05-10",
+        type: "in",
+        quantity: 10,
+        balanceAfter: 10,
+        unitPrice: 1950,
+        totalPrice: 19500,
+        referenceDoc: "PO-6905-22",
+        operator: "เจ้าหน้าที่พัสดุ",
+        note: "รับเข้าสต็อก 10 ถุง",
+        createdAt: "2026-05-10T10:00:00.000Z"
+      },
+      {
+        id: "tx-water-03",
+        partId: "sp-water-02",
+        assetId: "0725499999001990002",
+        date: "2026-07-01",
+        type: "out",
+        quantity: -2,
+        balanceAfter: 8,
+        referenceDoc: "PM ล้างถัง Softener",
+        operator: "ประเสริฐพงษ์",
+        note: "เติมสารกรอง Softener ถัง A",
+        createdAt: "2026-07-01T15:00:00.000Z"
+      }
+    ]
+  }
+];
+
+export const loadSpareParts = (): SparePart[] => {
+  try {
+    const data = localStorage.getItem('assetwatch_spare_parts');
+    if (data) {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to load spare parts from storage:', e);
+  }
+  return INITIAL_SPARE_PARTS;
+};
+
+export const saveSpareParts = (parts: SparePart[]): void => {
+  try {
+    localStorage.setItem('assetwatch_spare_parts', JSON.stringify(parts));
+  } catch (e) {
+    console.error('Failed to save spare parts to storage:', e);
+  }
+};
+
 export const INITIAL_NOTIFICATIONS: PMNotification[] = [
   {
     id: "notif-1",
@@ -547,5 +857,8 @@ export const INITIAL_NOTIFICATIONS: PMNotification[] = [
     linkTo: "pm_cm"
   }
 ];
+
+
+
 
 

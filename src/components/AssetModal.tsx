@@ -12,9 +12,34 @@ import {
   Wrench, 
   QrCode,
   Download,
-  AlertCircle
+  AlertCircle,
+  Package,
+  Plus,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Printer,
+  Search,
+  Box,
+  Trash2,
+  Edit3,
+  CheckCircle,
+  AlertTriangle,
+  RefreshCw,
+  ZoomIn,
+  Eye
 } from 'lucide-react';
-import { Asset, AuditTrail, SurveyRecord, RepairCase, PMSchedule, UserAccount } from '../utils/mockData';
+import { 
+  Asset, 
+  AuditTrail, 
+  SurveyRecord, 
+  RepairCase, 
+  PMSchedule, 
+  UserAccount, 
+  SparePart, 
+  SparePartTransaction,
+  loadSpareParts,
+  saveSpareParts
+} from '../utils/mockData';
 
 interface AssetModalProps {
   asset: Asset;
@@ -37,13 +62,367 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   schedules = [],
   currentUser = null
 }) => {
-  const [activeTab, setActiveTab] = useState<'info' | 'history' | 'repairs' | 'surveys'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'history' | 'repairs' | 'surveys' | 'spare_parts'>('info');
+
+  // Spare Parts & Stock Card State
+  const [allSpareParts, setAllSpareParts] = useState<SparePart[]>(() => loadSpareParts());
+  const [partSearchQuery, setPartSearchQuery] = useState('');
+  const [partFilterStatus, setPartFilterStatus] = useState<'all' | 'normal' | 'low' | 'out'>('all');
+  
+  // Modals for Spare Parts
+  const [isAddPartOpen, setIsAddPartOpen] = useState(false);
+  const [editingPart, setEditingPart] = useState<SparePart | null>(null);
+  
+  // Add/Edit Form Fields
+  const [formPartCode, setFormPartCode] = useState('');
+  const [formName, setFormName] = useState('');
+  const [formSpec, setFormSpec] = useState('');
+  const [formBrand, setFormBrand] = useState('');
+  const [formLocation, setFormLocation] = useState('');
+  const [formQty, setFormQty] = useState<number>(1);
+  const [formMinQty, setFormMinQty] = useState<number>(1);
+  const [formUnit, setFormUnit] = useState('ชิ้น');
+  const [formUnitPrice, setFormUnitPrice] = useState<number | string>('');
+  const [formSupplier, setFormSupplier] = useState('');
+  const [formSupplierContact, setFormSupplierContact] = useState('');
+  const [formNotes, setFormNotes] = useState('');
+  const [formImageUrl, setFormImageUrl] = useState('');
+
+  // Stock In / Out Modals
+  const [isStockInOpen, setIsStockInOpen] = useState(false);
+  const [selectedPartForIn, setSelectedPartForIn] = useState<SparePart | null>(null);
+  const [inQty, setInQty] = useState<number>(1);
+  const [inRef, setInRef] = useState('');
+  const [inPrice, setInPrice] = useState<string>('');
+  const [inOperator, setInOperator] = useState(currentUser?.name || 'เจ้าหน้าที่พัสดุ');
+  const [inNote, setInNote] = useState('');
+
+  const [isStockOutOpen, setIsStockOutOpen] = useState(false);
+  const [selectedPartForOut, setSelectedPartForOut] = useState<SparePart | null>(null);
+  const [outQty, setOutQty] = useState<number>(1);
+  const [outRef, setOutRef] = useState('');
+  const [outOperator, setOutOperator] = useState(currentUser?.name || 'ช่างซ่อมบำรุง');
+  const [outNote, setOutNote] = useState('');
+
+  // Stock Card History & Print Modal
+  const [viewingStockCardPart, setViewingStockCardPart] = useState<SparePart | null>(null);
+  const [isPrintStockCardOpen, setIsPrintStockCardOpen] = useState(false);
+  const [printCardTargetPart, setPrintCardTargetPart] = useState<SparePart | null>(null);
+
+  // Lightbox for Spare Part Images
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxTitle, setLightboxTitle] = useState<string>('');
+  const [lightboxZoom, setLightboxZoom] = useState<number>(1);
 
   // Filter lists for this specific asset
   const assetAudits = audits.filter(a => a.assetId === asset.id);
   const assetRepairs = repairs.filter(r => r.assetId === asset.id);
   const assetSurveys = surveys.filter(s => s.assetId === asset.id);
   const assetPMSchedules = schedules.filter(s => s.assetId === asset.id);
+  const assetSpareParts = allSpareParts.filter(p => p.assetId === asset.id);
+
+  // Filtered spare parts by search query & stock status
+  const filteredSpareParts = assetSpareParts.filter(p => {
+    const matchesSearch = 
+      p.partCode.toLowerCase().includes(partSearchQuery.toLowerCase()) ||
+      p.name.toLowerCase().includes(partSearchQuery.toLowerCase()) ||
+      (p.specification && p.specification.toLowerCase().includes(partSearchQuery.toLowerCase())) ||
+      (p.brand && p.brand.toLowerCase().includes(partSearchQuery.toLowerCase())) ||
+      (p.storageLocation && p.storageLocation.toLowerCase().includes(partSearchQuery.toLowerCase())) ||
+      (p.supplier && p.supplier.toLowerCase().includes(partSearchQuery.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    if (partFilterStatus === 'normal') return p.quantity > p.minQuantity;
+    if (partFilterStatus === 'low') return p.quantity > 0 && p.quantity <= p.minQuantity;
+    if (partFilterStatus === 'out') return p.quantity <= 0;
+    return true;
+  });
+
+  // Calculate spare parts statistics
+  const totalSparePartItems = assetSpareParts.reduce((acc, p) => acc + p.quantity, 0);
+  const lowStockSpareParts = assetSpareParts.filter(p => p.quantity <= p.minQuantity);
+  const totalSparePartsValue = assetSpareParts.reduce((acc, p) => acc + (p.quantity * (p.unitPrice || 0)), 0);
+
+  // Handlers for Spare Parts
+  const handleOpenAddPart = () => {
+    setEditingPart(null);
+    setFormPartCode(`SP-${asset.id.slice(-4)}-${String(assetSpareParts.length + 1).padStart(2, '0')}`);
+    setFormName('');
+    setFormSpec('');
+    setFormBrand('');
+    setFormLocation(`ตู้เก็บอะไหล่ ${asset.location || 'อาคารซ่อมบำรุง'}`);
+    setFormQty(1);
+    setFormMinQty(1);
+    setFormUnit('ชิ้น');
+    setFormUnitPrice('');
+    setFormSupplier(asset.source || '');
+    setFormSupplierContact('');
+    setFormNotes('');
+    setFormImageUrl('');
+    setIsAddPartOpen(true);
+  };
+
+  const handleOpenEditPart = (p: SparePart) => {
+    setEditingPart(p);
+    setFormPartCode(p.partCode);
+    setFormName(p.name);
+    setFormSpec(p.specification || '');
+    setFormBrand(p.brand || '');
+    setFormLocation(p.storageLocation || '');
+    setFormQty(p.quantity);
+    setFormMinQty(p.minQuantity);
+    setFormUnit(p.unit);
+    setFormUnitPrice(p.unitPrice !== undefined ? p.unitPrice : '');
+    setFormSupplier(p.supplier || '');
+    setFormSupplierContact(p.supplierContact || '');
+    setFormNotes(p.notes || '');
+    setFormImageUrl(p.imageUrl || '');
+    setIsAddPartOpen(true);
+  };
+
+  const handleSavePart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formPartCode.trim() || !formName.trim()) {
+      alert('กรุณากรอกรหัสอะไหล่และชื่ออะไหล่');
+      return;
+    }
+
+    const priceNum = formUnitPrice ? Number(formUnitPrice) : undefined;
+    const nowISO = new Date().toISOString();
+
+    if (editingPart) {
+      // Update existing part
+      const updated = allSpareParts.map(p => {
+        if (p.id === editingPart.id) {
+          return {
+            ...p,
+            partCode: formPartCode.trim(),
+            name: formName.trim(),
+            specification: formSpec.trim() || undefined,
+            brand: formBrand.trim() || undefined,
+            storageLocation: formLocation.trim() || undefined,
+            quantity: Number(formQty) || 0,
+            minQuantity: Number(formMinQty) || 1,
+            unit: formUnit.trim() || 'ชิ้น',
+            unitPrice: priceNum,
+            supplier: formSupplier.trim() || undefined,
+            supplierContact: formSupplierContact.trim() || undefined,
+            notes: formNotes.trim() || undefined,
+            imageUrl: formImageUrl.trim() || undefined,
+            updatedAt: nowISO
+          };
+        }
+        return p;
+      });
+      setAllSpareParts(updated);
+      saveSpareParts(updated);
+    } else {
+      // Create new part with initial Stock In transaction
+      const newPartId = `sp-${Date.now()}`;
+      const initQty = Number(formQty) || 0;
+      const initialTx: SparePartTransaction[] = initQty > 0 ? [
+        {
+          id: `tx-${Date.now()}`,
+          partId: newPartId,
+          assetId: asset.id,
+          date: new Date().toISOString().split('T')[0],
+          type: 'in',
+          quantity: initQty,
+          balanceAfter: initQty,
+          unitPrice: priceNum,
+          totalPrice: priceNum ? priceNum * initQty : undefined,
+          referenceDoc: 'ยอดยกมาเริ่มต้น / รับเข้าบันทึกข้อมูล',
+          operator: currentUser?.name || 'เจ้าหน้าที่พัสดุ',
+          note: 'ลงทะเบียนอะไหล่สำรองเข้าสู่ระบบ',
+          createdAt: nowISO
+        }
+      ] : [];
+
+      const newPart: SparePart = {
+        id: newPartId,
+        assetId: asset.id,
+        partCode: formPartCode.trim(),
+        name: formName.trim(),
+        specification: formSpec.trim() || undefined,
+        brand: formBrand.trim() || undefined,
+        storageLocation: formLocation.trim() || undefined,
+        quantity: initQty,
+        minQuantity: Number(formMinQty) || 1,
+        unit: formUnit.trim() || 'ชิ้น',
+        unitPrice: priceNum,
+        supplier: formSupplier.trim() || undefined,
+        supplierContact: formSupplierContact.trim() || undefined,
+        notes: formNotes.trim() || undefined,
+        imageUrl: formImageUrl.trim() || undefined,
+        updatedAt: nowISO,
+        transactions: initialTx
+      };
+
+      const updated = [newPart, ...allSpareParts];
+      setAllSpareParts(updated);
+      saveSpareParts(updated);
+    }
+
+    setIsAddPartOpen(false);
+  };
+
+  const handleDeletePart = (partId: string) => {
+    const part = allSpareParts.find(p => p.id === partId);
+    if (!part) return;
+    if (confirm(`คุณต้องการลบรายการอะไหล่ "${part.name}" (${part.partCode}) ใช่หรือไม่?`)) {
+      const updated = allSpareParts.filter(p => p.id !== partId);
+      setAllSpareParts(updated);
+      saveSpareParts(updated);
+      if (viewingStockCardPart?.id === partId) {
+        setViewingStockCardPart(null);
+      }
+    }
+  };
+
+  // Open Stock In
+  const handleOpenStockIn = (p: SparePart) => {
+    setSelectedPartForIn(p);
+    setInQty(1);
+    setInRef(`PO-${new Date().getFullYear() + 543}-01`);
+    setInPrice(p.unitPrice ? String(p.unitPrice) : '');
+    setInOperator(currentUser?.name || 'เจ้าหน้าที่พัสดุ');
+    setInNote('');
+    setIsStockInOpen(true);
+  };
+
+  const handleSaveStockIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPartForIn || inQty <= 0) {
+      alert('กรุณาระบุจำนวนที่รับเข้ามากกว่า 0');
+      return;
+    }
+
+    const priceNum = inPrice ? Number(inPrice) : selectedPartForIn.unitPrice;
+    const newQty = selectedPartForIn.quantity + inQty;
+    const nowISO = new Date().toISOString();
+
+    const newTx: SparePartTransaction = {
+      id: `tx-${Date.now()}`,
+      partId: selectedPartForIn.id,
+      assetId: asset.id,
+      date: new Date().toISOString().split('T')[0],
+      type: 'in',
+      quantity: inQty,
+      balanceAfter: newQty,
+      unitPrice: priceNum,
+      totalPrice: priceNum ? priceNum * inQty : undefined,
+      referenceDoc: inRef.trim() || 'ใบสั่งซื้อ/รับเข้าสต็อก',
+      operator: inOperator.trim() || 'เจ้าหน้าที่พัสดุ',
+      note: inNote.trim() || 'รับอะไหล่เข้าคลัง',
+      createdAt: nowISO
+    };
+
+    const updated = allSpareParts.map(p => {
+      if (p.id === selectedPartForIn.id) {
+        const txList = p.transactions || [];
+        return {
+          ...p,
+          quantity: newQty,
+          unitPrice: priceNum || p.unitPrice,
+          updatedAt: nowISO,
+          transactions: [newTx, ...txList]
+        };
+      }
+      return p;
+    });
+
+    setAllSpareParts(updated);
+    saveSpareParts(updated);
+    setIsStockInOpen(false);
+
+    if (viewingStockCardPart?.id === selectedPartForIn.id) {
+      const upPart = updated.find(p => p.id === selectedPartForIn.id);
+      if (upPart) setViewingStockCardPart(upPart);
+    }
+  };
+
+  // Open Stock Out
+  const handleOpenStockOut = (p: SparePart) => {
+    if (p.quantity <= 0) {
+      alert(`อะไหล่ "${p.name}" หมดสต็อกแล้ว ไม่สามารถเบิกจ่ายได้ กรุณารับเข้าสต็อกก่อน`);
+      return;
+    }
+    setSelectedPartForOut(p);
+    setOutQty(1);
+    setOutRef(`PM ประจำรอบ ${new Date().toLocaleDateString('th-TH', { month: 'short', year: '2-digit' })}`);
+    setOutOperator(currentUser?.name || 'ช่างซ่อมบำรุง');
+    setOutNote('');
+    setIsStockOutOpen(true);
+  };
+
+  const handleSaveStockOut = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPartForOut || outQty <= 0) {
+      alert('กรุณาระบุจำนวนที่เบิกใช้มากกว่า 0');
+      return;
+    }
+
+    if (outQty > selectedPartForOut.quantity) {
+      alert(`จำนวนที่ขอเบิก (${outQty} ${selectedPartForOut.unit}) เกินกว่ายอดคงเหลือในคลัง (${selectedPartForOut.quantity} ${selectedPartForOut.unit})`);
+      return;
+    }
+
+    const newQty = selectedPartForOut.quantity - outQty;
+    const nowISO = new Date().toISOString();
+
+    const newTx: SparePartTransaction = {
+      id: `tx-${Date.now()}`,
+      partId: selectedPartForOut.id,
+      assetId: asset.id,
+      date: new Date().toISOString().split('T')[0],
+      type: 'out',
+      quantity: -outQty,
+      balanceAfter: newQty,
+      unitPrice: selectedPartForOut.unitPrice,
+      totalPrice: selectedPartForOut.unitPrice ? selectedPartForOut.unitPrice * outQty : undefined,
+      referenceDoc: outRef.trim() || 'เบิกใช้งานซ่อมบำรุง',
+      operator: outOperator.trim() || 'ช่างซ่อมบำรุง',
+      note: outNote.trim() || 'เบิกใช้อะไหล่กับครุภัณฑ์',
+      createdAt: nowISO
+    };
+
+    const updated = allSpareParts.map(p => {
+      if (p.id === selectedPartForOut.id) {
+        const txList = p.transactions || [];
+        return {
+          ...p,
+          quantity: newQty,
+          updatedAt: nowISO,
+          transactions: [newTx, ...txList]
+        };
+      }
+      return p;
+    });
+
+    setAllSpareParts(updated);
+    saveSpareParts(updated);
+    setIsStockOutOpen(false);
+
+    if (viewingStockCardPart?.id === selectedPartForOut.id) {
+      const upPart = updated.find(p => p.id === selectedPartForOut.id);
+      if (upPart) setViewingStockCardPart(upPart);
+    }
+  };
+
+  // Open Lightbox
+  const handleOpenPartLightbox = (url: string, title?: string) => {
+    if (!url) return;
+    setLightboxUrl(url);
+    setLightboxTitle(title || 'รูปภาพอะไหล่สำรอง (HD)');
+    setLightboxZoom(1);
+  };
+
+  // Open Print Stock Card
+  const handleOpenPrintStockCard = (targetPart?: SparePart) => {
+    setPrintCardTargetPart(targetPart || null);
+    setIsPrintStockCardOpen(true);
+  };
 
   // Status badging styles
   const statusColors: Record<string, string> = {
@@ -197,6 +576,18 @@ export const AssetModal: React.FC<AssetModalProps> = ({
             onClick={() => setActiveTab('surveys')}
           >
             <QrCode size={16} /> ผลการตรวจนับ ({assetSurveys.length})
+          </button>
+          <button 
+            className={`modal-tab-btn ${activeTab === 'spare_parts' ? 'tab-active' : ''}`}
+            onClick={() => setActiveTab('spare_parts')}
+            style={{ position: 'relative' }}
+          >
+            <Package size={16} /> อะไหล่สำรอง (Stock Card) ({assetSpareParts.length})
+            {lowStockSpareParts.length > 0 && (
+              <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '0.1rem 0.35rem', borderRadius: '10px', marginLeft: '0.25rem' }}>
+                {lowStockSpareParts.length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -508,9 +899,1100 @@ export const AssetModal: React.FC<AssetModalProps> = ({
             </div>
           )}
 
+          {/* TAB 5: Spare Parts & Stock Card (อะไหล่สำรองและบัญชีคุมสต็อก) */}
+          {activeTab === 'spare_parts' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              {/* Top Statistics KPI Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.75rem' }}>
+                <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.12)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Package size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>รายการอะไหล่ทั้งหมด</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>{assetSpareParts.length} <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>รายการ</span></div>
+                  </div>
+                </div>
+
+                <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.12)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Box size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>ยอดคงคลังรวม</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--success)' }}>{totalSparePartItems} <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>ชิ้น/หน่วย</span></div>
+                  </div>
+                </div>
+
+                <div style={{ background: 'var(--bg-primary)', border: lowStockSpareParts.length > 0 ? '1.5px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: lowStockSpareParts.length > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.12)', color: lowStockSpareParts.length > 0 ? 'var(--danger)' : 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <AlertTriangle size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: lowStockSpareParts.length > 0 ? 'var(--danger)' : 'var(--text-muted)', fontWeight: 700 }}>
+                      {lowStockSpareParts.length > 0 ? '⚠️ อะไหล่ใกล้หมดสต็อก' : 'สถานะสต็อกขั้นต่ำ'}
+                    </div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: lowStockSpareParts.length > 0 ? 'var(--danger)' : 'var(--text-primary)' }}>
+                      {lowStockSpareParts.length} <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>รายการ</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>฿</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>มูลค่าอะไหล่คงคลัง</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      {totalSparePartsValue.toLocaleString('th-TH')} <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>บาท</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Toolbar & Search Filters */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', background: 'var(--bg-primary)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                {/* Search & Status Filter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '260px' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="ค้นหารหัสอะไหล่, ชื่อ, สเปค, ตู้จัดเก็บ หรือร้านค้า..." 
+                      value={partSearchQuery}
+                      onChange={(e) => setPartSearchQuery(e.target.value)}
+                      style={{ paddingLeft: '2rem', height: '34px', fontSize: '0.8rem' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <button 
+                      type="button" 
+                      className={`btn btn-xs ${partFilterStatus === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setPartFilterStatus('all')}
+                      style={{ fontSize: '0.72rem', padding: '0.25rem 0.5rem' }}
+                    >
+                      ทั้งหมด ({assetSpareParts.length})
+                    </button>
+                    <button 
+                      type="button" 
+                      className={`btn btn-xs ${partFilterStatus === 'low' ? 'btn-danger' : 'btn-ghost'}`}
+                      onClick={() => setPartFilterStatus('low')}
+                      style={{ fontSize: '0.72rem', padding: '0.25rem 0.5rem', color: partFilterStatus === 'low' ? '#fff' : 'var(--danger)' }}
+                      title="แสดงเฉพาะอะไหล่ที่สต็อกเหลือน้อยกว่าหรือเท่ากับจุดเตือน"
+                    >
+                      ⚠️ ใกล้หมด ({lowStockSpareParts.length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Primary Action Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleOpenPrintStockCard()}
+                    style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.65rem' }}
+                    title="พิมพ์รายงาน Stock Card บัญชีคุมอะไหล่อุปกรณ์นี้ลงกระดาษ A4"
+                  >
+                    <Printer size={14} /> 🖨️ พิมพ์ Stock Card
+                  </button>
+
+                  <button 
+                    type="button" 
+                    className="btn btn-primary btn-sm"
+                    onClick={handleOpenAddPart}
+                    style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.75rem', fontWeight: 700 }}
+                  >
+                    <Plus size={15} /> + เพิ่มอะไหล่ใหม่
+                  </button>
+                </div>
+              </div>
+
+              {/* Spare Parts Grid / Cards */}
+              {filteredSpareParts.length === 0 ? (
+                <div className="empty-tab-state" style={{ padding: '3rem 1rem', background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border)' }}>
+                  <Package size={44} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                  <p style={{ margin: 0, fontWeight: 600 }}>ยังไม่มีข้อมูลอะไหล่สำรองสำหรับครุภัณฑ์ชิ้นนี้</p>
+                  <span style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+                    {partSearchQuery ? 'ไม่พบรายการที่ตรงกับคำค้นหา' : 'ท่านสามารถกดปุ่ม "+ เพิ่มอะไหล่ใหม่" ด้านบน เพื่อเริ่มลงทะเบียนอะไหล่และเก็บบัญชีคุม Stock Card'}
+                  </span>
+                  <button 
+                    type="button" 
+                    className="btn btn-primary btn-sm" 
+                    onClick={handleOpenAddPart}
+                    style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}
+                  >
+                    + เพิ่มอะไหล่ชิ้นแรก
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.85rem' }}>
+                  {filteredSpareParts.map(part => {
+                    const isLowStock = part.quantity <= part.minQuantity && part.quantity > 0;
+                    const isOutOfStock = part.quantity <= 0;
+                    const txCount = part.transactions?.length || 0;
+
+                    return (
+                      <div 
+                        key={part.id} 
+                        style={{ 
+                          background: 'var(--bg-primary)', 
+                          borderRadius: 'var(--radius-md)', 
+                          border: isOutOfStock 
+                            ? '1.5px solid rgba(239, 68, 68, 0.6)' 
+                            : isLowStock 
+                            ? '1.5px solid rgba(245, 158, 11, 0.6)' 
+                            : '1px solid var(--border)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          transition: 'all var(--transition-fast)'
+                        }}
+                      >
+                        {/* Card Header & Status */}
+                        <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', background: 'var(--bg-secondary)' }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 800, fontFamily: 'monospace', background: 'var(--bg-primary)', border: '1px solid var(--border)', padding: '0.1rem 0.4rem', borderRadius: '4px', color: 'var(--primary)' }}>
+                                {part.partCode}
+                              </span>
+                              {part.brand && (
+                                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                  แบรนด์: <strong>{part.brand}</strong>
+                                </span>
+                              )}
+                            </div>
+                            <h4 style={{ fontSize: '0.875rem', fontWeight: 800, margin: '0.25rem 0 0 0', color: 'var(--text-primary)', lineHeight: 1.35 }}>
+                              {part.name}
+                            </h4>
+                          </div>
+
+                          {/* Stock Level Badge */}
+                          <div>
+                            {isOutOfStock ? (
+                              <span className="badge badge-danger" style={{ fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.5rem' }}>
+                                🔴 หมดสต็อก (0 {part.unit})
+                              </span>
+                            ) : isLowStock ? (
+                              <span className="badge badge-warning" style={{ fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.5rem' }}>
+                                🟡 ใกล้หมด ({part.quantity} {part.unit})
+                              </span>
+                            ) : (
+                              <span className="badge badge-success" style={{ fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.5rem' }}>
+                                🟢 คงเหลือ: {part.quantity} {part.unit}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Card Body */}
+                        <div style={{ padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.775rem', flex: 1 }}>
+                          {part.specification && (
+                            <div style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                              ⚙️ <strong>สเปค/รุ่น:</strong> {part.specification}
+                            </div>
+                          )}
+
+                          {part.storageLocation && (
+                            <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <MapPin size={13} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                              <span>{part.storageLocation}</span>
+                            </div>
+                          )}
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', background: 'var(--bg-secondary)', padding: '0.5rem 0.65rem', borderRadius: 'var(--radius-sm)', marginTop: '0.25rem' }}>
+                            <div>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>จุดเตือนสั่งซื้อขั้นต่ำ:</span>
+                              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{part.minQuantity} {part.unit}</div>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>ราคาต่อหน่วย / รวม:</span>
+                              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                {part.unitPrice ? `${part.unitPrice.toLocaleString()} ฿` : '-'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {part.supplier && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                              🏢 ผู้จัดจำหน่าย: <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{part.supplier}</span>
+                              {part.supplierContact && ` (โทร: ${part.supplierContact})`}
+                            </div>
+                          )}
+
+                          {part.notes && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic', background: 'rgba(0,0,0,0.03)', padding: '0.35rem 0.5rem', borderRadius: '4px' }}>
+                              📝 {part.notes}
+                            </div>
+                          )}
+
+                          {part.imageUrl && (
+                            <div style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <img 
+                                src={part.imageUrl} 
+                                alt={part.name} 
+                                style={{ height: '38px', width: '55px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'pointer' }}
+                                onClick={() => handleOpenPartLightbox(part.imageUrl!, `${part.partCode} - ${part.name}`)}
+                                title="คลิกเพื่อดูรูปภาพอะไหล่ขนาดเต็ม HD"
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-xs"
+                                onClick={() => handleOpenPartLightbox(part.imageUrl!, `${part.partCode} - ${part.name}`)}
+                                style={{ fontSize: '0.7rem', color: 'var(--primary)' }}
+                              >
+                                🔍 ดูรูปภาพ HD
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Action Buttons (Stock In / Out / Stock Card / Edit / Delete) */}
+                        <div style={{ padding: '0.65rem 1rem', background: 'var(--bg-secondary)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <button
+                              type="button"
+                              className="btn btn-success btn-xs"
+                              onClick={() => handleOpenStockIn(part)}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.72rem', padding: '0.25rem 0.55rem', fontWeight: 700 }}
+                              title="บันทึกรับเข้าสต็อก (+ Stock In)"
+                            >
+                              <ArrowDownLeft size={13} /> 📥 รับเข้า
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-warning btn-xs"
+                              onClick={() => handleOpenStockOut(part)}
+                              disabled={part.quantity <= 0}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.72rem', padding: '0.25rem 0.55rem', fontWeight: 700, opacity: part.quantity <= 0 ? 0.5 : 1 }}
+                              title="บันทึกเบิกใช้งานซ่อมบำรุง (- Stock Out)"
+                            >
+                              <ArrowUpRight size={13} /> 📤 เบิกใช้
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs"
+                              onClick={() => setViewingStockCardPart(viewingStockCardPart?.id === part.id ? null : part)}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.72rem', padding: '0.25rem 0.5rem', color: 'var(--primary)', border: '1px solid var(--border)' }}
+                              title="เปิดดูประวัติการเคลื่อนไหว Stock Card ของอะไหล่ชิ้นนี้"
+                            >
+                              <History size={13} /> 📜 Stock Card ({txCount})
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs"
+                              onClick={() => handleOpenEditPart(part)}
+                              style={{ padding: '0.25rem 0.4rem', color: 'var(--text-secondary)' }}
+                              title="แก้ไขข้อมูลอะไหล่"
+                            >
+                              <Edit3 size={13} />
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs"
+                              onClick={() => handleDeletePart(part.id)}
+                              style={{ padding: '0.25rem 0.4rem', color: 'var(--danger)' }}
+                              title="ลบรายการอะไหล่"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Inline Stock Card Ledger Expansion for This Part */}
+                        {viewingStockCardPart?.id === part.id && (
+                          <div style={{ background: 'var(--bg-tertiary)', borderTop: '2px solid var(--primary)', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <h5 style={{ fontSize: '0.8rem', fontWeight: 800, margin: 0, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                📜 บัญชีคุมการเคลื่อนไหวสต็อก (Stock Card): {part.partCode}
+                              </h5>
+                              <button 
+                                type="button" 
+                                className="btn btn-ghost btn-xs"
+                                onClick={() => handleOpenPrintStockCard(part)}
+                                style={{ fontSize: '0.7rem', color: 'var(--primary)' }}
+                              >
+                                🖨️ พิมพ์ใบคุม
+                              </button>
+                            </div>
+
+                            {(!part.transactions || part.transactions.length === 0) ? (
+                              <div style={{ textAlign: 'center', padding: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                ยังไม่มีประวัติการรับเข้าหรือเบิกจ่ายสำหรับอะไหล่ชิ้นนี้
+                              </div>
+                            ) : (
+                              <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', fontSize: '0.725rem', borderCollapse: 'collapse' }}>
+                                  <thead>
+                                    <tr style={{ background: 'var(--bg-primary)', borderBottom: '1.5px solid var(--border)', textAlign: 'left' }}>
+                                      <th style={{ padding: '0.35rem 0.5rem' }}>วันที่</th>
+                                      <th style={{ padding: '0.35rem 0.5rem' }}>ประเภท</th>
+                                      <th style={{ padding: '0.35rem 0.5rem' }}>เอกสารอ้างอิง/เคส</th>
+                                      <th style={{ padding: '0.35rem 0.5rem', textAlign: 'right' }}>รับเข้า (+)</th>
+                                      <th style={{ padding: '0.35rem 0.5rem', textAlign: 'right' }}>จ่ายออก (-)</th>
+                                      <th style={{ padding: '0.35rem 0.5rem', textAlign: 'right' }}>คงเหลือ</th>
+                                      <th style={{ padding: '0.35rem 0.5rem' }}>ผู้ทำรายการ</th>
+                                      <th style={{ padding: '0.35rem 0.5rem' }}>หมายเหตุ</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {part.transactions.map((tx, idx) => (
+                                      <tr key={tx.id || idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                                        <td style={{ padding: '0.35rem 0.5rem', whiteSpace: 'nowrap' }}>{tx.date}</td>
+                                        <td style={{ padding: '0.35rem 0.5rem' }}>
+                                          {tx.type === 'in' ? (
+                                            <span style={{ color: 'var(--success)', fontWeight: 700 }}>📥 รับเข้า</span>
+                                          ) : tx.type === 'out' ? (
+                                            <span style={{ color: 'var(--warning)', fontWeight: 700 }}>📤 เบิกใช้</span>
+                                          ) : (
+                                            <span style={{ color: 'var(--primary)', fontWeight: 700 }}>🔄 ปรับยอด</span>
+                                          )}
+                                        </td>
+                                        <td style={{ padding: '0.35rem 0.5rem', fontWeight: 600 }}>{tx.referenceDoc || '-'}</td>
+                                        <td style={{ padding: '0.35rem 0.5rem', textAlign: 'right', color: 'var(--success)', fontWeight: 700 }}>
+                                          {tx.quantity > 0 ? `+${tx.quantity}` : '-'}
+                                        </td>
+                                        <td style={{ padding: '0.35rem 0.5rem', textAlign: 'right', color: 'var(--warning)', fontWeight: 700 }}>
+                                          {tx.quantity < 0 ? tx.quantity : '-'}
+                                        </td>
+                                        <td style={{ padding: '0.35rem 0.5rem', textAlign: 'right', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                          {tx.balanceAfter} {part.unit}
+                                        </td>
+                                        <td style={{ padding: '0.35rem 0.5rem' }}>{tx.operator}</td>
+                                        <td style={{ padding: '0.35rem 0.5rem', color: 'var(--text-muted)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          {tx.note || '-'}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Comprehensive Master Stock Card Ledger Table for this Equipment */}
+              {assetSpareParts.length > 0 && (
+                <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '1rem', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        📊 ทะเบียนประวัติการเคลื่อนไหวสต็อกรวม (Master Stock Card Movement Log)
+                      </h4>
+                      <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                        ประวัติการรับเข้าและเบิกใช้อะไหล่ทุกรายการของ {asset.name}
+                      </span>
+                    </div>
+
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary btn-xs"
+                      onClick={() => handleOpenPrintStockCard()}
+                      style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                    >
+                      <Printer size={13} /> พิมพ์ Stock Card รวม
+                    </button>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--bg-secondary)', borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
+                          <th style={{ padding: '0.45rem 0.6rem' }}>วันที่</th>
+                          <th style={{ padding: '0.45rem 0.6rem' }}>รหัสอะไหล่</th>
+                          <th style={{ padding: '0.45rem 0.6rem' }}>ชื่ออะไหล่</th>
+                          <th style={{ padding: '0.45rem 0.6rem' }}>ประเภท</th>
+                          <th style={{ padding: '0.45rem 0.6rem' }}>เอกสารอ้างอิง / เคส PM-CM</th>
+                          <th style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>รับเข้า (+)</th>
+                          <th style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>จ่ายออก (-)</th>
+                          <th style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>คงเหลือ</th>
+                          <th style={{ padding: '0.45rem 0.6rem' }}>ผู้ทำรายการ</th>
+                          <th style={{ padding: '0.45rem 0.6rem' }}>หมายเหตุ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {assetSpareParts.flatMap(p => (p.transactions || []).map(tx => ({ ...tx, partInfo: p })))
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((tx, idx) => (
+                            <tr key={tx.id || idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                              <td style={{ padding: '0.45rem 0.6rem', whiteSpace: 'nowrap' }}>{tx.date}</td>
+                              <td style={{ padding: '0.45rem 0.6rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--primary)' }}>
+                                {tx.partInfo.partCode}
+                              </td>
+                              <td style={{ padding: '0.45rem 0.6rem', fontWeight: 600 }}>{tx.partInfo.name}</td>
+                              <td style={{ padding: '0.45rem 0.6rem' }}>
+                                {tx.type === 'in' ? (
+                                  <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>📥 รับเข้า</span>
+                                ) : tx.type === 'out' ? (
+                                  <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>📤 เบิกใช้</span>
+                                ) : (
+                                  <span className="badge badge-primary" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>🔄 ปรับยอด</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '0.45rem 0.6rem' }}>{tx.referenceDoc || '-'}</td>
+                              <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', color: 'var(--success)', fontWeight: 700 }}>
+                                {tx.quantity > 0 ? `+${tx.quantity}` : '-'}
+                              </td>
+                              <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', color: 'var(--warning)', fontWeight: 700 }}>
+                                {tx.quantity < 0 ? tx.quantity : '-'}
+                              </td>
+                              <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', fontWeight: 800 }}>
+                                {tx.balanceAfter} {tx.partInfo.unit}
+                              </td>
+                              <td style={{ padding: '0.45rem 0.6rem' }}>{tx.operator}</td>
+                              <td style={{ padding: '0.45rem 0.6rem', color: 'var(--text-muted)' }}>{tx.note || '-'}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
         </div>
 
       </div>
+
+      {/* --- SUB-MODAL 1: ADD / EDIT SPARE PART MODAL --- */}
+      {isAddPartOpen && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 100020, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <form onSubmit={handleSavePart} className="glass-panel animate-scale-up" style={{ maxWidth: '560px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Package size={20} /> {editingPart ? '✏️ แก้ไขข้อมูลอะไหล่สำรอง' : '➕ เพิ่มรายการอะไหล่สำรอง (Spare Part)'}
+              </h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsAddPartOpen(false)}>✕</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.5rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>รหัสอะไหล่ (Part Code) *</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={formPartCode} 
+                    onChange={(e) => setFormPartCode(e.target.value)} 
+                    placeholder="เช่น SP-PUMP-01" 
+                    required 
+                    style={{ fontSize: '0.8rem', fontFamily: 'monospace' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>ชื่ออะไหล่ / ชิ้นส่วน *</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={formName} 
+                    onChange={(e) => setFormName(e.target.value)} 
+                    placeholder="เช่น ไส้กรองอากาศ (Air Intake Filter)" 
+                    required 
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>สเปค / รุ่น / หมายเลขชิ้นส่วน OEM (Specification / Part No.)</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={formSpec} 
+                  onChange={(e) => setFormSpec(e.target.value)} 
+                  placeholder="เช่น Atlas Copco Genuine Part 1613-8720-00" 
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>ยี่ห้อ / แบรนด์ (Brand)</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={formBrand} 
+                    onChange={(e) => setFormBrand(e.target.value)} 
+                    placeholder="เช่น Atlas Copco / SMC / Festo" 
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>สถานที่จัดเก็บ (Storage Location)</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={formLocation} 
+                    onChange={(e) => setFormLocation(e.target.value)} 
+                    placeholder="เช่น ตู้เก็บอะไหล่ ช่างบำรุงรักษา ชั้น 2" 
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>ยอดคงเหลือ *</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    className="form-input" 
+                    value={formQty} 
+                    onChange={(e) => setFormQty(Number(e.target.value))} 
+                    required 
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>จุดเตือนขั้นต่ำ *</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    className="form-input" 
+                    value={formMinQty} 
+                    onChange={(e) => setFormMinQty(Number(e.target.value))} 
+                    required 
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>หน่วยนับ *</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={formUnit} 
+                    onChange={(e) => setFormUnit(e.target.value)} 
+                    placeholder="ชิ้น / ชุด / ลิตร" 
+                    required 
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>ราคา/หน่วย (บาท)</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    step="any"
+                    className="form-input" 
+                    value={formUnitPrice} 
+                    onChange={(e) => setFormUnitPrice(e.target.value)} 
+                    placeholder="เช่น 1450" 
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>บริษัท/ร้านค้าผู้จัดจำหน่าย</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={formSupplier} 
+                    onChange={(e) => setFormSupplier(e.target.value)} 
+                    placeholder="เช่น บริษัท โอซาร่า วิศวกรรม จำกัด" 
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>เบอร์ติดต่อร้านค้า</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={formSupplierContact} 
+                    onChange={(e) => setFormSupplierContact(e.target.value)} 
+                    placeholder="เช่น 02-XXX-XXXX" 
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>หมายเหตุ / รอบการเปลี่ยน</label>
+                <textarea 
+                  className="form-input" 
+                  rows={2} 
+                  value={formNotes} 
+                  onChange={(e) => setFormNotes(e.target.value)} 
+                  placeholder="เช่น เปลี่ยนทุกๆ 2,000 ชั่วโมงการทำงาน หรือทุกรอบ PM 6 เดือน" 
+                  style={{ fontSize: '0.8rem', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>ลิงก์รูปภาพอะไหล่ (URL รูปภาพ)</label>
+                <input 
+                  type="url" 
+                  className="form-input" 
+                  value={formImageUrl} 
+                  onChange={(e) => setFormImageUrl(e.target.value)} 
+                  placeholder="https://..." 
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setIsAddPartOpen(false)}>ยกเลิก</button>
+              <button type="submit" className="btn btn-primary">
+                💾 {editingPart ? 'บันทึกการแก้ไข' : 'บันทึกรายการอะไหล่'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* --- SUB-MODAL 2: STOCK IN (รับอะไหล่เข้าคลัง) --- */}
+      {isStockInOpen && selectedPartForIn && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 100020, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <form onSubmit={handleSaveStockIn} className="glass-panel animate-scale-up" style={{ maxWidth: '480px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <ArrowDownLeft size={20} /> 📥 บันทึกรับอะไหล่เข้าสต็อก (Stock In)
+              </h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsStockInOpen(false)}>✕</button>
+            </div>
+
+            <div style={{ background: 'var(--bg-primary)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '0.85rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontFamily: 'monospace', fontWeight: 700 }}>{selectedPartForIn.partCode}</div>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{selectedPartForIn.name}</h4>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                ยอดคงเหลือปัจจุบัน: <strong>{selectedPartForIn.quantity} {selectedPartForIn.unit}</strong>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>จำนวนที่รับเข้า (+) *</label>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    className="form-input" 
+                    value={inQty} 
+                    onChange={(e) => setInQty(Number(e.target.value))} 
+                    required 
+                    style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--success)' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>ราคาต่อหน่วย (บาท)</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    step="any"
+                    className="form-input" 
+                    value={inPrice} 
+                    onChange={(e) => setInPrice(e.target.value)} 
+                    placeholder="เช่น 1450" 
+                    style={{ fontSize: '0.85rem' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>เลขที่ใบสั่งซื้อ / ใบเสร็จรับเงิน (PO / Invoice Ref)</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={inRef} 
+                  onChange={(e) => setInRef(e.target.value)} 
+                  placeholder="เช่น PO-6908-01 หรือ ใบส่งของ 1234/69" 
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>ผู้ตรวจรับ / ผู้ทำรายการ *</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={inOperator} 
+                  onChange={(e) => setInOperator(e.target.value)} 
+                  required 
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>หมายเหตุการรับเข้า</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={inNote} 
+                  onChange={(e) => setInNote(e.target.value)} 
+                  placeholder="เช่น สั่งซื้อสต็อกสำรองประจำไตรมาส 3" 
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setIsStockInOpen(false)}>ยกเลิก</button>
+              <button type="submit" className="btn btn-success" style={{ fontWeight: 700 }}>
+                📥 ยืนยันรับเข้า ({inQty} {selectedPartForIn.unit})
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* --- SUB-MODAL 3: STOCK OUT (เบิกอะไหล่ไปใช้งาน) --- */}
+      {isStockOutOpen && selectedPartForOut && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 100020, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <form onSubmit={handleSaveStockOut} className="glass-panel animate-scale-up" style={{ maxWidth: '480px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <ArrowUpRight size={20} /> 📤 บันทึกเบิกใช้อะไหล่ (Stock Out)
+              </h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsStockOutOpen(false)}>✕</button>
+            </div>
+
+            <div style={{ background: 'var(--bg-primary)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '0.85rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontFamily: 'monospace', fontWeight: 700 }}>{selectedPartForOut.partCode}</div>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{selectedPartForOut.name}</h4>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                ยอดคงเหลือในคลังปัจจุบัน: <strong style={{ color: 'var(--success)' }}>{selectedPartForOut.quantity} {selectedPartForOut.unit}</strong>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>จำนวนที่เบิกใช้ (-) *</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max={selectedPartForOut.quantity}
+                  className="form-input" 
+                  value={outQty} 
+                  onChange={(e) => setOutQty(Number(e.target.value))} 
+                  required 
+                  style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--warning)' }}
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  (เบิกได้สูงสุดไม่เกิน {selectedPartForOut.quantity} {selectedPartForOut.unit})
+                </span>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>อ้างอิงงาน / รอบ PM / เคสซ่อม CM *</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={outRef} 
+                  onChange={(e) => setOutRef(e.target.value)} 
+                  placeholder="เช่น PM ประจำรอบ ส.ค. 2569 หรือ เคส CM-0725-01" 
+                  required
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>ผู้เบิก / ช่างผู้ดำเนินการ *</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={outOperator} 
+                  onChange={(e) => setOutOperator(e.target.value)} 
+                  required 
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>หมายเหตุ / รายละเอียดงานที่นำไปใช้</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={outNote} 
+                  onChange={(e) => setOutNote(e.target.value)} 
+                  placeholder="เช่น เปลี่ยนไส้กรองรอบบำรุงรักษาประจำปี อาการเครื่องทำงานราบรื่นดี" 
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setIsStockOutOpen(false)}>ยกเลิก</button>
+              <button type="submit" className="btn btn-warning" style={{ fontWeight: 700 }}>
+                📤 ยืนยันการเบิกจ่าย ({outQty} {selectedPartForOut.unit})
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* --- SUB-MODAL 4: PRINTABLE OFFICIAL STOCK CARD REPORT --- */}
+      {isPrintStockCardOpen && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 100030, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <div className="printable-cm-document" style={{ maxWidth: '820px', width: '100%', background: '#ffffff', color: '#000000', padding: '2.5rem', borderRadius: '4px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', fontFamily: 'sans-serif' }}>
+            
+            {/* Action Bar (Not printed) */}
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Printer size={18} color="#2563eb" />
+                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e293b' }}>
+                  ตัวอย่างก่อนพิมพ์: บัญชีคุมพัสดุอะไหล่ (Stock Card Ledger)
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => window.print()}
+                  style={{ background: '#2563eb', color: '#ffffff', fontWeight: 700, padding: '0.35rem 0.85rem' }}
+                >
+                  🖨️ สั่งพิมพ์เอกสาร
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setIsPrintStockCardOpen(false)}
+                >
+                  ✕ ปิดหน้าต่าง
+                </button>
+              </div>
+            </div>
+
+            {/* Official Header */}
+            <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+              <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.3rem', fontWeight: 800 }}>
+                บัญชีคุมพัสดุและอะไหล่สำรอง (STOCK CARD)
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155' }}>
+                ระบบบริหารจัดการครุภัณฑ์และบำรุงรักษาเชิงป้องกัน (AssetWatch Maintenance Module)
+              </p>
+            </div>
+
+            {/* Target Asset Information */}
+            <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.85rem', lineHeight: 1.6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem' }}>
+                <div>ครุภัณฑ์หลัก: <strong>{asset.name}</strong></div>
+                <div>รหัสครุภัณฑ์: <strong style={{ fontFamily: 'monospace' }}>{asset.id}</strong></div>
+                <div>สถานที่ติดตั้ง: <strong>{asset.location || '-'}</strong></div>
+                <div>หน่วยงานผู้รับผิดชอบ: <strong>{asset.department || '-'}</strong></div>
+              </div>
+            </div>
+
+            {/* Target Spare Part Info if filtering single part */}
+            {printCardTargetPart && (
+              <div style={{ border: '1.5px solid #2563eb', borderRadius: '4px', padding: '0.75rem 1rem', marginBottom: '1.25rem', background: '#eff6ff', fontSize: '0.85rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '0.5rem' }}>
+                  <div>รหัสอะไหล่: <strong>{printCardTargetPart.partCode}</strong></div>
+                  <div>ชื่ออะไหล่: <strong>{printCardTargetPart.name}</strong></div>
+                  <div>ยอดคงเหลือ: <strong>{printCardTargetPart.quantity} {printCardTargetPart.unit}</strong></div>
+                  <div>สเปค/รุ่น: <strong>{printCardTargetPart.specification || '-'}</strong></div>
+                  <div>สถานที่จัดเก็บ: <strong>{printCardTargetPart.storageLocation || '-'}</strong></div>
+                  <div>ราคาต่อหน่วย: <strong>{printCardTargetPart.unitPrice ? `${printCardTargetPart.unitPrice.toLocaleString()} บาท` : '-'}</strong></div>
+                </div>
+              </div>
+            )}
+
+            {/* Spare Parts Inventory Table */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem 0', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.25rem' }}>
+                1. บัญชีรายการอะไหล่และยอดคงคลัง (Spare Parts List)
+              </h4>
+              <table style={{ width: '100%', fontSize: '0.775rem', borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1', textAlign: 'left' }}>
+                    <th style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>รหัสอะไหล่</th>
+                    <th style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>ชื่ออะไหล่ / สเปค</th>
+                    <th style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>ตู้/สถานที่จัดเก็บ</th>
+                    <th style={{ padding: '0.45rem', textAlign: 'right', border: '1px solid #cbd5e1' }}>ยอดคงเหลือ</th>
+                    <th style={{ padding: '0.45rem', textAlign: 'right', border: '1px solid #cbd5e1' }}>จุดเตือนขั้นต่ำ</th>
+                    <th style={{ padding: '0.45rem', textAlign: 'right', border: '1px solid #cbd5e1' }}>ราคา/หน่วย</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(printCardTargetPart ? [printCardTargetPart] : assetSpareParts).map(p => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #cbd5e1' }}>
+                      <td style={{ padding: '0.45rem', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #cbd5e1' }}>{p.partCode}</td>
+                      <td style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>
+                        <strong>{p.name}</strong>
+                        {p.specification && <div style={{ fontSize: '0.7rem', color: '#475569' }}>{p.specification}</div>}
+                      </td>
+                      <td style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>{p.storageLocation || '-'}</td>
+                      <td style={{ padding: '0.45rem', textAlign: 'right', fontWeight: 800, border: '1px solid #cbd5e1' }}>{p.quantity} {p.unit}</td>
+                      <td style={{ padding: '0.45rem', textAlign: 'right', border: '1px solid #cbd5e1' }}>{p.minQuantity} {p.unit}</td>
+                      <td style={{ padding: '0.45rem', textAlign: 'right', border: '1px solid #cbd5e1' }}>{p.unitPrice ? `${p.unitPrice.toLocaleString()} ฿` : '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Stock Card Movement Ledger */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem 0', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.25rem' }}>
+                2. ทะเบียนการรับเข้าและเบิกจ่ายอะไหล่ (Stock Card Movement Ledger)
+              </h4>
+              <table style={{ width: '100%', fontSize: '0.775rem', borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1', textAlign: 'left' }}>
+                    <th style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>วันที่</th>
+                    <th style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>รหัสอะไหล่</th>
+                    <th style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>รายการ / เอกสารอ้างอิง</th>
+                    <th style={{ padding: '0.45rem', textAlign: 'right', border: '1px solid #cbd5e1' }}>รับเข้า (+)</th>
+                    <th style={{ padding: '0.45rem', textAlign: 'right', border: '1px solid #cbd5e1' }}>จ่ายออก (-)</th>
+                    <th style={{ padding: '0.45rem', textAlign: 'right', border: '1px solid #cbd5e1' }}>คงเหลือ</th>
+                    <th style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>ผู้เบิก/ผู้รับ</th>
+                    <th style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>หมายเหตุ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(printCardTargetPart ? [printCardTargetPart] : assetSpareParts)
+                    .flatMap(p => (p.transactions || []).map(tx => ({ ...tx, partInfo: p })))
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                    .map((tx, idx) => (
+                      <tr key={tx.id || idx} style={{ borderBottom: '1px solid #cbd5e1' }}>
+                        <td style={{ padding: '0.45rem', border: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}>{tx.date}</td>
+                        <td style={{ padding: '0.45rem', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #cbd5e1' }}>{tx.partInfo.partCode}</td>
+                        <td style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>
+                          <div>{tx.type === 'in' ? '📥 รับเข้าสต็อก' : '📤 เบิกใช้งาน'} ({tx.referenceDoc || '-'})</div>
+                        </td>
+                        <td style={{ padding: '0.45rem', textAlign: 'right', fontWeight: 700, border: '1px solid #cbd5e1' }}>
+                          {tx.quantity > 0 ? `+${tx.quantity}` : '-'}
+                        </td>
+                        <td style={{ padding: '0.45rem', textAlign: 'right', fontWeight: 700, border: '1px solid #cbd5e1' }}>
+                          {tx.quantity < 0 ? tx.quantity : '-'}
+                        </td>
+                        <td style={{ padding: '0.45rem', textAlign: 'right', fontWeight: 800, border: '1px solid #cbd5e1' }}>
+                          {tx.balanceAfter} {tx.partInfo.unit}
+                        </td>
+                        <td style={{ padding: '0.45rem', border: '1px solid #cbd5e1' }}>{tx.operator}</td>
+                        <td style={{ padding: '0.45rem', border: '1px solid #cbd5e1', color: '#475569' }}>{tx.note || '-'}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Official Sign-off Signature Blocks */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', marginTop: '2.5rem', paddingTop: '1rem', borderTop: '1px solid #cbd5e1', textAlign: 'center', fontSize: '0.85rem' }}>
+              <div>
+                <div style={{ marginBottom: '3rem' }}>ลงชื่อ ..............................................................</div>
+                <div>( .............................................................. )</div>
+                <div style={{ color: '#475569', fontSize: '0.75rem', marginTop: '0.25rem' }}>เจ้าหน้าที่พัสดุ / ผู้ควบคุมสต็อก</div>
+                <div style={{ color: '#64748b', fontSize: '0.72rem' }}>วันที่ ..... / ..... / .........</div>
+              </div>
+
+              <div>
+                <div style={{ marginBottom: '3rem' }}>ลงชื่อ ..............................................................</div>
+                <div>( .............................................................. )</div>
+                <div style={{ color: '#475569', fontSize: '0.75rem', marginTop: '0.25rem' }}>หัวหน้างานซ่อมบำรุง / ผู้ตรวจรับรอง</div>
+                <div style={{ color: '#64748b', fontSize: '0.72rem' }}>วันที่ ..... / ..... / .........</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* --- SUB-MODAL 5: FULLSCREEN LIGHTBOX FOR SPARE PART IMAGES --- */}
+      {lightboxUrl && (
+        <div 
+          className="print-preview-overlay animate-fade-in" 
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.92)', zIndex: 100050, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={() => setLightboxUrl(null)}
+        >
+          <div 
+            style={{ position: 'absolute', top: '1rem', left: '1rem', right: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(20, 24, 33, 0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.15)', padding: '0.65rem 1.25rem', borderRadius: 'var(--radius-md)', zIndex: 10, color: '#fff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', maxWidth: '60%' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                🔍 {lightboxTitle || 'รูปภาพอะไหล่สำรอง (HD)'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm"
+                onClick={() => setLightboxZoom(prev => Math.min(prev + 0.25, 3))}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem' }}
+              >
+                🔍+ ซูมเข้า
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm"
+                onClick={() => setLightboxZoom(prev => Math.max(prev - 0.25, 0.5))}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem' }}
+              >
+                🔍- ซูมออก
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm"
+                onClick={() => setLightboxZoom(1)}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem' }}
+              >
+                🔄 {Math.round(lightboxZoom * 100)}%
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm"
+                onClick={() => setLightboxUrl(null)}
+                style={{ color: '#ef4444', border: '1px solid #ef4444', fontSize: '0.85rem', fontWeight: 800 }}
+              >
+                ✕ ปิด
+              </button>
+            </div>
+          </div>
+
+          <div 
+            style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: '4.5rem 1rem 1rem 1rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div 
+              style={{ 
+                transform: `scale(${lightboxZoom})`, 
+                transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                maxHeight: '82vh',
+                maxWidth: '92vw'
+              }}
+            >
+              <img 
+                src={lightboxUrl} 
+                alt="Spare Part Preview" 
+                style={{ 
+                  maxHeight: '82vh', 
+                  maxWidth: '92vw', 
+                  objectFit: 'contain', 
+                  borderRadius: '8px', 
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  cursor: lightboxZoom > 1 ? 'grab' : 'zoom-in'
+                }}
+                onClick={() => setLightboxZoom(prev => (prev === 1 ? 1.75 : 1))}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .modal-backdrop {
