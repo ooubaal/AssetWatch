@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Asset, PMContract, PMSchedule, PMNotification, RepairCase, UserAccount } from '../utils/mockData';
 import { uploadImage } from '../services/dbService';
+import { SearchableSelect } from '../components/SearchableSelect';
 import confetti from 'canvas-confetti';
 
 interface Module10MaintenanceProps {
@@ -2565,22 +2566,19 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </button>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">🔍 เลือกครุภัณฑ์ที่จะส่งซ่อม</label>
-              <select 
-                className="form-select"
-                value={repairAssetId}
-                onChange={(e) => setRepairAssetId(e.target.value)}
-                required
-              >
-                <option value="">-- โปรดเลือกครุภัณฑ์ --</option>
-                {assets.filter(a => a.status !== 'รอจำหน่าย' && (currentUser?.role !== 'user' || a.department === currentUser.department)).map(asset => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.id} - {asset.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableSelect
+              label="🔍 เลือกครุภัณฑ์ที่จะส่งซ่อม"
+              options={assets
+                .filter(a => a.status !== 'รอจำหน่าย' && (currentUser?.role !== 'user' || a.department === currentUser.department))
+                .map(asset => ({
+                  value: asset.id,
+                  label: `${asset.id} - ${asset.name}${asset.department ? ` (${asset.department})` : ''}${asset.location ? ` [${asset.location}]` : ''}`
+                }))}
+              value={repairAssetId}
+              onChange={(val) => setRepairAssetId(val)}
+              placeholder="-- พิมพ์เพื่อค้นหา / เลือกครุภัณฑ์ --"
+              required
+            />
 
             <div className="form-group">
               <label className="form-label">⚠️ ระบุอาการชำรุดเสียหายที่พบ</label>
