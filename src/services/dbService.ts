@@ -90,8 +90,89 @@ const initLocalStorageIfNeeded = () => {
 };
 initLocalStorageIfNeeded();
 
-// --- DYNAMIC IMAGE COMPRESSION HELPER (PREVENTS MOBILE OUT-OF-MEMORY ERRORS) ---
-export const compressImage = (file: File, maxWidth = 1280, maxHeight = 1280, quality = 0.75): Promise<File> => {
+// --- DYNAMIC IMAGE & PDF COMPRESSION HELPER (HD CLARITY & MINIMAL STORAGE SIZE) ---
+
+// Helper to render PDF file to an HD compressed image
+export const renderPdfToHdImage = async (file: File): Promise<File> => {
+  return new Promise(async (resolve) => {
+    try {
+      // Load pdfjsLib dynamically from CDN if not already on window
+      if (!(window as any).pdfjsLib) {
+        await new Promise<void>((res, rej) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          script.onload = () => {
+            try {
+              (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            } catch {}
+            res();
+          };
+          script.onerror = () => rej(new Error('Cannot load PDF library'));
+          document.head.appendChild(script);
+        });
+      }
+
+      const pdfjsLib = (window as any).pdfjsLib;
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1);
+
+      // Render at scale 2.0 (HD resolution ~150-200 DPI) for ultra-crisp readable text and tables
+      const viewport = page.getViewport({ scale: 2.0 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+
+      // Draw pure white background to avoid transparent PDF issues
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      // Fit maximum width to 1400px while maintaining crystal-clear sharpness
+      let finalCanvas = canvas;
+      const maxWidth = 1400;
+      if (canvas.width > maxWidth) {
+        const scale = maxWidth / canvas.width;
+        const resizedCanvas = document.createElement('canvas');
+        resizedCanvas.width = maxWidth;
+        resizedCanvas.height = Math.round(canvas.height * scale);
+        const rCtx = resizedCanvas.getContext('2d');
+        if (rCtx) {
+          rCtx.fillStyle = '#ffffff';
+          rCtx.fillRect(0, 0, resizedCanvas.width, resizedCanvas.height);
+          rCtx.imageSmoothingEnabled = true;
+          rCtx.imageSmoothingQuality = 'high';
+          rCtx.drawImage(canvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+          finalCanvas = resizedCanvas;
+        }
+      }
+
+      finalCanvas.toBlob((blob) => {
+        if (blob) {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "");
+          const compressedFile = new File([blob], `${cleanName}_HD.jpg`, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(compressedFile);
+        } else {
+          resolve(file);
+        }
+      }, 'image/jpeg', 0.80); // 0.80 provides HD text sharpness with tiny ~60-110KB file size
+    } catch (e) {
+      console.warn('PDF to HD Image conversion fallback, using original file:', e);
+      resolve(file);
+    }
+  });
+};
+
+export const compressImage = (file: File, maxWidth = 1400, maxHeight = 1400, quality = 0.78): Promise<File> => {
   return new Promise((resolve) => {
     if (!file.type.startsWith('image/')) {
       resolve(file);
@@ -131,11 +212,17 @@ export const compressImage = (file: File, maxWidth = 1280, maxHeight = 1280, qua
         return;
       }
 
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
       ctx.drawImage(img, 0, 0, width, height);
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            const compressedFile = new File([blob], file.name.substring(0, file.name.lastIndexOf('.')) + '_compressed.jpg', {
+            const cleanName = file.name.replace(/\.[^/.]+$/, "");
+            const compressedFile = new File([blob], `${cleanName}_compressed.jpg`, {
               type: 'image/jpeg',
               lastModified: Date.now()
             });
@@ -156,20 +243,35 @@ export const compressImage = (file: File, maxWidth = 1280, maxHeight = 1280, qua
   });
 };
 
-// --- IMAGE UPLOAD HELPER ---
+// Universal file & image compressor: Handles both PDF and Images with HD text sharpness & minimal file size
+export const compressFileOrPdf = async (file: File, maxWidth = 1400, maxHeight = 1400, quality = 0.78): Promise<File> => {
+  if (!file) return file;
+
+  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  if (isPdf) {
+    return await renderPdfToHdImage(file);
+  }
+
+  if (file.type.startsWith('image/')) {
+    return await compressImage(file, maxWidth, maxHeight, quality);
+  }
+
+  return file;
+};
+
+// --- IMAGE & DOCUMENT UPLOAD HELPER ---
 export const uploadImage = async (file: File, path: string = 'assets'): Promise<string> => {
   const { isFirebase, storage } = getServices();
   
-  // Compress image to prevent Out of Memory on mobile and speed up uploading
+  // Compress image or convert/compress PDF to HD readable document with tiny size
   let processedFile = file;
   try {
-    // If it is a PM proof photo, compress aggressively to ~800px at 0.6 quality to keep DB size minimal
-    // For general assets, use 1024px at 0.7 quality
-    const targetSize = path === 'pm_proofs' ? 800 : 1024;
-    const targetQuality = path === 'pm_proofs' ? 0.6 : 0.7;
-    processedFile = await compressImage(file, targetSize, targetSize, targetQuality);
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const targetSize = isPdf ? 1400 : (path === 'pm_proofs' ? 1200 : 1400);
+    const targetQuality = isPdf ? 0.80 : 0.78;
+    processedFile = await compressFileOrPdf(file, targetSize, targetSize, targetQuality);
   } catch (err) {
-    console.error('Image compression failed, using original file:', err);
+    console.error('File compression failed, using original file:', err);
   }
 
   const forceBase64 = localStorage.getItem('assetwatch_force_base64_images') !== 'false';

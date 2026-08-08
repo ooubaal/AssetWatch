@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
-import { uploadImage } from '../services/dbService';
+import { uploadImage, compressFileOrPdf } from '../services/dbService';
 import confetti from 'canvas-confetti';
 
 interface Module2ScanSurveyProps {
@@ -295,16 +295,25 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     setSurveySuccess(false);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setAttachImageFile(file);
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAttachImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
+        setAttachImageFile(compressed);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAttachImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(compressed);
+      } catch {
+        setAttachImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAttachImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -837,13 +846,12 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
               {/* Picture upload area for documenting asset damage */}
               <div className="form-group">
-                <label className="form-label">📷 แนบรูปภาพถ่ายตรวจสอบสภาพ (ตัวเลือกกรณีมีปัญหา)</label>
+                <label className="form-label">📷 แนบรูปภาพ หรือ เอกสาร PDF ถ่ายตรวจสอบสภาพ (ตัวเลือกกรณีมีปัญหา)</label>
                 <div className="survey-upload-trigger">
                   <input 
                     type="file" 
                     id="survey-photo-capture" 
-                    accept="image/*" 
-                    capture="environment" // Forces back-camera camera capture on phone!
+                    accept="image/*,application/pdf,.pdf" 
                     className="file-hidden-input"
                     onChange={handleImageChange}
                   />
@@ -852,13 +860,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                       <div className="preview-image-box">
                         <img src={attachImagePreview} alt="damage report preview" />
                         <span className="preview-indicator">
-                          <RefreshCw size={12} /> กดเพื่อถ่ายภาพใหม่
+                          <RefreshCw size={12} /> กดเพื่อเปลี่ยนไฟล์ (PDF หรือ รูปภาพ)
                         </span>
                       </div>
                     ) : (
                       <>
                         <Camera size={24} color="var(--text-muted)" />
-                        <span>กดเพื่อเปิดกล้องมือถือถ่ายภาพแนบสภาพ</span>
+                        <span>กดเพื่อแนบเอกสาร PDF หรือ ถ่ายภาพหลักฐาน (บีบอัด HD อัตโนมัติ)</span>
                       </>
                     )}
                   </label>

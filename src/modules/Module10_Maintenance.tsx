@@ -4,7 +4,7 @@ import {
   Trash2, Phone, User, Building, ExternalLink, Printer, ChevronLeft, ChevronRight, Camera, Search, ArrowRight, RefreshCw 
 } from 'lucide-react';
 import { Asset, PMContract, PMSchedule, PMNotification, RepairCase, UserAccount } from '../utils/mockData';
-import { uploadImage } from '../services/dbService';
+import { uploadImage, compressFileOrPdf } from '../services/dbService';
 import { SearchableSelect } from '../components/SearchableSelect';
 import confetti from 'canvas-confetti';
 
@@ -194,6 +194,14 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [receiveProofPreview, setReceiveProofPreview] = useState<string | null>(null);
   const [submittingReceive, setSubmittingReceive] = useState(false);
 
+  // File Attachment & HD Compression Metadata States
+  const [proofInfo, setProofInfo] = useState<{ name: string; size: string; isPdf: boolean } | null>(null);
+  const [sendProofInfo, setSendProofInfo] = useState<{ name: string; size: string; isPdf: boolean } | null>(null);
+  const [receiveProofInfo, setReceiveProofInfo] = useState<{ name: string; size: string; isPdf: boolean } | null>(null);
+  const [compressingProof, setCompressingProof] = useState<boolean>(false);
+  const [compressingSendProof, setCompressingSendProof] = useState<boolean>(false);
+  const [compressingReceiveProof, setCompressingReceiveProof] = useState<boolean>(false);
+
   // Reschedule (change planned date) states
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<PMSchedule | null>(null);
@@ -305,16 +313,44 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setCmSymptom('');
     setProofFile(null);
     setProofPreview(sched.proofImageUrl || null);
+    setProofInfo(null);
     setIsPMFormOpen(true);
   };
 
-  const handleProofImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProofImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setProofFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setProofPreview(reader.result as string);
-      reader.readAsDataURL(file);
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      setCompressingProof(true);
+      try {
+        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
+        setProofFile(compressed);
+        setProofInfo({
+          name: file.name,
+          size: `${Math.round(compressed.size / 1024)} KB`,
+          isPdf
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setProofPreview(reader.result as string);
+          setCompressingProof(false);
+        };
+        reader.readAsDataURL(compressed);
+      } catch (err) {
+        console.error('Proof file compression failed:', err);
+        setProofFile(file);
+        setProofInfo({
+          name: file.name,
+          size: `${Math.round(file.size / 1024)} KB`,
+          isPdf
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setProofPreview(reader.result as string);
+          setCompressingProof(false);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -774,23 +810,75 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     }
   };
 
-  const handleSendProofImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSendProofImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setSendProofFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setSendProofPreview(reader.result as string);
-      reader.readAsDataURL(file);
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      setCompressingSendProof(true);
+      try {
+        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
+        setSendProofFile(compressed);
+        setSendProofInfo({
+          name: file.name,
+          size: `${Math.round(compressed.size / 1024)} KB`,
+          isPdf
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setSendProofPreview(reader.result as string);
+          setCompressingSendProof(false);
+        };
+        reader.readAsDataURL(compressed);
+      } catch (err) {
+        setSendProofFile(file);
+        setSendProofInfo({
+          name: file.name,
+          size: `${Math.round(file.size / 1024)} KB`,
+          isPdf
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setSendProofPreview(reader.result as string);
+          setCompressingSendProof(false);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
-  const handleReceiveProofImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReceiveProofImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setReceiveProofFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setReceiveProofPreview(reader.result as string);
-      reader.readAsDataURL(file);
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      setCompressingReceiveProof(true);
+      try {
+        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
+        setReceiveProofFile(compressed);
+        setReceiveProofInfo({
+          name: file.name,
+          size: `${Math.round(compressed.size / 1024)} KB`,
+          isPdf
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setReceiveProofPreview(reader.result as string);
+          setCompressingReceiveProof(false);
+        };
+        reader.readAsDataURL(compressed);
+      } catch (err) {
+        setReceiveProofFile(file);
+        setReceiveProofInfo({
+          name: file.name,
+          size: `${Math.round(file.size / 1024)} KB`,
+          isPdf
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setReceiveProofPreview(reader.result as string);
+          setCompressingReceiveProof(false);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -1965,24 +2053,47 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">📷 ถ่ายรูปแนบหลักฐาน (สภาพหลังบำรุงรักษา)</label>
-                <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.75rem' }}>
+                <label className="form-label">📷 แนบรูปภาพ หรือ เอกสาร PDF หลักฐาน (สภาพหลังบำรุงรักษา)</label>
+                <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.85rem', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)' }}>
                   <input 
                     type="file" 
                     id="pm-proof-uploader" 
-                    accept="image/*"
+                    accept="image/*,application/pdf,.pdf"
                     onChange={handleProofImageChange}
                     className="file-hidden-input"
                   />
-                  <label htmlFor="pm-proof-uploader" className="dropzone-label">
-                    {proofPreview ? (
-                      <div style={{ maxWidth: '100px', margin: '0 auto' }}>
-                        <img src={proofPreview} alt="PM proof preview" style={{ width: '100%', borderRadius: '4px' }} />
+                  <label htmlFor="pm-proof-uploader" className="dropzone-label" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+                    {compressingProof ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', padding: '1rem' }}>
+                        <RefreshCw size={20} className="spin-animate" />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>กำลังบีบอัดไฟล์ให้อยู่ในระดับ HD เพื่อประหยัดพื้นที่...</span>
+                      </div>
+                    ) : proofPreview ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
+                        <div style={{ position: 'relative', maxWidth: '160px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                          <img src={proofPreview} alt="PM proof preview" style={{ width: '100%', display: 'block', maxHeight: '130px', objectFit: 'cover' }} />
+                          {proofInfo?.isPdf && (
+                            <span style={{ position: 'absolute', top: '4px', left: '4px', background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '3px' }}>
+                              PDF HD
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: '0.75rem' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{proofInfo?.name || 'ไฟล์หลักฐาน PM'}</span>
+                          {proofInfo?.size && <span style={{ color: 'var(--success)', marginLeft: '0.35rem', fontWeight: 700 }}>({proofInfo.size} - บีบอัด HD คมชัด)</span>}
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--primary)', textDecoration: 'underline' }}>คลิกเพื่อเปลี่ยนไฟล์ (รองรับ PDF และ รูปภาพ)</span>
                       </div>
                     ) : (
                       <>
-                        <Camera size={24} color="var(--text-muted)" />
-                        <span style={{ fontSize: '0.75rem' }}>คลิกเพื่ออัปโหลดภาพหลักฐานการทำ PM</span>
+                        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                          <Camera size={26} color="var(--primary)" />
+                          <FileText size={26} color="#ef4444" />
+                        </div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>คลิกเพื่ออัปโหลดเอกสาร PDF หรือ ถ่ายรูปภาพหลักฐาน</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                          ⚡ บีบอัดอัตโนมัติความคมชัดระดับ HD (อ่านเอกสาร/ตารางได้ชัดเจน ขนาดไฟล์เล็ก ~50-90 KB ประหยัดพื้นที่)
+                        </span>
                       </>
                     )}
                   </label>
@@ -2648,24 +2759,45 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
             </div>
 
             <div className="form-group">
-              <label className="form-label">📷 ถ่ายรูปหลักฐานการเซ็นส่งของ / ใบรับเคลม (ตัวเลือก)</label>
-              <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.75rem' }}>
+              <label className="form-label">📷 ถ่ายรูปหรือแนบเอกสาร PDF การเซ็นส่งของ / ใบรับเคลม (ตัวเลือก)</label>
+              <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.85rem', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)' }}>
                 <input 
                   type="file" 
                   id="send-proof-picker"
-                  accept="image/*"
+                  accept="image/*,application/pdf,.pdf"
                   onChange={handleSendProofImageChange}
                   className="file-hidden-input"
                 />
-                <label htmlFor="send-proof-picker" className="dropzone-label">
-                  {sendProofPreview ? (
-                    <div style={{ maxWidth: '100px', margin: '0 auto' }}>
-                      <img src={sendProofPreview} alt="Send proof preview" style={{ width: '100%', borderRadius: '4px' }} />
+                <label htmlFor="send-proof-picker" className="dropzone-label" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+                  {compressingSendProof ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', padding: '1rem' }}>
+                      <RefreshCw size={20} className="spin-animate" />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>กำลังบีบอัดไฟล์ให้อยู่ในระดับ HD...</span>
+                    </div>
+                  ) : sendProofPreview ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
+                      <div style={{ position: 'relative', maxWidth: '160px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                        <img src={sendProofPreview} alt="Send proof preview" style={{ width: '100%', display: 'block', maxHeight: '130px', objectFit: 'cover' }} />
+                        {sendProofInfo?.isPdf && (
+                          <span style={{ position: 'absolute', top: '4px', left: '4px', background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '3px' }}>
+                            PDF HD
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'center', fontSize: '0.75rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{sendProofInfo?.name || 'ใบนำส่งเคลม'}</span>
+                        {sendProofInfo?.size && <span style={{ color: 'var(--success)', marginLeft: '0.35rem', fontWeight: 700 }}>({sendProofInfo.size} - บีบอัด HD)</span>}
+                      </div>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--primary)', textDecoration: 'underline' }}>คลิกเพื่อเปลี่ยนไฟล์ใหม่</span>
                     </div>
                   ) : (
                     <>
-                      <Camera size={24} color="var(--text-muted)" />
-                      <span style={{ fontSize: '0.75rem' }}>ถ่ายใบนำส่งเคลมเก็บเป็นหลักฐานคลาวด์</span>
+                      <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                        <Camera size={26} color="var(--primary)" />
+                        <FileText size={26} color="#ef4444" />
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>คลิกเพื่อแนบเอกสาร PDF หรือ รูปภาพใบนำส่ง</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>⚡ บีบอัด HD อัตโนมัติ ประหยัดพื้นที่จัดเก็บบนคลาวด์</span>
                     </>
                   )}
                 </label>
@@ -2713,24 +2845,45 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
             </div>
 
             <div className="form-group">
-              <label className="form-label">📷 ถ่ายรูปทรัพย์สินสภาพหลังเสร็จสมบูรณ์ / ใบเสร็จปิดงาน (ตัวเลือก)</label>
-              <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.75rem' }}>
+              <label className="form-label">📷 ถ่ายรูปหรือแนบเอกสาร PDF ใบเสร็จปิดงาน / สภาพของรับคืน (ตัวเลือก)</label>
+              <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.85rem', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)' }}>
                 <input 
                   type="file" 
                   id="receive-proof-picker"
-                  accept="image/*"
+                  accept="image/*,application/pdf,.pdf"
                   onChange={handleReceiveProofImageChange}
                   className="file-hidden-input"
                 />
-                <label htmlFor="receive-proof-picker" className="dropzone-label">
-                  {receiveProofPreview ? (
-                    <div style={{ maxWidth: '100px', margin: '0 auto' }}>
-                      <img src={receiveProofPreview} alt="Receive proof preview" style={{ width: '100%', borderRadius: '4px' }} />
+                <label htmlFor="receive-proof-picker" className="dropzone-label" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+                  {compressingReceiveProof ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', padding: '1rem' }}>
+                      <RefreshCw size={20} className="spin-animate" />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>กำลังบีบอัดไฟล์ให้อยู่ในระดับ HD...</span>
+                    </div>
+                  ) : receiveProofPreview ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
+                      <div style={{ position: 'relative', maxWidth: '160px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                        <img src={receiveProofPreview} alt="Receive proof preview" style={{ width: '100%', display: 'block', maxHeight: '130px', objectFit: 'cover' }} />
+                        {receiveProofInfo?.isPdf && (
+                          <span style={{ position: 'absolute', top: '4px', left: '4px', background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '3px' }}>
+                            PDF HD
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'center', fontSize: '0.75rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{receiveProofInfo?.name || 'หลักฐานตรวจรับของ'}</span>
+                        {receiveProofInfo?.size && <span style={{ color: 'var(--success)', marginLeft: '0.35rem', fontWeight: 700 }}>({receiveProofInfo.size} - บีบอัด HD)</span>}
+                      </div>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--primary)', textDecoration: 'underline' }}>คลิกเพื่อเปลี่ยนไฟล์ใหม่</span>
                     </div>
                   ) : (
                     <>
-                      <Camera size={24} color="var(--text-muted)" />
-                      <span style={{ fontSize: '0.75rem' }}>ถ่ายสภาพของที่รับคืนเพื่อปิดเคส</span>
+                      <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                        <Camera size={26} color="var(--primary)" />
+                        <FileText size={26} color="#ef4444" />
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>คลิกเพื่อแนบเอกสาร PDF หรือ รูปภาพตรวจรับของ</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>⚡ บีบอัด HD อัตโนมัติ ประหยัดพื้นที่จัดเก็บบนคลาวด์</span>
                     </>
                   )}
                 </label>

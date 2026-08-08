@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Download, UploadCloud, Clipboard, Trash2, HelpCircle, Printer, Image as ImageIcon, Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Asset, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
-import { uploadImage } from '../services/dbService';
+import { uploadImage, compressFileOrPdf } from '../services/dbService';
 import confetti from 'canvas-confetti';
 import { SearchableSelect } from '../components/SearchableSelect';
 
@@ -529,16 +529,25 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     setAssetId(generated);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImageFile(file);
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
+        setImageFile(compressed);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(compressed);
+      } catch {
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -760,12 +769,12 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
           {/* Row 2: Visual Upload Drawer */}
           <div className="form-group">
-            <label className="form-label">📷 ถ่ายรูป หรืออัปโหลดรูปภาพครุภัณฑ์</label>
+            <label className="form-label">📷 ถ่ายรูป หรือ อัปโหลดเอกสาร PDF/รูปภาพครุภัณฑ์ (บีบอัด HD อัตโนมัติ)</label>
             <div className="image-dropzone">
               <input 
                 type="file" 
                 id="asset-image-picker"
-                accept="image/*"
+                accept="image/*,application/pdf,.pdf"
                 className="file-hidden-input"
                 onChange={handleImageChange}
               />
@@ -1068,7 +1077,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
                 <input
                   type="file"
                   id="batch-images-picker"
-                  accept="image/*"
+                  accept="image/*,application/pdf,.pdf"
                   multiple
                   className="file-hidden-input"
                   onChange={handleBatchImagesChange}
