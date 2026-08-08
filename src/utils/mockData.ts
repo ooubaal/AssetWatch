@@ -97,6 +97,9 @@ export interface RepairCase {
   status: 'open' | 'sent' | 'completed';
   operator: string;
   updatedAt: string;
+  repairCost?: number | string;
+  notes?: string;
+  additionalNotes?: string;
 }
 
 export const INITIAL_ASSETS: Asset[] = [

@@ -202,6 +202,21 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [compressingSendProof, setCompressingSendProof] = useState<boolean>(false);
   const [compressingReceiveProof, setCompressingReceiveProof] = useState<boolean>(false);
 
+  // CM Case Details & Edit States
+  const [selectedCMDetailCase, setSelectedCMDetailCase] = useState<RepairCase | null>(null);
+  const [isCMDetailOpen, setIsCMDetailOpen] = useState(false);
+  const [cmEditNotes, setCmEditNotes] = useState('');
+  const [cmEditCost, setCmEditCost] = useState('');
+  const [cmEditRepairCompany, setCmEditRepairCompany] = useState('');
+  const [cmEditContactPerson, setCmEditContactPerson] = useState('');
+  const [cmEditDateReceived, setCmEditDateReceived] = useState('');
+  const [cmEditProofFile, setCmEditProofFile] = useState<File | null>(null);
+  const [cmEditProofPreview, setCmEditProofPreview] = useState<string | null>(null);
+  const [cmEditProofInfo, setCmEditProofInfo] = useState<{ name: string; size: string; isPdf: boolean } | null>(null);
+  const [compressingCMEditProof, setCompressingCMEditProof] = useState<boolean>(false);
+  const [cmSavingDetail, setCmSavingDetail] = useState<boolean>(false);
+  const [isCMPrintReportOpen, setIsCMPrintReportOpen] = useState(false);
+
   // Reschedule (change planned date) states
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<PMSchedule | null>(null);
@@ -963,6 +978,127 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       alert('เกิดข้อผิดพลาดในการตรวจรับพัสดุคืนคลัง: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSubmittingReceive(false);
+    }
+  };
+
+  // Open CM Details & Edit modal
+  const handleOpenCMDetails = (r: RepairCase) => {
+    setSelectedCMDetailCase(r);
+    setCmEditNotes(r.notes || r.additionalNotes || '');
+    setCmEditCost(r.repairCost ? String(r.repairCost) : '');
+    setCmEditRepairCompany(r.repairCompany || '');
+    setCmEditContactPerson(r.contactPerson || '');
+    setCmEditDateReceived(r.dateReceived || '');
+    setCmEditProofPreview(r.receivedProofUrl || r.sentProofUrl || r.symptomImageUrl || null);
+    setCmEditProofFile(null);
+    setCmEditProofInfo(null);
+    setIsCMDetailOpen(true);
+  };
+
+  // Save additional notes / edit data in CM Case
+  const handleSaveCMDetails = async () => {
+    if (!selectedCMDetailCase) return;
+    setCmSavingDetail(true);
+    try {
+      let extraProofUrl = selectedCMDetailCase.receivedProofUrl;
+      if (cmEditProofFile) {
+        extraProofUrl = await uploadImage(cmEditProofFile, 'repairs');
+      }
+
+      const updates: Partial<RepairCase> = {
+        notes: cmEditNotes,
+        additionalNotes: cmEditNotes,
+        repairCost: cmEditCost,
+        repairCompany: cmEditRepairCompany,
+        contactPerson: cmEditContactPerson,
+        dateReceived: cmEditDateReceived || selectedCMDetailCase.dateReceived,
+        receivedProofUrl: extraProofUrl || selectedCMDetailCase.receivedProofUrl,
+        updatedAt: new Date().toISOString()
+      };
+
+      await onUpdateRepair(selectedCMDetailCase.id, updates);
+
+      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินส่งซ่อม';
+      await onLogAudit({
+        assetId: selectedCMDetailCase.assetId,
+        assetName: selectedCMDetailCase.assetName,
+        action: 'repair_send',
+        operator: operatorName,
+        details: `อัปเดตบันทึกข้อมูลเพิ่มเติมในเคส CM รหัสครุภัณฑ์ ${selectedCMDetailCase.assetId}: ${cmEditNotes ? `ข้อสังเกต: ${cmEditNotes}` : ''} ${cmEditCost ? `ค่าซ่อม: ${cmEditCost} บาท` : ''}`
+      });
+
+      setSelectedCMDetailCase({ ...selectedCMDetailCase, ...updates });
+      await onRefreshData();
+      alert('บันทึกข้อมูลเพิ่มเติมเรียบร้อยแล้ว');
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล CM: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setCmSavingDetail(false);
+    }
+  };
+
+  // Reopen a closed CM Case
+  const handleReopenCMCase = async (r: RepairCase) => {
+    if (!window.confirm(`คุณต้องการขอเปิดเคสส่งซ่อมนี้ใหม่สำหรับครุภัณฑ์ "${r.assetName}" ใช่หรือไม่?`)) return;
+    try {
+      await onUpdateRepair(r.id, {
+        status: 'sent',
+        updatedAt: new Date().toISOString()
+      });
+      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินส่งซ่อม';
+      await onLogAudit({
+        assetId: r.assetId,
+        assetName: r.assetName,
+        action: 'repair_send',
+        operator: operatorName,
+        details: `ขอเปิดเคสส่งซ่อม CM ใหม่ (Reopen Case) เพื่อแก้ไขหรือตรวจรับอีกครั้ง`
+      });
+      if (selectedCMDetailCase && selectedCMDetailCase.id === r.id) {
+        setSelectedCMDetailCase({ ...selectedCMDetailCase, status: 'sent' });
+      }
+      await onRefreshData();
+      alert('เปิดเคสส่งซ่อมใหม่เรียบร้อยแล้ว');
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการเปิดเคสใหม่: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
+  // HD Compression for CM Detail extra image/file
+  const handleCMEditProofImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      setCompressingCMEditProof(true);
+      try {
+        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
+        setCmEditProofFile(compressed);
+        setCmEditProofInfo({
+          name: file.name,
+          size: `${Math.round(compressed.size / 1024)} KB`,
+          isPdf
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setCmEditProofPreview(reader.result as string);
+          setCompressingCMEditProof(false);
+        };
+        reader.readAsDataURL(compressed);
+      } catch (err) {
+        setCmEditProofFile(file);
+        setCmEditProofInfo({
+          name: file.name,
+          size: `${Math.round(file.size / 1024)} KB`,
+          isPdf
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setCmEditProofPreview(reader.result as string);
+          setCompressingCMEditProof(false);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -1990,16 +2126,16 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
           {/* CM Logs Table */}
           <div className="table-container glass-panel">
-            <table className="custom-table">
+            <table className="custom-table" style={{ width: '100%', tableLayout: 'auto' }}>
               <thead>
                 <tr>
-                  <th style={{ width: '130px' }}>วันที่แจ้งชำรุด</th>
-                  <th style={{ width: '120px' }}>รหัสครุภัณฑ์</th>
-                  <th>ชื่อรายการครุภัณฑ์</th>
-                  <th>อาการเสีย (CM Details)</th>
-                  <th style={{ width: '130px' }}>ผู้ทำเรื่องส่งซ่อม</th>
+                  <th style={{ width: '105px' }}>วันที่แจ้งชำรุด</th>
+                  <th style={{ width: '115px' }}>รหัสครุภัณฑ์</th>
+                  <th style={{ minWidth: '150px' }}>ชื่อรายการครุภัณฑ์</th>
+                  <th style={{ minWidth: '220px' }}>อาการเสีย (CM Details)</th>
+                  <th style={{ width: '120px' }}>ผู้ทำเรื่องส่งซ่อม</th>
                   <th style={{ width: '110px' }}>สถานะการซ่อม</th>
-                  <th style={{ width: '140px', textAlign: 'right' }}>การจัดการเคส</th>
+                  <th style={{ width: '180px', textAlign: 'right' }}>การจัดการเคส</th>
                 </tr>
               </thead>
               <tbody>
@@ -2009,7 +2145,9 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                     const matchesSearch = !q || 
                                           r.assetId.toLowerCase().includes(q) || 
                                           r.assetName.toLowerCase().includes(q) ||
-                                          r.symptom.toLowerCase().includes(q);
+                                          r.symptom.toLowerCase().includes(q) ||
+                                          (r.notes && r.notes.toLowerCase().includes(q)) ||
+                                          (r.repairCompany && r.repairCompany.toLowerCase().includes(q));
                     
                     const asset = assets.find(a => a.id === r.assetId);
                     const matchesDept = selectedDeptFilter === 'all' || (asset && asset.department === selectedDeptFilter);
@@ -2029,25 +2167,43 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
                   return filteredCM.map(r => (
                     <tr key={r.id}>
-                      <td>{getThaiDateFormatted(r.dateOpened)}</td>
-                      <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{r.assetId}</td>
-                      <td><strong>{r.assetName}</strong></td>
+                      <td style={{ fontSize: '0.75rem', fontWeight: 650 }}>{getThaiDateFormatted(r.dateOpened)}</td>
+                      <td style={{ 
+                        fontFamily: 'monospace', 
+                        fontWeight: 700, 
+                        fontSize: '0.75rem', 
+                        maxWidth: '115px', 
+                        wordBreak: 'break-all', 
+                        whiteSpace: 'normal', 
+                        lineHeight: '1.25',
+                        letterSpacing: '-0.2px' 
+                      }}>
+                        {r.assetId}
+                      </td>
+                      <td style={{ fontWeight: 750, color: 'var(--text-primary)' }}>
+                        <div style={{ wordBreak: 'break-word' }}>{r.assetName}</div>
+                      </td>
                       <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                          <span>{r.symptom}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          <span style={{ lineHeight: '1.35', fontSize: '0.775rem' }}>{r.symptom}</span>
                           {r.symptomImageUrl && (
-                            <a href={r.symptomImageUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.725rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 550 }}>
+                            <a href={r.symptomImageUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.725rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 550, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
                               🖼️ ดูรูปถ่ายอาการเสีย
                             </a>
                           )}
                           {r.dateSent && (
-                            <span style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>
-                              🚚 ร้านซ่อม: {r.repairCompany} (โทร: {r.contactPerson})
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                              🚚 ร้านซ่อม: {r.repairCompany} {r.contactPerson ? `(โทร: ${r.contactPerson})` : ''}
+                            </span>
+                          )}
+                          {r.notes && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--warning)', fontStyle: 'italic' }}>
+                              📝 โน๊ตเพิ่มเติม: {r.notes}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td>👤 {r.operator}</td>
+                      <td style={{ fontSize: '0.75rem' }}>👤 {r.operator}</td>
                       <td>
                         <span className={`badge ${
                           r.status === 'completed' ? 'badge-success' : 
@@ -2057,8 +2213,19 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '0.45rem' }}>
-                          {currentUser?.role !== 'manager' ? (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                          {/* Always Available: View & Edit Details / Add Notes */}
+                          <button 
+                            type="button"
+                            className="btn btn-ghost btn-xs"
+                            onClick={() => handleOpenCMDetails(r)}
+                            style={{ padding: '0.2rem 0.45rem', height: 'auto', fontSize: '0.725rem', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                            title="ดูรายละเอียดเคส / บันทึกข้อมูลและข้อสังเกตเพิ่มเติม"
+                          >
+                            👁️ ดู / ✏️ บันทึกเพิ่ม
+                          </button>
+
+                          {currentUser?.role !== 'manager' && (
                             <>
                               {r.status === 'open' && (
                                 <button 
@@ -2071,7 +2238,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                                     setSendProofFile(null);
                                     setSendProofPreview(null);
                                   }}
-                                  style={{ padding: '0.2rem 0.5rem', height: 'auto', fontSize: '0.725rem' }}
+                                  style={{ padding: '0.2rem 0.45rem', height: 'auto', fontSize: '0.725rem' }}
                                 >
                                   🚚 นำส่งช่าง
                                 </button>
@@ -2085,19 +2252,17 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                                     setReceiveProofFile(null);
                                     setReceiveProofPreview(null);
                                   }}
-                                  style={{ padding: '0.2rem 0.5rem', height: 'auto', fontSize: '0.725rem' }}
+                                  style={{ padding: '0.2rem 0.45rem', height: 'auto', fontSize: '0.725rem' }}
                                 >
                                   ✅ รับของคืน
                                 </button>
                               )}
                               {r.status === 'completed' && (
-                                <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--text-muted)' }}>🔒 ปิดเคส</span>
+                                <span className="badge badge-muted" style={{ fontSize: '0.675rem' }}>
+                                  🔒 ปิดเคสแล้ว
+                                </span>
                               )}
                             </>
-                          ) : (
-                            <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                              {r.status === 'completed' ? '🔒 ปิดเคส' : '👀 ดูอย่างเดียว'}
-                            </span>
                           )}
                         </div>
                       </td>
@@ -3561,6 +3726,400 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               <button type="button" className="btn btn-secondary" onClick={() => { setIsLogbookOpen(false); setSelectedLogbookAsset(null); }}>
                 ปิดหน้าต่าง Logbook
               </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL: CM CASE FULL DETAILS & EDIT ADDITIONAL LOG --- */}
+      {isCMDetailOpen && selectedCMDetailCase && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <div className="glass-panel animate-scale-up" style={{ maxWidth: '680px', width: '100%', padding: '1.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '90vh', overflowY: 'auto' }}>
+            
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <span className={`badge ${selectedCMDetailCase.status === 'completed' ? 'badge-success' : selectedCMDetailCase.status === 'sent' ? 'badge-warning' : 'badge-danger'}`} style={{ fontSize: '0.75rem' }}>
+                    {selectedCMDetailCase.status === 'completed' ? '🟢 ซ่อมสำเร็จแล้ว (ปิดเคส)' : selectedCMDetailCase.status === 'sent' ? '🟡 กำลังส่งช่างซ่อม' : '🔴 รอช่างเข้าตรวจ'}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    เลขที่เคส: <code>{selectedCMDetailCase.id}</code>
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
+                  🔧 รายละเอียดและบันทึกข้อมูล CM: {selectedCMDetailCase.assetName}
+                </h3>
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm" 
+                onClick={() => { setIsCMDetailOpen(false); setSelectedCMDetailCase(null); }} 
+                style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Asset Summary Info */}
+            <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem', fontSize: '0.8rem' }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>รหัสครุภัณฑ์:</span> <code style={{ fontWeight: 700 }}>{selectedCMDetailCase.assetId}</code>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>วันที่แจ้งชำรุด:</span> <strong>{getThaiDateFormatted(selectedCMDetailCase.dateOpened)}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>ผู้แจ้งส่งซ่อม:</span> <strong>{selectedCMDetailCase.operator}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>อัปเดตล่าสุด:</span> {new Date(selectedCMDetailCase.updatedAt).toLocaleString('th-TH')}
+              </div>
+            </div>
+
+            {/* Timeline Progress Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              
+              {/* Step 1: Symptom */}
+              <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--danger)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  🚨 1. อาการชำรุด/ปัญหาที่พบ (Symptom)
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.825rem', lineHeight: '1.45' }}>{selectedCMDetailCase.symptom}</p>
+                {selectedCMDetailCase.symptomImageUrl && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <a href={selectedCMDetailCase.symptomImageUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      🖼️ ดูรูปถ่ายอาการชำรุดต้นฉบับ
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Step 2: Vendor / Dispatch */}
+              {(selectedCMDetailCase.status === 'sent' || selectedCMDetailCase.status === 'completed' || selectedCMDetailCase.repairCompany) && (
+                <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--warning)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    🚚 2. ข้อมูลการส่งซ่อม / ช่างผู้รับผิดชอบ
+                  </h4>
+                  <div style={{ fontSize: '0.8rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
+                    <div>ร้าน/บริษัทซ่อม: <strong>{selectedCMDetailCase.repairCompany || '-'}</strong></div>
+                    <div>เบอร์ติดต่อช่าง: <strong>{selectedCMDetailCase.contactPerson || '-'}</strong></div>
+                    <div>วันที่ส่งซ่อม: <strong>{selectedCMDetailCase.dateSent ? getThaiDateFormatted(selectedCMDetailCase.dateSent) : '-'}</strong></div>
+                  </div>
+                  {selectedCMDetailCase.sentProofUrl && (
+                    <div style={{ marginTop: '0.4rem' }}>
+                      <a href={selectedCMDetailCase.sentProofUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 600 }}>
+                        📷 ดูรูปหลักฐานการนำส่งช่าง
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 3: Completed / Return */}
+              {selectedCMDetailCase.status === 'completed' && (
+                <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--success)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    ✅ 3. ตรวจรับของคืนคลังและปิดเคสเรียบร้อย
+                  </h4>
+                  <div style={{ fontSize: '0.8rem' }}>
+                    วันที่รับของคืน: <strong>{selectedCMDetailCase.dateReceived ? getThaiDateFormatted(selectedCMDetailCase.dateReceived) : '-'}</strong>
+                  </div>
+                  {selectedCMDetailCase.receivedProofUrl && (
+                    <div style={{ marginTop: '0.4rem' }}>
+                      <a href={selectedCMDetailCase.receivedProofUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 600 }}>
+                        📷 ดูรูปหลักฐานการตรวจรับของคืน
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Editable Additional Information & Notes Section */}
+            <div style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: 'var(--radius-sm)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                ✏️ บันทึกข้อมูลและข้อสังเกตเพิ่มเติม (Edit Logbook / Additional Notes)
+              </h4>
+              <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                ท่านสามารถบันทึกข้อสังเกต ผลการทดสอบหลังรับเครื่อง คำแนะนำการใช้งาน หรือค่าใช้จ่ายจริงได้ตลอดเวลาแม้ปิดเคสไปแล้ว
+              </span>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>📝 รายละเอียด/ข้อสังเกตเพิ่มเติม (Notes & Remarks)</label>
+                <textarea 
+                  className="form-input"
+                  rows={3}
+                  value={cmEditNotes}
+                  onChange={(e) => setCmEditNotes(e.target.value)}
+                  placeholder="เช่น ตรวจสอบความเรียบร้อยแล้ว ช่างได้เปลี่ยนใบพัดลมใหม่ พร้อมล้างแผงวงจร ใช้งานได้ตามปกติ รับประกันงานซ่อม 3 เดือน..."
+                  style={{ fontSize: '0.8rem', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>💰 ค่าใช้จ่ายในการซ่อม (บาท)</label>
+                  <input 
+                    type="text"
+                    className="form-input"
+                    value={cmEditCost}
+                    onChange={(e) => setCmEditCost(e.target.value)}
+                    placeholder="เช่น 0 (อยู่ในประกัน) หรือ 2,500"
+                    style={{ fontSize: '0.8rem', height: '34px' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>🏢 ร้านซ่อม / บริษัท</label>
+                  <input 
+                    type="text"
+                    className="form-input"
+                    value={cmEditRepairCompany}
+                    onChange={(e) => setCmEditRepairCompany(e.target.value)}
+                    placeholder="เช่น บริษัท โอซาร่า วิศวกรรม จำกัด"
+                    style={{ fontSize: '0.8rem', height: '34px' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>📞 เบอร์โทรช่าง</label>
+                  <input 
+                    type="text"
+                    className="form-input"
+                    value={cmEditContactPerson}
+                    onChange={(e) => setCmEditContactPerson(e.target.value)}
+                    placeholder="เช่น 081-XXX-XXXX"
+                    style={{ fontSize: '0.8rem', height: '34px' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>📅 วันที่ตรวจรับคืน</label>
+                  <input 
+                    type="date"
+                    className="form-input"
+                    value={cmEditDateReceived}
+                    onChange={(e) => setCmEditDateReceived(e.target.value)}
+                    style={{ fontSize: '0.8rem', height: '34px' }}
+                  />
+                </div>
+              </div>
+
+              {/* Extra File Attachment with HD Compression */}
+              <div style={{ marginTop: '0.25rem' }}>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>
+                  📎 แนบเอกสาร/ใบเสร็จ/รูปภาพผลงานซ่อมเพิ่มเติม (รองรับ PDF และภาพคมชัดระดับ HD พร้อมบีบอัดอัตโนมัติ):
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input 
+                    type="file" 
+                    accept="image/*,application/pdf"
+                    onChange={handleCMEditProofImageChange}
+                    className="form-input"
+                    style={{ fontSize: '0.75rem', padding: '0.35rem' }}
+                  />
+                  {compressingCMEditProof && (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--primary)', whiteSpace: 'nowrap' }}>⚡ กำลังบีบอัด HD...</span>
+                  )}
+                </div>
+                {cmEditProofInfo && (
+                  <div style={{ marginTop: '0.35rem', fontSize: '0.725rem', color: 'var(--success)', fontWeight: 600 }}>
+                    {cmEditProofInfo.isPdf ? '📄 แนบไฟล์ PDF:' : '📷 ภาพ HD บีบอัดแล้ว:'} {cmEditProofInfo.name} ({cmEditProofInfo.size})
+                  </div>
+                )}
+                {cmEditProofPreview && (
+                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <img src={cmEditProofPreview} alt="Preview" style={{ maxHeight: '80px', borderRadius: '4px', border: '1px solid var(--border)' }} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setIsCMPrintReportOpen(true)}
+                  style={{ border: '1px solid var(--border)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  🖨️ พิมพ์ใบรายงาน CM
+                </button>
+
+                {selectedCMDetailCase.status === 'completed' && currentUser?.role !== 'user' && (
+                  <button 
+                    type="button" 
+                    className="btn btn-ghost btn-sm text-warning"
+                    onClick={() => handleReopenCMCase(selectedCMDetailCase)}
+                    style={{ border: '1px solid var(--warning)', fontSize: '0.8rem' }}
+                    title="ขอเปิดเคสใหม่เพื่อส่งช่างแก้ไขหรือตรวจรับใหม่"
+                  >
+                    🔓 ขอเปิดเคสใหม่
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-ghost" 
+                  onClick={() => { setIsCMDetailOpen(false); setSelectedCMDetailCase(null); }}
+                  style={{ border: '1px solid var(--border)' }}
+                >
+                  ปิด
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary"
+                  onClick={handleSaveCMDetails}
+                  disabled={cmSavingDetail}
+                >
+                  {cmSavingDetail ? 'กำลังบันทึก...' : '💾 บันทึกข้อมูลเพิ่มเติม'}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL: CM PRINTABLE SERVICE REPORT --- */}
+      {isCMPrintReportOpen && selectedCMDetailCase && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10060, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <div className="glass-panel animate-scale-up" style={{ maxWidth: '780px', width: '100%', padding: '2rem', borderRadius: 'var(--radius-md)', background: '#fff', color: '#111827', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            
+            {/* Header & Print toolbar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.75rem' }} className="no-print">
+              <span style={{ fontSize: '0.85rem', color: '#6b7280', fontWeight: 600 }}>🖨️ ตัวอย่างใบรายงานส่งซ่อม CM (A4 Official Printable Format)</span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button 
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => window.print()}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  🖨️ สั่งพิมพ์เอกสาร
+                </button>
+                <button 
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setIsCMPrintReportOpen(false)}
+                  style={{ border: '1px solid #d1d5db', color: '#374151' }}
+                >
+                  ✕ ปิด
+                </button>
+              </div>
+            </div>
+
+            {/* Document Content (Printable Area) */}
+            <div id="printable-cm-report" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', color: '#111827', fontFamily: 'Sarabun, sans-serif' }}>
+              
+              {/* Document Header */}
+              <div style={{ textAlign: 'center', borderBottom: '2px solid #111827', paddingBottom: '0.75rem' }}>
+                <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>ใบรายงานผลการแจ้งซ่อมแซมและบำรุงรักษาครุภัณฑ์</h2>
+                <h4 style={{ margin: '0.25rem 0 0 0', fontSize: '1rem', fontWeight: 600, color: '#4b5563' }}>Corrective Maintenance (CM) Service Report</h4>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', color: '#6b7280' }}>
+                  <span>เลขที่รายงาน: <strong>{selectedCMDetailCase.id}</strong></span>
+                  <span>วันที่พิมพ์: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
+              </div>
+
+              {/* Asset & Case Details Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                <tbody>
+                  <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, width: '25%', background: '#f9fafb' }}>รหัสครุภัณฑ์</td>
+                    <td style={{ padding: '0.5rem', fontFamily: 'monospace', fontWeight: 700, width: '25%' }}>{selectedCMDetailCase.assetId}</td>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, width: '25%', background: '#f9fafb' }}>ชื่อรายการครุภัณฑ์</td>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, width: '25%' }}>{selectedCMDetailCase.assetName}</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, background: '#f9fafb' }}>วันที่แจ้งชำรุด</td>
+                    <td style={{ padding: '0.5rem' }}>{getThaiDateFormatted(selectedCMDetailCase.dateOpened)}</td>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, background: '#f9fafb' }}>ผู้แจ้งส่งซ่อม</td>
+                    <td style={{ padding: '0.5rem' }}>{selectedCMDetailCase.operator}</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, background: '#f9fafb' }}>ร้านซ่อม/บริษัทผู้รับจ้าง</td>
+                    <td style={{ padding: '0.5rem' }}>{selectedCMDetailCase.repairCompany || '-'}</td>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, background: '#f9fafb' }}>เบอร์โทรติดต่อช่าง</td>
+                    <td style={{ padding: '0.5rem' }}>{selectedCMDetailCase.contactPerson || '-'}</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, background: '#f9fafb' }}>วันที่ส่งซ่อม</td>
+                    <td style={{ padding: '0.5rem' }}>{selectedCMDetailCase.dateSent ? getThaiDateFormatted(selectedCMDetailCase.dateSent) : '-'}</td>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, background: '#f9fafb' }}>วันที่รับของคืน</td>
+                    <td style={{ padding: '0.5rem' }}>{selectedCMDetailCase.dateReceived ? getThaiDateFormatted(selectedCMDetailCase.dateReceived) : '-'}</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, background: '#f9fafb' }}>สถานะการซ่อม</td>
+                    <td style={{ padding: '0.5rem' }}>
+                      <strong>{selectedCMDetailCase.status === 'completed' ? '✅ ซ่อมเสร็จสมบูรณ์ / ใช้งานได้ปกติ' : selectedCMDetailCase.status === 'sent' ? '🟡 อยู่ระหว่างการส่งซ่อม' : '🔴 รอช่างเข้าตรวจ'}</strong>
+                    </td>
+                    <td style={{ padding: '0.5rem', fontWeight: 700, background: '#f9fafb' }}>ค่าใช้จ่ายรวม</td>
+                    <td style={{ padding: '0.5rem' }}><strong>{selectedCMDetailCase.repairCost ? `${selectedCMDetailCase.repairCost} บาท` : '0 (อยู่ในประกัน)'}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Problem & Notes description */}
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: '4px', padding: '0.85rem', background: '#f9fafb' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.25rem' }}>🚨 อาการเสีย / ปัญหาที่ได้รับแจ้ง:</div>
+                <div style={{ fontSize: '0.825rem', lineHeight: '1.5' }}>{selectedCMDetailCase.symptom}</div>
+                {selectedCMDetailCase.notes && (
+                  <div style={{ marginTop: '0.5rem', borderTop: '1px dashed #d1d5db', paddingTop: '0.5rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.25rem' }}>📝 บันทึกผลการซ่อมและข้อสังเกตเพิ่มเติม:</div>
+                    <div style={{ fontSize: '0.825rem', lineHeight: '1.5' }}>{selectedCMDetailCase.notes}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Photo Proofs if any */}
+              {(selectedCMDetailCase.symptomImageUrl || selectedCMDetailCase.sentProofUrl || selectedCMDetailCase.receivedProofUrl) && (
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.5rem' }}>📷 หลักฐานรูปถ่ายประกอบการซ่อมบำรุง:</div>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    {selectedCMDetailCase.symptomImageUrl && (
+                      <div style={{ textAlign: 'center', border: '1px solid #e5e7eb', padding: '0.5rem', borderRadius: '4px' }}>
+                        <img src={selectedCMDetailCase.symptomImageUrl} alt="Symptom" style={{ maxHeight: '120px', maxWidth: '180px', objectFit: 'contain' }} />
+                        <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '0.25rem' }}>รูปถ่ายอาการชำรุด</div>
+                      </div>
+                    )}
+                    {selectedCMDetailCase.sentProofUrl && (
+                      <div style={{ textAlign: 'center', border: '1px solid #e5e7eb', padding: '0.5rem', borderRadius: '4px' }}>
+                        <img src={selectedCMDetailCase.sentProofUrl} alt="Sent" style={{ maxHeight: '120px', maxWidth: '180px', objectFit: 'contain' }} />
+                        <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '0.25rem' }}>รูปหลักฐานนำส่งช่าง</div>
+                      </div>
+                    )}
+                    {selectedCMDetailCase.receivedProofUrl && (
+                      <div style={{ textAlign: 'center', border: '1px solid #e5e7eb', padding: '0.5rem', borderRadius: '4px' }}>
+                        <img src={selectedCMDetailCase.receivedProofUrl} alt="Received" style={{ maxHeight: '120px', maxWidth: '180px', objectFit: 'contain' }} />
+                        <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '0.25rem' }}>รูปหลักฐานตรวจรับคืน</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Signatures */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '2rem', textAlign: 'center', fontSize: '0.8rem' }}>
+                <div style={{ borderTop: '1px dotted #9ca3af', paddingTop: '0.5rem' }}>
+                  <div>(ลงชื่อ).....................................................</div>
+                  <div style={{ marginTop: '0.25rem' }}>({selectedCMDetailCase.operator})</div>
+                  <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>ผู้แจ้งส่งซ่อม / ผู้ประสานงาน</div>
+                </div>
+                <div style={{ borderTop: '1px dotted #9ca3af', paddingTop: '0.5rem' }}>
+                  <div>(ลงชื่อ).....................................................</div>
+                  <div style={{ marginTop: '0.25rem' }}>({selectedCMDetailCase.contactPerson || '...........................................'})</div>
+                  <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>ช่างผู้ดำเนินการซ่อมแซม</div>
+                </div>
+                <div style={{ borderTop: '1px dotted #9ca3af', paddingTop: '0.5rem' }}>
+                  <div>(ลงชื่อ).....................................................</div>
+                  <div style={{ marginTop: '0.25rem' }}>(........................................................)</div>
+                  <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>หัวหน้างานพัสดุ / ผู้ตรวจรับคืน</div>
+                </div>
+              </div>
+
             </div>
 
           </div>
