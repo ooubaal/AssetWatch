@@ -480,6 +480,60 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     }
   };
 
+  // Helper to calculate default PM target dates from frequency and range
+  const calculateDefaultPMDates = (startStr: string, endStr: string, noEnd: boolean, freq: PMContract['pmFrequency']): string[] => {
+    if (!startStr) return [];
+    const start = new Date(startStr);
+    if (isNaN(start.getTime())) return [];
+
+    let end = endStr ? new Date(endStr) : new Date(start);
+    if (noEnd || isNaN(end.getTime()) || end <= start) {
+      end = new Date(start);
+      end.setFullYear(end.getFullYear() + (freq === 'monthly' ? 1 : 3));
+    }
+
+    let intervalMonths = 3; // quarterly
+    if (freq === 'monthly') intervalMonths = 1;
+    else if (freq === 'semi-annually') intervalMonths = 6;
+    else if (freq === 'annually') intervalMonths = 12;
+    else if (freq === 'custom') return [];
+
+    const dates: string[] = [];
+    const current = new Date(start);
+    current.setMonth(current.getMonth() + intervalMonths);
+
+    while (current <= end && dates.length < 36) {
+      dates.push(current.toISOString().split('T')[0]);
+      current.setMonth(current.getMonth() + intervalMonths);
+    }
+    return dates;
+  };
+
+  const handleOpenNewContract = (initialAssetId?: string, initialTitle?: string) => {
+    setEditingContract(null);
+    setHasNoEndDate(false);
+    setModalAssetSearch('');
+    const today = new Date().toISOString().split('T')[0];
+    setContractStart(today);
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 1);
+    const endStr = d.toISOString().split('T')[0];
+    setContractEnd(endStr);
+    setContractTitle(initialTitle || '');
+    setContractNumber('');
+    setVendorName('');
+    setVendorContact('');
+    setVendorPhone('');
+    setPmFrequency('quarterly');
+    setSelectedAssetIds(initialAssetId ? [initialAssetId] : []);
+    
+    // Auto-populate initial schedule dates (Quarterly 4 dates)
+    const initialDates = calculateDefaultPMDates(today, endStr, false, 'quarterly');
+    setCustomDates(initialDates);
+    setNewCustomDate('');
+    setIsContractFormOpen(true);
+  };
+
   // Generate automated PM schedules based on contract metadata
   const handleContractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -495,6 +549,17 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       const finalContactPerson = contractType === 'internal' ? 'เจ้าหน้าที่พัสดุประจำแผนก' : vendorContact;
       const finalContactPhone = contractType === 'internal' ? '-' : vendorPhone;
       const finalEndDate = hasNoEndDate ? '' : contractEnd;
+
+      // Determine target planned dates: use customDates if available, or auto-calculate
+      let targetDates: string[] = [...customDates].sort();
+      if (targetDates.length === 0) {
+        targetDates = calculateDefaultPMDates(contractStart, finalEndDate, hasNoEndDate, pmFrequency);
+      }
+      if (targetDates.length === 0) {
+        alert('กรุณาระบุหรือคำนวณวันนัดหมาย PM อย่างน้อย 1 วัน สำหรับแผนนี้');
+        setSubmittingContract(false);
+        return;
+      }
 
       if (editingContract) {
         // --- EDIT MODE ---
@@ -513,35 +578,6 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
         // 1. Update contract in db
         await onUpdateContract(editingContract.id, updates);
-
-        // 2. Synchronize schedule entries dynamically based on new settings
-        let targetDates: string[] = [];
-        if (pmFrequency === 'custom') {
-          if (customDates.length === 0) {
-            alert('กรุณาเลือกวันนัดหมายบำรุงรักษาอย่างน้อย 1 วัน สำหรับแผนแบบกำหนดเอง');
-            setSubmittingContract(false);
-            return;
-          }
-          targetDates = [...customDates];
-        } else {
-          const start = new Date(contractStart);
-          let end = new Date(contractEnd);
-          if (hasNoEndDate) {
-            end = new Date(start);
-            end.setFullYear(end.getFullYear() + 3);
-          }
-          let intervalMonths = 3;
-          if (pmFrequency === 'monthly') intervalMonths = 1;
-          else if (pmFrequency === 'semi-annually') intervalMonths = 6;
-          else if (pmFrequency === 'annually') intervalMonths = 12;
-
-          let currentDate = new Date(start);
-          currentDate.setMonth(currentDate.getMonth() + intervalMonths);
-          while (currentDate <= end) {
-            targetDates.push(currentDate.toISOString().split('T')[0]);
-            currentDate.setMonth(currentDate.getMonth() + intervalMonths);
-          }
-        }
 
         const existingSchedules = schedules.filter(s => s.contractId === editingContract.id);
 
@@ -595,7 +631,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           assetName: `แก้ไขสัญญาบำรุงรักษา: ${finalContractNumber}`,
           action: 'update',
           operator: operatorName,
-          details: `แก้ไขข้อมูลแผน/สัญญา PM รหัส ${finalContractNumber}`
+          details: `แก้ไขข้อมูลแผน/สัญญา PM รหัส ${finalContractNumber} พร้อมปรับแต่งวันนัดหมาย (${targetDates.length} รอบ)`
         });
 
       } else {
@@ -618,70 +654,22 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         // 1. Save Contract to db
         await onAddContract(newContract);
 
-        // 2. Generate PMSchedule entries dynamically
-        if (pmFrequency === 'custom') {
-          if (customDates.length === 0) {
-            alert('กรุณาเลือกวันนัดหมายบำรุงรักษาอย่างน้อย 1 วัน สำหรับแผนแบบกำหนดเอง');
-            setSubmittingContract(false);
-            return;
-          }
-          for (const assetId of selectedAssetIds) {
-            const asset = assets.find(a => a.id === assetId);
-            if (!asset) continue;
-            let count = 1;
-            for (const dateStr of customDates) {
-              const schedId = `sched-${Date.now()}-${assetId}-${count}`;
-              await onAddPMSchedule({
-                id: schedId,
-                contractId: contractId,
-                assetId: assetId,
-                assetName: asset.name,
-                plannedDate: dateStr,
-                status: 'pending'
-              });
-              count++;
-            }
-          }
-        } else {
-          // Standard periodic frequency logic
-          const start = new Date(contractStart);
-          let end = new Date(contractEnd);
-          if (hasNoEndDate) {
-            end = new Date(start);
-            end.setFullYear(end.getFullYear() + 3);
-          }
-          
-          let intervalMonths = 3; // default quarterly
-          if (pmFrequency === 'monthly') intervalMonths = 1;
-          else if (pmFrequency === 'semi-annually') intervalMonths = 6;
-          else if (pmFrequency === 'annually') intervalMonths = 12;
-
-          for (const assetId of selectedAssetIds) {
-            const asset = assets.find(a => a.id === assetId);
-            if (!asset) continue;
-
-            let currentDate = new Date(start);
-            // Move first PM check forward
-            currentDate.setMonth(currentDate.getMonth() + intervalMonths);
-
-            let count = 1;
-            while (currentDate <= end) {
-              const schedId = `sched-${Date.now()}-${assetId}-${count}`;
-              const plannedDateStr = currentDate.toISOString().split('T')[0];
-
-              await onAddPMSchedule({
-                id: schedId,
-                contractId: contractId,
-                assetId: assetId,
-                assetName: asset.name,
-                plannedDate: plannedDateStr,
-                status: 'pending'
-              });
-
-              // Move to next interval
-              currentDate.setMonth(currentDate.getMonth() + intervalMonths);
-              count++;
-            }
+        // 2. Generate PMSchedule entries using targetDates
+        for (const assetId of selectedAssetIds) {
+          const asset = assets.find(a => a.id === assetId);
+          if (!asset) continue;
+          let count = 1;
+          for (const dateStr of targetDates) {
+            const schedId = `sched-${Date.now()}-${assetId}-${count}`;
+            await onAddPMSchedule({
+              id: schedId,
+              contractId: contractId,
+              assetId: assetId,
+              assetName: asset.name,
+              plannedDate: dateStr,
+              status: 'pending'
+            });
+            count++;
           }
         }
 
@@ -693,8 +681,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           action: 'create',
           operator: operatorName,
           details: contractType === 'internal' 
-            ? `สร้างแผนงาน PM ภายในชื่อ "${contractTitle}" รหัส ${finalContractNumber} และกำหนดวันเข้าตรวจเช็คตามรอบความถี่อัตโนมัติ`
-            : `สร้างสัญญา PM เลขที่ ${finalContractNumber} บริษัทคู่สัญญา: ${finalVendorName} และสร้างกำหนดการตรวจเช็คอัตโนมัติ`
+            ? `สร้างแผนงาน PM ภายในชื่อ "${contractTitle}" รหัส ${finalContractNumber} พร้อมกำหนดวันนัดหมายละเอียด (${targetDates.length} รอบ)`
+            : `สร้างสัญญา PM เลขที่ ${finalContractNumber} บริษัทคู่สัญญา: ${finalVendorName} พร้อมกำหนดวันนัดหมายละเอียด (${targetDates.length} รอบ)`
         });
       }
 
@@ -745,13 +733,14 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setVendorContact(contract.contactPerson);
     setVendorPhone(contract.contactPhone);
     
-    // Load custom dates if frequency is custom
-    if (contract.pmFrequency === 'custom') {
-      const contractSchedules = schedules.filter(s => s.contractId === contract.id);
-      const uniqueDates = Array.from(new Set(contractSchedules.map(s => s.plannedDate))).sort();
+    // Load scheduled dates from existing pending schedules or calculate
+    const contractSchedules = schedules.filter(s => s.contractId === contract.id);
+    const uniqueDates = Array.from(new Set(contractSchedules.map(s => s.plannedDate))).sort();
+    if (uniqueDates.length > 0) {
       setCustomDates(uniqueDates);
     } else {
-      setCustomDates([]);
+      const autoDates = calculateDefaultPMDates(contract.startDate, contract.endDate || '', !!contract.hasNoEndDate, contract.pmFrequency);
+      setCustomDates(autoDates);
     }
     setNewCustomDate('');
     
@@ -1598,17 +1587,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               {currentUser?.role !== 'user' && (
                 <button 
                   className="btn btn-primary" 
-                  onClick={() => { 
-                    setIsContractFormOpen(true); 
-                    setEditingContract(null); 
-                    setHasNoEndDate(false);
-                    setModalAssetSearch('');
-                    setContractStart(new Date().toISOString().split('T')[0]);
-                    const d = new Date(); d.setFullYear(d.getFullYear() + 1);
-                    setContractEnd(d.toISOString().split('T')[0]);
-                    setSelectedAssetIds([]);
-                    setCustomDates([]);
-                  }} 
+                  onClick={() => handleOpenNewContract()} 
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
                 >
                   <Plus size={16} /> + วางกำหนดบำรุงรักษา / สัญญาใหม่
@@ -1944,18 +1923,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       {/* Button 2: Add Additional PM Plan */}
                       {currentUser?.role !== 'user' && (
                         <button 
-                          onClick={() => {
-                            setIsContractFormOpen(true);
-                            setEditingContract(null);
-                            setHasNoEndDate(false);
-                            setModalAssetSearch('');
-                            setContractTitle(hasPlan ? `แผนงานบำรุงรักษาเพิ่มเติม - ${asset.name}` : `แผนงานบำรุงรักษา - ${asset.name}`);
-                            setContractStart(new Date().toISOString().split('T')[0]);
-                            const d = new Date(); d.setFullYear(d.getFullYear() + 1);
-                            setContractEnd(d.toISOString().split('T')[0]);
-                            setSelectedAssetIds([asset.id]);
-                            setCustomDates([]);
-                          }}
+                          onClick={() => handleOpenNewContract(asset.id, hasPlan ? `แผนงานบำรุงรักษาเพิ่มเติม - ${asset.name}` : `แผนงานบำรุงรักษา - ${asset.name}`)}
                           className="btn btn-primary btn-xs flex-1"
                           style={{ padding: '0.4rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
                           title="เพิ่มแผนการดูแลหรือทำสัญญาเพิ่มอีก 1 รายการให้ครุภัณฑ์ชิ้นนี้"
@@ -2812,60 +2780,190 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </div>
             )}
 
-            {/* Custom Dates Input Section (Visible only when custom frequency is selected) */}
-            {pmFrequency === 'custom' && (
-              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid var(--border)', padding: '1rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-primary)', marginBottom: '0.5rem' }}>
-                <label className="form-label" style={{ fontWeight: 700, margin: 0 }}>📅 เลือกวันนัดหมายเข้าบำรุงรักษา PM (กำหนดเอง)</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input 
-                    type="date" 
-                    className="form-input" 
-                    value={newCustomDate} 
-                    onChange={(e) => setNewCustomDate(e.target.value)} 
-                    style={{ flex: 1 }}
-                  />
-                  <button 
-                    type="button" 
-                    className="btn btn-primary" 
+            {/* --- INTERACTIVE PM SCHEDULE DATES EDITOR & CUSTOMIZER (ALL FREQUENCIES) --- */}
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', border: '1px solid var(--border)', padding: '1.15rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)', marginTop: '0.5rem', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 800, margin: 0, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Calendar size={16} color="var(--primary)" /> 📅 กำหนดและตรวจสอบวันนัดหมาย PM แต่ละรอบ ({customDates.length} รอบ)
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    ท่านสามารถระบุ/แก้ไขวันที่ของแต่ละรอบได้อย่างอิสระ หรือกดปุ่มคำนวณ/เพิ่ม/เลื่อนวันนัดได้ตามต้องการ
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
                     onClick={() => {
-                      if (!newCustomDate) return;
-                      if (customDates.includes(newCustomDate)) {
-                        alert('วันที่นี้อยู่ในรายการเรียบร้อยแล้ว');
-                        return;
-                      }
-                      setCustomDates(prev => [...prev, newCustomDate].sort());
-                      setNewCustomDate('');
+                      const autoDates = calculateDefaultPMDates(contractStart, contractEnd, hasNoEndDate, pmFrequency);
+                      setCustomDates(autoDates);
                     }}
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                    style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-secondary)' }}
+                    title="คำนวณวันนัดหมายใหม่ตามรอบความถี่และช่วงวันที่"
                   >
-                    + เพิ่มวันนัด
+                    🔄 คำนวณรอบอัตโนมัติ
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      // Shift all dates by +1 month
+                      setCustomDates(prev => prev.map(dateStr => {
+                        const d = new Date(dateStr);
+                        if (isNaN(d.getTime())) return dateStr;
+                        d.setMonth(d.getMonth() + 1);
+                        return d.toISOString().split('T')[0];
+                      }));
+                    }}
+                    style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-secondary)' }}
+                    title="เลื่อนทุกรอบไปข้างหน้า 1 เดือน"
+                  >
+                    ⏩ เลื่อนทุกรอบ +1 เดือน
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      // Shift all dates by -1 month
+                      setCustomDates(prev => prev.map(dateStr => {
+                        const d = new Date(dateStr);
+                        if (isNaN(d.getTime())) return dateStr;
+                        d.setMonth(d.getMonth() - 1);
+                        return d.toISOString().split('T')[0];
+                      }));
+                    }}
+                    style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-secondary)' }}
+                    title="เลื่อนทุกรอบถอยหลัง 1 เดือน"
+                  >
+                    ⏪ เลื่อนทุกรอบ -1 เดือน
                   </button>
                 </div>
-                
-                <span style={{ fontSize: '0.725rem', fontWeight: 650, color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
-                  รายการนัดหมายที่เพิ่มแล้ว ({customDates.length} วัน):
-                </span>
-                {customDates.length === 0 ? (
-                  <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>ยังไม่มีการระบุวันนัดหมาย</span>
-                ) : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxHeight: '110px', overflowY: 'auto', padding: '0.25rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-secondary)' }}>
-                    {customDates.map(d => (
-                      <span key={d} className="badge badge-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.725rem', padding: '0.2rem 0.5rem', border: '1px solid var(--border)', background: 'var(--bg-primary)' }}>
-                        {getThaiDateFormatted(d)}
-                        <button 
-                          type="button" 
-                          onClick={() => setCustomDates(prev => prev.filter(x => x !== d))}
-                          style={{ border: 'none', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.8rem', padding: 0, display: 'flex', alignItems: 'center' }}
-                          title="ลบวันนัดนี้"
+              </div>
+
+              {/* Add custom single date bar */}
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input 
+                  type="date" 
+                  className="form-input" 
+                  value={newCustomDate} 
+                  onChange={(e) => setNewCustomDate(e.target.value)} 
+                  placeholder="เลือกวันที่ต้องการเพิ่ม"
+                  style={{ flex: 1, height: '36px' }}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={() => {
+                    if (!newCustomDate) return;
+                    if (customDates.includes(newCustomDate)) {
+                      alert('วันที่นี้อยู่ในรายการนัดหมายเรียบร้อยแล้ว');
+                      return;
+                    }
+                    setCustomDates(prev => [...prev, newCustomDate].sort());
+                    setNewCustomDate('');
+                  }}
+                  style={{ whiteSpace: 'nowrap', padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
+                >
+                  + เพิ่มวันนัดหมาย
+                </button>
+              </div>
+
+              {/* List of planned round dates */}
+              {customDates.length === 0 ? (
+                <div style={{ padding: '0.75rem', textAlign: 'center', background: 'rgba(239, 68, 68, 0.08)', border: '1px dashed var(--danger)', borderRadius: 'var(--radius-sm)', color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600 }}>
+                  ⚠️ ยังไม่มีวันนัดหมาย PM กรุณากดปุ่ม <strong>"🔄 คำนวณรอบอัตโนมัติ"</strong> หรือเลือกวันที่แล้วกด <strong>"+ เพิ่มวันนัดหมาย"</strong>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.5rem', maxHeight: '220px', overflowY: 'auto', padding: '0.35rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-secondary)' }}>
+                  {customDates.map((dateStr, idx) => (
+                    <div 
+                      key={`${dateStr}-${idx}`} 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between', 
+                        gap: '0.4rem', 
+                        padding: '0.4rem 0.6rem', 
+                        background: 'var(--bg-primary)', 
+                        border: '1px solid var(--border)', 
+                        borderRadius: 'var(--radius-sm)' 
+                      }}
+                    >
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)', minWidth: '48px' }}>
+                        รอบ {idx + 1}:
+                      </span>
+
+                      <input 
+                        type="date"
+                        className="form-input"
+                        value={dateStr}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) return;
+                          setCustomDates(prev => {
+                            const updated = [...prev];
+                            updated[idx] = val;
+                            return updated.sort();
+                          });
+                        }}
+                        style={{ height: '30px', padding: '0.15rem 0.4rem', fontSize: '0.75rem', flex: 1 }}
+                      />
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomDates(prev => {
+                              const updated = [...prev];
+                              const d = new Date(updated[idx]);
+                              if (!isNaN(d.getTime())) {
+                                d.setMonth(d.getMonth() + 1);
+                                updated[idx] = d.toISOString().split('T')[0];
+                              }
+                              return updated.sort();
+                            });
+                          }}
+                          style={{ border: '1px solid var(--border)', background: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '0.65rem', padding: '2px 4px', color: 'var(--text-secondary)' }}
+                          title="เลื่อนเฉพาะรอบนี้ไปข้างหน้า 1 เดือน"
+                        >
+                          +1ด
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomDates(prev => {
+                              const updated = [...prev];
+                              const d = new Date(updated[idx]);
+                              if (!isNaN(d.getTime())) {
+                                d.setMonth(d.getMonth() - 1);
+                                updated[idx] = d.toISOString().split('T')[0];
+                              }
+                              return updated.sort();
+                            });
+                          }}
+                          style={{ border: '1px solid var(--border)', background: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '0.65rem', padding: '2px 4px', color: 'var(--text-secondary)' }}
+                          title="เลื่อนเฉพาะรอบนี้ถอยหลัง 1 เดือน"
+                        >
+                          -1ด
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCustomDates(prev => prev.filter((_, i) => i !== idx))}
+                          style={{ border: 'none', background: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.85rem', padding: '0 4px', display: 'flex', alignItems: 'center' }}
+                          title="ลบรอบนี้"
                         >
                           ✕
                         </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Checkbox selector for assets (Searchable + Quick Select) */}
             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: '0.25rem' }}>
@@ -3257,16 +3355,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                           className="btn btn-primary btn-xs"
                           onClick={() => {
                             setIsLogbookOpen(false);
-                            setIsContractFormOpen(true);
-                            setEditingContract(null);
-                            setHasNoEndDate(false);
-                            setModalAssetSearch('');
-                            setContractTitle(`ต่อสัญญาบำรุงรักษา - ${selectedLogbookAsset.name}`);
-                            setContractStart(new Date().toISOString().split('T')[0]);
-                            const d = new Date(); d.setFullYear(d.getFullYear() + 1);
-                            setContractEnd(d.toISOString().split('T')[0]);
-                            setSelectedAssetIds([selectedLogbookAsset.id]);
-                            setCustomDates([]);
+                            handleOpenNewContract(selectedLogbookAsset.id, `ต่อสัญญาบำรุงรักษา - ${selectedLogbookAsset.name}`);
                           }}
                           style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem' }}
                         >
