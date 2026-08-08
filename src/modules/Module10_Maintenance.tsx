@@ -320,7 +320,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const handleOpenPMForm = (sched: PMSchedule) => {
     setSelectedSchedule(sched);
     setCompletedDate(sched.completedDate || new Date().toISOString().split('T')[0]);
-    setPmDetails(sched.details || getPresetChecklist(sched.assetName));
+    // Blank by default as requested by user
+    setPmDetails(sched.details || '');
     setPmNotes(sched.notes || '');
     setPmStatus((sched.status === 'pending' ? 'completed' : sched.status) as any);
     setNextPMNotes(sched.nextPMNotes || '');
@@ -2482,14 +2483,25 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">📋 เช็คลิสต์รายละเอียดดำเนินการ PM (เช็คลิสต์ตรวจสภาพ)</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 700 }}>📋 เช็คลิสต์รายละเอียดดำเนินการ PM (เช็คลิสต์ตรวจสภาพ)</label>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => setPmDetails(getPresetChecklist(selectedSchedule.assetName))}
+                    style={{ fontSize: '0.72rem', color: 'var(--primary)', border: '1px solid var(--border)', padding: '0.15rem 0.45rem', background: 'var(--bg-primary)' }}
+                    title="คลิกเพื่อดึงข้อความตัวอย่างเทมเพลตมาตรฐานตามประเภทครุภัณฑ์"
+                  >
+                    ✨ ใส่เทมเพลตตัวอย่าง
+                  </button>
+                </div>
                 <textarea 
                   className="form-input"
                   rows={4}
                   value={pmDetails}
                   onChange={(e) => setPmDetails(e.target.value)}
-                  placeholder="ระบุสิ่งที่เช็คและทำไป เช่น ปัดฝุ่น ทำความสะอาดเครื่อง..."
-                  required
+                  placeholder="ระบุสิ่งที่เช็คและทำไป เช่น ตรวจสอบสภาพภายนอก, ปัดฝุ่น ทำความสะอาดเครื่อง..."
+                  style={{ fontSize: '0.8rem', resize: 'vertical' }}
                 />
               </div>
 
