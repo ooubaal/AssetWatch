@@ -3409,20 +3409,54 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>กำลังบีบอัดไฟล์ให้อยู่ในระดับ HD...</span>
                     </div>
                   ) : sendProofPreview ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
-                      <div style={{ position: 'relative', maxWidth: '160px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                        <img src={sendProofPreview} alt="Send proof preview" style={{ width: '100%', display: 'block', maxHeight: '130px', objectFit: 'cover' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
+                      <div 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleOpenLightbox(sendProofPreview, `หลักฐานการนำส่งช่าง - ${workflowCase.assetName}`);
+                        }}
+                        style={{ position: 'relative', maxWidth: '180px', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--warning)', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)', cursor: 'pointer', background: '#000' }}
+                        title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD"
+                      >
+                        <img src={sendProofPreview} alt="Send proof preview" style={{ width: '100%', display: 'block', maxHeight: '140px', objectFit: 'cover' }} />
                         {sendProofInfo?.isPdf && (
                           <span style={{ position: 'absolute', top: '4px', left: '4px', background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '3px' }}>
                             PDF HD
                           </span>
                         )}
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '3px 0', fontWeight: 650 }}>
+                          🔍 คลิกซูมดูรูปเต็ม
+                        </div>
                       </div>
+
                       <div style={{ textAlign: 'center', fontSize: '0.75rem' }}>
                         <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{sendProofInfo?.name || 'ใบนำส่งเคลม'}</span>
                         {sendProofInfo?.size && <span style={{ color: 'var(--success)', marginLeft: '0.35rem', fontWeight: 700 }}>({sendProofInfo.size} - บีบอัด HD)</span>}
                       </div>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--primary)', textDecoration: 'underline' }}>คลิกเพื่อเปลี่ยนไฟล์ใหม่</span>
+
+                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn btn-warning btn-xs"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleOpenLightbox(sendProofPreview, `หลักฐานการนำส่งช่าง - ${workflowCase.assetName}`);
+                          }}
+                          style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.6rem' }}
+                        >
+                          🔍 เปิดดูรูปภาพ/PDF ขนาดเต็ม (HD)
+                        </button>
+
+                        <label
+                          htmlFor="send-proof-picker"
+                          style={{ fontSize: '0.72rem', color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer', padding: '0.25rem' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          🔄 คลิกเพื่อเปลี่ยนไฟล์
+                        </label>
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -3495,20 +3529,54 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>กำลังบีบอัดไฟล์ให้อยู่ในระดับ HD...</span>
                     </div>
                   ) : receiveProofPreview ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
-                      <div style={{ position: 'relative', maxWidth: '160px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                        <img src={receiveProofPreview} alt="Receive proof preview" style={{ width: '100%', display: 'block', maxHeight: '130px', objectFit: 'cover' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
+                      <div 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleOpenLightbox(receiveProofPreview, `หลักฐานการตรวจรับของคืน - ${workflowCase.assetName}`);
+                        }}
+                        style={{ position: 'relative', maxWidth: '180px', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--success)', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)', cursor: 'pointer', background: '#000' }}
+                        title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD"
+                      >
+                        <img src={receiveProofPreview} alt="Receive proof preview" style={{ width: '100%', display: 'block', maxHeight: '140px', objectFit: 'cover' }} />
                         {receiveProofInfo?.isPdf && (
                           <span style={{ position: 'absolute', top: '4px', left: '4px', background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '3px' }}>
                             PDF HD
                           </span>
                         )}
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '3px 0', fontWeight: 650 }}>
+                          🔍 คลิกซูมดูรูปเต็ม
+                        </div>
                       </div>
+
                       <div style={{ textAlign: 'center', fontSize: '0.75rem' }}>
                         <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{receiveProofInfo?.name || 'หลักฐานตรวจรับของ'}</span>
                         {receiveProofInfo?.size && <span style={{ color: 'var(--success)', marginLeft: '0.35rem', fontWeight: 700 }}>({receiveProofInfo.size} - บีบอัด HD)</span>}
                       </div>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--primary)', textDecoration: 'underline' }}>คลิกเพื่อเปลี่ยนไฟล์ใหม่</span>
+
+                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn btn-success btn-xs"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleOpenLightbox(receiveProofPreview, `หลักฐานการตรวจรับของคืน - ${workflowCase.assetName}`);
+                          }}
+                          style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.6rem' }}
+                        >
+                          🔍 เปิดดูรูปภาพ/PDF ขนาดเต็ม (HD)
+                        </button>
+
+                        <label
+                          htmlFor="receive-proof-picker"
+                          style={{ fontSize: '0.72rem', color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer', padding: '0.25rem' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          🔄 คลิกเพื่อเปลี่ยนไฟล์
+                        </label>
+                      </div>
                     </div>
                   ) : (
                     <>
