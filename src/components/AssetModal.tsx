@@ -418,6 +418,17 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     setLightboxZoom(1);
   };
 
+  const handleDownloadLightbox = () => {
+    if (!lightboxUrl) return;
+    const a = document.createElement('a');
+    a.href = lightboxUrl;
+    const isPdf = lightboxUrl.toLowerCase().includes('application/pdf') || lightboxUrl.toLowerCase().endsWith('.pdf') || lightboxUrl.startsWith('data:application/pdf');
+    a.download = `AssetWatch_${(lightboxTitle || 'file').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F]/g, '_')}_${new Date().toISOString().split('T')[0]}.${isPdf ? 'pdf' : 'jpg'}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   // Open Print Stock Card
   const handleOpenPrintStockCard = (targetPart?: SparePart) => {
     setPrintCardTargetPart(targetPart || null);
@@ -1911,51 +1922,86 @@ export const AssetModal: React.FC<AssetModalProps> = ({
       {lightboxUrl && (
         <div 
           className="print-preview-overlay animate-fade-in" 
-          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.92)', zIndex: 100050, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.94)', zIndex: 100050, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
           onClick={() => setLightboxUrl(null)}
         >
+          {/* Floating Close Button */}
+          <button
+            type="button"
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              width: '42px',
+              height: '42px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.95)',
+              color: '#fff',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+              fontSize: '1.4rem',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6)',
+              zIndex: 100100,
+              transition: 'all 0.2s',
+              lineHeight: 1
+            }}
+            title="ปิด (Close)"
+            onClick={(e) => { e.stopPropagation(); setLightboxUrl(null); }}
+          >
+            ✕
+          </button>
+
+          {/* Lightbox Toolbar */}
           <div 
-            style={{ position: 'absolute', top: '1rem', left: '1rem', right: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(20, 24, 33, 0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.15)', padding: '0.65rem 1.25rem', borderRadius: 'var(--radius-md)', zIndex: 10, color: '#fff' }}
+            style={{ position: 'absolute', top: '1rem', left: '1rem', right: '4.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(20, 24, 33, 0.88)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.15)', padding: '0.6rem 1.15rem', borderRadius: 'var(--radius-md)', zIndex: 10, color: '#fff', gap: '0.5rem', flexWrap: 'wrap' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', maxWidth: '60%' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: '1 1 200px', minWidth: 0 }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 🔍 {lightboxTitle || 'รูปภาพอะไหล่สำรอง (HD)'}
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
               <button 
                 type="button" 
                 className="btn btn-ghost btn-sm"
                 onClick={() => setLightboxZoom(prev => Math.min(prev + 0.25, 3))}
-                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem' }}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                title="ซูมขยายภาพ"
               >
-                🔍+ ซูมเข้า
+                ➕ ซูมเข้า
               </button>
               <button 
                 type="button" 
                 className="btn btn-ghost btn-sm"
                 onClick={() => setLightboxZoom(prev => Math.max(prev - 0.25, 0.5))}
-                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem' }}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                title="ย่อขนาดภาพ"
               >
-                🔍- ซูมออก
+                ➖ ซูมออก
               </button>
               <button 
                 type="button" 
                 className="btn btn-ghost btn-sm"
                 onClick={() => setLightboxZoom(1)}
-                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem' }}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem' }}
+                title="รีเซ็ตขนาดเท่าเดิม"
               >
                 🔄 {Math.round(lightboxZoom * 100)}%
               </button>
               <button 
                 type="button" 
-                className="btn btn-ghost btn-sm"
-                onClick={() => setLightboxUrl(null)}
-                style={{ color: '#ef4444', border: '1px solid #ef4444', fontSize: '0.85rem', fontWeight: 800 }}
+                className="btn btn-primary btn-sm"
+                onClick={handleDownloadLightbox}
+                style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.55rem', height: 'auto' }}
+                title="บันทึกไฟล์ลงเครื่องคอมพิวเตอร์"
               >
-                ✕ ปิด
+                ⬇️ ดาวน์โหลด
               </button>
             </div>
           </div>

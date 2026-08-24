@@ -106,6 +106,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [editingContract, setEditingContract] = useState<PMContract | null>(null);
   const [customDates, setCustomDates] = useState<string[]>([]);
   const [newCustomDate, setNewCustomDate] = useState('');
+  const [assetPMDates, setAssetPMDates] = useState<Record<string, string[]>>({});
+  const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
 
   // Filtered asset list for Contract modal search
   const filteredModalAssets = useMemo(() => {
@@ -571,12 +573,19 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       const finalContactPhone = contractType === 'internal' ? '-' : vendorPhone;
       const finalEndDate = hasNoEndDate ? '' : contractEnd;
 
-      // Determine target planned dates: use customDates if available, or auto-calculate
-      let targetDates: string[] = [...customDates].sort();
-      if (targetDates.length === 0) {
-        targetDates = calculateDefaultPMDates(contractStart, finalEndDate, hasNoEndDate, pmFrequency);
+      // Determine target planned dates per asset
+      const finalDatesMap: Record<string, string[]> = {};
+      let totalRoundsCount = 0;
+      for (const assetId of selectedAssetIds) {
+        let targetDates: string[] = [...(assetPMDates[assetId] || [])].sort();
+        if (targetDates.length === 0) {
+          targetDates = calculateDefaultPMDates(contractStart, finalEndDate, hasNoEndDate, pmFrequency);
+        }
+        finalDatesMap[assetId] = targetDates;
+        totalRoundsCount += targetDates.length;
       }
-      if (targetDates.length === 0) {
+
+      if (totalRoundsCount === 0) {
         alert('กรุณาระบุหรือคำนวณวันนัดหมาย PM อย่างน้อย 1 วัน สำหรับแผนนี้');
         setSubmittingContract(false);
         return;
@@ -607,6 +616,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           const asset = assets.find(a => a.id === assetId);
           if (!asset) continue;
 
+          const targetDates = finalDatesMap[assetId] || [];
           const assetScheds = existingSchedules.filter(s => s.assetId === assetId);
 
           // Delete pending schedules that are no longer in targetDates
@@ -652,7 +662,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           assetName: `แก้ไขสัญญาบำรุงรักษา: ${finalContractNumber}`,
           action: 'update',
           operator: operatorName,
-          details: `แก้ไขข้อมูลแผน/สัญญา PM รหัส ${finalContractNumber} พร้อมปรับแต่งวันนัดหมาย (${targetDates.length} รอบ)`
+          details: `แก้ไขข้อมูลแผน/สัญญา PM รหัส ${finalContractNumber} พร้อมปรับแต่งวันนัดหมายรายเครื่อง (${totalRoundsCount} รอบรวม)`
         });
 
       } else {
@@ -679,6 +689,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         for (const assetId of selectedAssetIds) {
           const asset = assets.find(a => a.id === assetId);
           if (!asset) continue;
+          const targetDates = finalDatesMap[assetId] || [];
           let count = 1;
           for (const dateStr of targetDates) {
             const schedId = `sched-${Date.now()}-${assetId}-${count}`;
@@ -702,8 +713,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           action: 'create',
           operator: operatorName,
           details: contractType === 'internal' 
-            ? `สร้างแผนงาน PM ภายในชื่อ "${contractTitle}" รหัส ${finalContractNumber} พร้อมกำหนดวันนัดหมายละเอียด (${targetDates.length} รอบ)`
-            : `สร้างสัญญา PM เลขที่ ${finalContractNumber} บริษัทคู่สัญญา: ${finalVendorName} พร้อมกำหนดวันนัดหมายละเอียด (${targetDates.length} รอบ)`
+            ? `สร้างแผนงาน PM ภายในชื่อ "${contractTitle}" รหัส ${finalContractNumber} พร้อมกำหนดวันนัดหมายรายเครื่อง (${totalRoundsCount} รอบรวม)`
+            : `สร้างสัญญา PM เลขที่ ${finalContractNumber} บริษัทคู่สัญญา: ${finalVendorName} พร้อมกำหนดวันนัดหมายรายเครื่อง (${totalRoundsCount} รอบรวม)`
         });
       }
 
@@ -716,6 +727,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       setEditingContract(null);
       setCustomDates([]);
       setNewCustomDate('');
+      setAssetPMDates({});
+      setExpandedAssetId(null);
       // Reset form
       setContractNumber('');
       setContractTitle('');
@@ -754,15 +767,20 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setVendorContact(contract.contactPerson);
     setVendorPhone(contract.contactPhone);
     
-    // Load scheduled dates from existing pending schedules or calculate
+    // Load scheduled dates from existing pending schedules or calculate per asset
     const contractSchedules = schedules.filter(s => s.contractId === contract.id);
-    const uniqueDates = Array.from(new Set(contractSchedules.map(s => s.plannedDate))).sort();
-    if (uniqueDates.length > 0) {
-      setCustomDates(uniqueDates);
-    } else {
-      const autoDates = calculateDefaultPMDates(contract.startDate, contract.endDate || '', !!contract.hasNoEndDate, contract.pmFrequency);
-      setCustomDates(autoDates);
+    const initialDatesMap: Record<string, string[]> = {};
+    for (const assetId of contract.assetIds) {
+      const assetScheds = contractSchedules.filter(s => s.assetId === assetId);
+      if (assetScheds.length > 0) {
+        initialDatesMap[assetId] = assetScheds.map(s => s.plannedDate).sort();
+      } else {
+        const autoDates = calculateDefaultPMDates(contract.startDate, contract.endDate || '', !!contract.hasNoEndDate, contract.pmFrequency);
+        initialDatesMap[assetId] = autoDates;
+      }
     }
+    setAssetPMDates(initialDatesMap);
+    setExpandedAssetId(contract.assetIds[0] || null);
     setNewCustomDate('');
     
     setIsContractFormOpen(true);
@@ -2574,19 +2592,44 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       </div>
                     ) : proofPreview ? (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
-                        <div style={{ position: 'relative', maxWidth: '160px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                        <div 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleOpenLightbox(proofPreview, `ไฟล์หลักฐานการบำรุงรักษา PM - ${selectedSchedule?.assetName || 'พรีวิว'}`);
+                          }}
+                          style={{ position: 'relative', maxWidth: '160px', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--primary)', boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.25)', cursor: 'pointer', background: '#000' }}
+                          title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD / ดาวน์โหลด"
+                        >
                           <img src={proofPreview} alt="PM proof preview" style={{ width: '100%', display: 'block', maxHeight: '130px', objectFit: 'cover' }} />
-                          {proofInfo?.isPdf && (
+                          {(proofInfo?.isPdf || (typeof proofPreview === 'string' && (proofPreview.toLowerCase().includes('.pdf') || proofPreview.startsWith('data:application/pdf')))) && (
                             <span style={{ position: 'absolute', top: '4px', left: '4px', background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '3px' }}>
                               PDF HD
                             </span>
                           )}
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '3px 0', fontWeight: 650 }}>
+                            🔍 คลิกดูเต็ม / โหลด
+                          </div>
                         </div>
                         <div style={{ textAlign: 'center', fontSize: '0.75rem' }}>
                           <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{proofInfo?.name || 'ไฟล์หลักฐาน PM'}</span>
                           {proofInfo?.size && <span style={{ color: 'var(--success)', marginLeft: '0.35rem', fontWeight: 700 }}>({proofInfo.size} - บีบอัด HD คมชัด)</span>}
                         </div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--primary)', textDecoration: 'underline' }}>คลิกเพื่อเปลี่ยนไฟล์ (รองรับ PDF และ รูปภาพ)</span>
+                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-xs"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleOpenLightbox(proofPreview, `ไฟล์หลักฐานการบำรุงรักษา PM - ${selectedSchedule?.assetName || 'พรีวิว'}`);
+                            }}
+                            style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.6rem' }}
+                          >
+                            🔍 เปิดดูขนาดเต็ม / ดาวน์โหลด
+                          </button>
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>หากต้องการอัปโหลดใหม่ ให้กดปุ่มอัปโหลดหรือลากไฟล์มาวางแทน</span>
                       </div>
                     ) : (
                       <>
@@ -2770,12 +2813,22 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                   {selectedSchedule.proofImageUrl && (
                     <div style={{ marginBottom: '2rem' }}>
                       <strong>📸 ภาพถ่ายสภาพหลังดำเนินการบำรุงรักษา (Proof of Work):</strong>
-                      <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
+                      <div style={{ marginTop: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                         <img 
                           src={selectedSchedule.proofImageUrl} 
                           alt="PM proof" 
-                          style={{ maxWidth: '380px', maxHeight: '200px', border: '2px solid #dddddd', borderRadius: '4px' }} 
+                          style={{ maxWidth: '380px', maxHeight: '200px', border: '2px solid #dddddd', borderRadius: '4px', cursor: 'pointer' }}
+                          onClick={() => handleOpenLightbox(selectedSchedule.proofImageUrl!, `ภาพถ่ายหลักฐาน PM - ${selectedSchedule.assetName}`)}
+                          title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD / ดาวน์โหลด"
                         />
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-xs hide-on-print"
+                          onClick={() => handleOpenLightbox(selectedSchedule.proofImageUrl!, `ภาพถ่ายหลักฐาน PM - ${selectedSchedule.assetName}`)}
+                          style={{ border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.5rem', fontSize: '0.72rem', color: 'var(--text-secondary)' }}
+                        >
+                          🔍 เปิดดูขนาดเต็ม / ดาวน์โหลดไฟล์หลักฐาน
+                        </button>
                       </div>
                     </div>
                   )}
@@ -3008,187 +3061,205 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </div>
             )}
 
-            {/* --- INTERACTIVE PM SCHEDULE DATES EDITOR & CUSTOMIZER (ALL FREQUENCIES) --- */}
-            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', border: '1px solid var(--border)', padding: '1.15rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)', marginTop: '0.5rem', marginBottom: '0.75rem' }}>
+            {/* --- INDIVIDUAL PM SCHEDULE DATES EDITOR PER ASSET (ACCORDION) --- */}
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid var(--border)', padding: '1.15rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)', marginTop: '0.5rem', marginBottom: '0.75rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div>
                   <label className="form-label" style={{ fontWeight: 800, margin: 0, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Calendar size={16} color="var(--primary)" /> 📅 กำหนดและตรวจสอบวันนัดหมาย PM แต่ละรอบ ({customDates.length} รอบ)
+                    <Calendar size={16} color="var(--primary)" /> 📅 วางกำหนดการบำรุงรักษาแยกรายเครื่อง ({selectedAssetIds.length} เครื่อง)
                   </label>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    ท่านสามารถระบุ/แก้ไขวันที่ของแต่ละรอบได้อย่างอิสระ หรือกดปุ่มคำนวณ/เพิ่ม/เลื่อนวันนัดได้ตามต้องการ
+                    ท่านสามารถระบุ/แก้ไขรอบวันนัดหมาย PM แยกอิสระสำหรับครุภัณฑ์แต่ละเครื่องได้
                   </span>
                 </div>
-
-                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                
+                {selectedAssetIds.length > 0 && (
                   <button
                     type="button"
                     className="btn btn-ghost btn-xs"
                     onClick={() => {
                       const autoDates = calculateDefaultPMDates(contractStart, contractEnd, hasNoEndDate, pmFrequency);
-                      setCustomDates(autoDates);
+                      setAssetPMDates(prev => {
+                        const next = { ...prev };
+                        for (const id of selectedAssetIds) {
+                          next[id] = autoDates;
+                        }
+                        return next;
+                      });
                     }}
-                    style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-secondary)' }}
-                    title="คำนวณวันนัดหมายใหม่ตามรอบความถี่และช่วงวันที่"
+                    style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-secondary)', color: 'var(--primary)', fontWeight: 700 }}
+                    title="คำนวณและตั้งรอบ PM อัตโนมัติตามวันเริ่มต้น-สิ้นสุดของสัญญาให้ทุกเครื่องพร้อมกัน"
                   >
-                    🔄 คำนวณรอบอัตโนมัติ
+                    🔄 คำนวณรอบอัตโนมัติให้ทุกเครื่อง
                   </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => {
-                      // Shift all dates by +1 month
-                      setCustomDates(prev => prev.map(dateStr => {
-                        const d = new Date(dateStr);
-                        if (isNaN(d.getTime())) return dateStr;
-                        d.setMonth(d.getMonth() + 1);
-                        return d.toISOString().split('T')[0];
-                      }));
-                    }}
-                    style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-secondary)' }}
-                    title="เลื่อนทุกรอบไปข้างหน้า 1 เดือน"
-                  >
-                    ⏩ เลื่อนทุกรอบ +1 เดือน
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => {
-                      // Shift all dates by -1 month
-                      setCustomDates(prev => prev.map(dateStr => {
-                        const d = new Date(dateStr);
-                        if (isNaN(d.getTime())) return dateStr;
-                        d.setMonth(d.getMonth() - 1);
-                        return d.toISOString().split('T')[0];
-                      }));
-                    }}
-                    style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-secondary)' }}
-                    title="เลื่อนทุกรอบถอยหลัง 1 เดือน"
-                  >
-                    ⏪ เลื่อนทุกรอบ -1 เดือน
-                  </button>
-                </div>
+                )}
               </div>
 
-              {/* Add custom single date bar */}
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input 
-                  type="date" 
-                  className="form-input" 
-                  value={newCustomDate} 
-                  onChange={(e) => setNewCustomDate(e.target.value)} 
-                  placeholder="เลือกวันที่ต้องการเพิ่ม"
-                  style={{ flex: 1, height: '36px' }}
-                />
-                <button 
-                  type="button" 
-                  className="btn btn-primary btn-sm" 
-                  onClick={() => {
-                    if (!newCustomDate) return;
-                    if (customDates.includes(newCustomDate)) {
-                      alert('วันที่นี้อยู่ในรายการนัดหมายเรียบร้อยแล้ว');
-                      return;
-                    }
-                    setCustomDates(prev => [...prev, newCustomDate].sort());
-                    setNewCustomDate('');
-                  }}
-                  style={{ whiteSpace: 'nowrap', padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}
-                >
-                  + เพิ่มวันนัดหมาย
-                </button>
-              </div>
-
-              {/* List of planned round dates */}
-              {customDates.length === 0 ? (
-                <div style={{ padding: '0.75rem', textAlign: 'center', background: 'rgba(239, 68, 68, 0.08)', border: '1px dashed var(--danger)', borderRadius: 'var(--radius-sm)', color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 600 }}>
-                  ⚠️ ยังไม่มีวันนัดหมาย PM กรุณากดปุ่ม <strong>"🔄 คำนวณรอบอัตโนมัติ"</strong> หรือเลือกวันที่แล้วกด <strong>"+ เพิ่มวันนัดหมาย"</strong>
+              {selectedAssetIds.length === 0 ? (
+                <div style={{ padding: '1rem', textAlign: 'center', background: 'var(--bg-secondary)', border: '1px dashed var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                  💡 กรุณาเลือกครุภัณฑ์ในรายการด้านล่าง เพื่อเปิดการตั้งค่ารอบบำรุงรักษา
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.5rem', maxHeight: '220px', overflowY: 'auto', padding: '0.35rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-secondary)' }}>
-                  {customDates.map((dateStr, idx) => (
-                    <div 
-                      key={`${dateStr}-${idx}`} 
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'space-between', 
-                        gap: '0.4rem', 
-                        padding: '0.4rem 0.6rem', 
-                        background: 'var(--bg-primary)', 
-                        border: '1px solid var(--border)', 
-                        borderRadius: 'var(--radius-sm)' 
-                      }}
-                    >
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)', minWidth: '48px' }}>
-                        รอบ {idx + 1}:
-                      </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '350px', overflowY: 'auto', padding: '0.25rem' }}>
+                  {selectedAssetIds.map((assetId) => {
+                    const asset = assets.find(a => a.id === assetId);
+                    if (!asset) return null;
+                    const dates = assetPMDates[assetId] || [];
+                    const isExpanded = expandedAssetId === assetId;
+                    
+                    return (
+                      <div key={assetId} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                        {/* Accordion Header */}
+                        <div 
+                          onClick={() => setExpandedAssetId(isExpanded ? null : assetId)}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0.85rem', background: isExpanded ? 'rgba(59, 130, 246, 0.05)' : 'var(--bg-primary)', cursor: 'pointer', borderBottom: isExpanded ? '1px solid var(--border)' : 'none', userSelect: 'none' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 750, color: 'var(--primary)', fontFamily: 'monospace', flexShrink: 0 }}>
+                              {assetId}
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              - {asset.name}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span className={`badge ${dates.length > 0 ? 'badge-primary' : 'badge-danger'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
+                              {dates.length} รอบ PM
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              {isExpanded ? '▼' : '►'}
+                            </span>
+                          </div>
+                        </div>
 
-                      <input 
-                        type="date"
-                        className="form-input"
-                        value={dateStr}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (!val) return;
-                          setCustomDates(prev => {
-                            const updated = [...prev];
-                            updated[idx] = val;
-                            return updated.sort();
-                          });
-                        }}
-                        style={{ height: '30px', padding: '0.15rem 0.4rem', fontSize: '0.75rem', flex: 1 }}
-                      />
+                        {/* Accordion Content */}
+                        {isExpanded && (
+                          <div style={{ padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'var(--bg-primary)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
+                              <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                                กำหนดวันนัดหมาย PM สำหรับเครื่องนี้:
+                              </span>
+                              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-xs"
+                                  onClick={() => {
+                                    const autoDates = calculateDefaultPMDates(contractStart, contractEnd, hasNoEndDate, pmFrequency);
+                                    setAssetPMDates(prev => ({ ...prev, [assetId]: autoDates }));
+                                  }}
+                                  style={{ border: '1px solid var(--border)', fontSize: '0.65rem', padding: '1px 4px', background: 'var(--bg-secondary)' }}
+                                >
+                                  🔄 ตั้งอัตโนมัติ
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-xs"
+                                  onClick={() => {
+                                    setAssetPMDates(prev => ({
+                                      ...prev,
+                                      [assetId]: (prev[assetId] || []).map(dateStr => {
+                                        const d = new Date(dateStr);
+                                        if (isNaN(d.getTime())) return dateStr;
+                                        d.setMonth(d.getMonth() + 1);
+                                        return d.toISOString().split('T')[0];
+                                      }).sort()
+                                    }));
+                                  }}
+                                  style={{ border: '1px solid var(--border)', fontSize: '0.65rem', padding: '1px 4px', background: 'var(--bg-secondary)' }}
+                                >
+                                  ⏩ +1 ด.
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-xs"
+                                  onClick={() => {
+                                    setAssetPMDates(prev => ({
+                                      ...prev,
+                                      [assetId]: (prev[assetId] || []).map(dateStr => {
+                                        const d = new Date(dateStr);
+                                        if (isNaN(d.getTime())) return dateStr;
+                                        d.setMonth(d.getMonth() - 1);
+                                        return d.toISOString().split('T')[0];
+                                      }).sort()
+                                    }));
+                                  }}
+                                  style={{ border: '1px solid var(--border)', fontSize: '0.65rem', padding: '1px 4px', background: 'var(--bg-secondary)' }}
+                                >
+                                  ⏪ -1 ด.
+                                </button>
+                              </div>
+                            </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomDates(prev => {
-                              const updated = [...prev];
-                              const d = new Date(updated[idx]);
-                              if (!isNaN(d.getTime())) {
-                                d.setMonth(d.getMonth() + 1);
-                                updated[idx] = d.toISOString().split('T')[0];
-                              }
-                              return updated.sort();
-                            });
-                          }}
-                          style={{ border: '1px solid var(--border)', background: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '0.65rem', padding: '2px 4px', color: 'var(--text-secondary)' }}
-                          title="เลื่อนเฉพาะรอบนี้ไปข้างหน้า 1 เดือน"
-                        >
-                          +1ด
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomDates(prev => {
-                              const updated = [...prev];
-                              const d = new Date(updated[idx]);
-                              if (!isNaN(d.getTime())) {
-                                d.setMonth(d.getMonth() - 1);
-                                updated[idx] = d.toISOString().split('T')[0];
-                              }
-                              return updated.sort();
-                            });
-                          }}
-                          style={{ border: '1px solid var(--border)', background: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '0.65rem', padding: '2px 4px', color: 'var(--text-secondary)' }}
-                          title="เลื่อนเฉพาะรอบนี้ถอยหลัง 1 เดือน"
-                        >
-                          -1ด
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCustomDates(prev => prev.filter((_, i) => i !== idx))}
-                          style={{ border: 'none', background: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.85rem', padding: '0 4px', display: 'flex', alignItems: 'center' }}
-                          title="ลบรอบนี้"
-                        >
-                          ✕
-                        </button>
+                            {/* Add date for this specific asset */}
+                            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                              <input 
+                                type="date" 
+                                className="form-input" 
+                                id={`new-date-${assetId}`}
+                                style={{ height: '30px', padding: '0.15rem 0.4rem', fontSize: '0.75rem', flex: 1 }}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-xs"
+                                onClick={() => {
+                                  const inputEl = document.getElementById(`new-date-${assetId}`) as HTMLInputElement;
+                                  const dateVal = inputEl?.value;
+                                  if (!dateVal) return;
+                                  if (dates.includes(dateVal)) {
+                                    alert('วันที่นี้อยู่ในรายการนัดหมายแล้ว');
+                                    return;
+                                  }
+                                  setAssetPMDates(prev => ({
+                                    ...prev,
+                                    [assetId]: [...(prev[assetId] || []), dateVal].sort()
+                                  }));
+                                  if (inputEl) inputEl.value = '';
+                                }}
+                                style={{ padding: '0.2rem 0.65rem', fontSize: '0.7rem', height: '30px', whiteSpace: 'nowrap' }}
+                              >
+                                + เพิ่มวัน
+                              </button>
+                            </div>
+
+                            {/* Date List for this asset */}
+                            {dates.length === 0 ? (
+                              <div style={{ padding: '0.5rem', textAlign: 'center', background: 'rgba(239, 68, 68, 0.05)', border: '1px dashed var(--danger)', borderRadius: '4px', color: 'var(--danger)', fontSize: '0.72rem' }}>
+                                ⚠️ ยังไม่มีวันนัดหมาย PM สำหรับเครื่องนี้
+                              </div>
+                            ) : (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))', gap: '0.35rem', maxHeight: '120px', overflowY: 'auto', padding: '0.2rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-secondary)' }}>
+                                {dates.map((dateStr, idx) => {
+                                  const [y, m, d] = dateStr.split('-');
+                                  const thaiCompact = y && m && d ? `${d}/${m}/${parseInt(y) + 543}` : dateStr;
+                                  
+                                  return (
+                                    <div 
+                                      key={`${dateStr}-${idx}`} 
+                                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.2rem 0.35rem', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '3px', fontSize: '0.7rem' }}
+                                    >
+                                      <span style={{ fontWeight: 600 }}>{idx + 1}: {thaiCompact}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setAssetPMDates(prev => ({
+                                            ...prev,
+                                            [assetId]: (prev[assetId] || []).filter((_, i) => i !== idx)
+                                          }));
+                                        }}
+                                        style={{ border: 'none', background: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.75rem', display: 'flex', alignItems: 'center' }}
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -3206,6 +3277,19 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                     onClick={() => {
                       const filteredIds = filteredModalAssets.map(a => a.id);
                       setSelectedAssetIds(prev => Array.from(new Set([...prev, ...filteredIds])));
+                      setAssetPMDates(prev => {
+                        const next = { ...prev };
+                        const autoDates = calculateDefaultPMDates(contractStart, contractEnd, hasNoEndDate, pmFrequency);
+                        for (const id of filteredIds) {
+                          if (!next[id] || next[id].length === 0) {
+                            next[id] = autoDates;
+                          }
+                        }
+                        return next;
+                      });
+                      if (filteredIds.length > 0) {
+                        setExpandedAssetId(filteredIds[0]);
+                      }
                     }}
                     style={{ fontSize: '0.725rem', padding: '0.15rem 0.45rem', color: 'var(--primary)', border: '1px solid var(--border)' }}
                     title="เลือกครุภัณฑ์ทั้งหมดที่ค้นพบขณะนี้"
@@ -3215,7 +3299,11 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                   <button 
                     type="button" 
                     className="btn btn-ghost btn-xs" 
-                    onClick={() => setSelectedAssetIds([])}
+                    onClick={() => {
+                      setSelectedAssetIds([]);
+                      setAssetPMDates({});
+                      setExpandedAssetId(null);
+                    }}
                     style={{ fontSize: '0.725rem', padding: '0.15rem 0.45rem', color: 'var(--danger)', border: '1px solid var(--border)' }}
                     title="ยกเลิกการเลือกครุภัณฑ์ทั้งหมด"
                   >
@@ -3263,6 +3351,12 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                           onChange={(e) => {
                             if (e.target.checked) {
                               setSelectedAssetIds(prev => [...prev, asset.id]);
+                              setAssetPMDates(prev => {
+                                if (prev[asset.id] && prev[asset.id].length > 0) return prev;
+                                const autoDates = calculateDefaultPMDates(contractStart, contractEnd, hasNoEndDate, pmFrequency);
+                                return { ...prev, [asset.id]: autoDates };
+                              });
+                              setExpandedAssetId(asset.id);
                             } else {
                               setSelectedAssetIds(prev => prev.filter(id => id !== asset.id));
                             }
@@ -4329,44 +4423,74 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       {lightboxUrl && (
         <div 
           className="print-preview-overlay animate-fade-in" 
-          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.92)', zIndex: 100050, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.94)', zIndex: 100050, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
           onClick={() => setLightboxUrl(null)}
         >
+          {/* Floating Close Button */}
+          <button
+            type="button"
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              width: '42px',
+              height: '42px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.95)',
+              color: '#fff',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+              fontSize: '1.4rem',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6)',
+              zIndex: 100100,
+              transition: 'all 0.2s',
+              lineHeight: 1
+            }}
+            title="ปิด (Close)"
+            onClick={(e) => { e.stopPropagation(); setLightboxUrl(null); }}
+          >
+            ✕
+          </button>
+
           {/* Lightbox Toolbar */}
           <div 
-            style={{ position: 'absolute', top: '1rem', left: '1rem', right: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(20, 24, 33, 0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.15)', padding: '0.65rem 1.25rem', borderRadius: 'var(--radius-md)', zIndex: 10, color: '#fff' }}
+            style={{ position: 'absolute', top: '1rem', left: '1rem', right: '4.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(20, 24, 33, 0.88)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.15)', padding: '0.6rem 1.15rem', borderRadius: 'var(--radius-md)', zIndex: 10, color: '#fff', gap: '0.5rem', flexWrap: 'wrap' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', maxWidth: '60%' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: '1 1 200px', minWidth: 0 }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 🔍 {lightboxTitle || 'ไฟล์เอกสาร / รูปภาพหลักฐาน (HD)'}
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
               <button 
                 type="button" 
                 className="btn btn-ghost btn-sm"
                 onClick={() => setLightboxZoom(prev => Math.min(prev + 0.25, 3))}
-                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem', padding: '0.25rem 0.55rem' }}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem', display: 'flex', alignItems: 'center', gap: '3px' }}
                 title="ซูมขยายภาพ"
               >
-                🔍+ ซูมเข้า
+                ➕ ซูมเข้า
               </button>
               <button 
                 type="button" 
                 className="btn btn-ghost btn-sm"
                 onClick={() => setLightboxZoom(prev => Math.max(prev - 0.25, 0.5))}
-                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem', padding: '0.25rem 0.55rem' }}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem', display: 'flex', alignItems: 'center', gap: '3px' }}
                 title="ย่อขนาดภาพ"
               >
-                🔍- ซูมออก
+                ➖ ซูมออก
               </button>
               <button 
                 type="button" 
                 className="btn btn-ghost btn-sm"
                 onClick={() => setLightboxZoom(1)}
-                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.75rem', padding: '0.25rem 0.55rem' }}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem' }}
                 title="รีเซ็ตขนาดเท่าเดิม"
               >
                 🔄 {Math.round(lightboxZoom * 100)}%
@@ -4375,19 +4499,10 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                 type="button" 
                 className="btn btn-primary btn-sm"
                 onClick={handleDownloadLightbox}
-                style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.65rem' }}
+                style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.55rem', height: 'auto' }}
                 title="บันทึกไฟล์ลงเครื่องคอมพิวเตอร์"
               >
                 ⬇️ ดาวน์โหลด
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-ghost btn-sm"
-                onClick={() => setLightboxUrl(null)}
-                style={{ color: '#ef4444', border: '1px solid #ef4444', fontSize: '0.85rem', fontWeight: 800, padding: '0.25rem 0.65rem', marginLeft: '0.25rem' }}
-                title="ปิดหน้าต่างรูปภาพ"
-              >
-                ✕ ปิด
               </button>
             </div>
           </div>

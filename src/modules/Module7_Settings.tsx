@@ -16,10 +16,11 @@ import {
   HelpCircle,
   Copy,
   Check,
-  FileCode
+  FileCode,
+  X
 } from 'lucide-react';
 import { getStoredFirebaseConfig, clearFirebaseConfig, FirebaseConfig } from '../firebase';
-import { exportBackupData, importBackupData } from '../services/dbService';
+import { exportBackupData, importBackupData, factoryResetDatabase } from '../services/dbService';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 import { Asset, AuditTrail, RepairCase, SurveyRecord, SurveyRound, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
@@ -58,6 +59,10 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [githubRepoSizeKb, setGithubRepoSizeKb] = useState<number | null>(null);
   const [loadingGithubSize, setLoadingGithubSize] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState('');
 
   useEffect(() => {
     setLoadingGithubSize(true);
@@ -179,6 +184,40 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
         }
       };
       reader.readAsText(file);
+    }
+  };
+
+  const handleFactoryReset = async () => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      setResetError('คุณไม่มีสิทธิ์ในการดำเนินการนี้');
+      return;
+    }
+
+    if (confirmPassword !== currentUser.password) {
+      setResetError('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+      return;
+    }
+
+    setResetting(true);
+    setResetError('');
+    try {
+      await factoryResetDatabase();
+      
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+
+      setShowResetModal(false);
+      setConfirmPassword('');
+      onImportSuccess(); // Force refresh parent data
+
+      alert('รีเซ็ตฐานข้อมูลทั้งหมดเป็นค่าเริ่มต้นสำเร็จเรียบร้อยแล้ว');
+    } catch (e: any) {
+      setResetError(`เกิดข้อผิดพลาดในการรีเซ็ตระบบ: ${e.message}`);
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -493,6 +532,44 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
 
               </div>
 
+              {/* Factory Reset Section */}
+              {currentUser?.role === 'admin' ? (
+                <div className="factory-reset-section glass-panel" style={{ marginTop: '2rem', padding: '1.5rem', border: '1px solid var(--danger)', borderRadius: 'var(--radius-md)', backgroundColor: 'rgba(239, 68, 68, 0.02)' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 750, color: 'var(--danger)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Trash2 size={18} /> 🚨 รีเซ็ตระบบทั้งหมดเป็นค่าเริ่มต้น (Factory Reset)
+                  </h4>
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', lineHeight: 1.45, marginBottom: '1rem' }}>
+                    การรีเซ็ตระบบจะทำการลบข้อมูลครุภัณฑ์พัสดุ เคสส่งซ่อม ประวัติการสำรวจ และข้อมูลการตั้งค่าทั้งหมดออกจากระบบอย่างถาวร (ทั้งบนคลาวด์และหน่วยความจำเครื่อง) และย้อนกลับไปใช้ค่าเริ่มต้นจากโรงงาน
+                  </p>
+                  <div className="alert alert-warning" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.85rem', backgroundColor: 'rgba(245, 158, 11, 0.08)', border: '1px solid var(--warning)', borderRadius: 'var(--radius-sm)', marginBottom: '1.25rem', fontSize: '0.8rem', color: 'var(--warning-dark)' }}>
+                    <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+                    <div>
+                      <strong>คำเตือนสำคัญ:</strong> เพื่อความปลอดภัย กรุณากดปุ่ม <strong>"ส่งออกข้อมูลแบคอัพทั้งหมด"</strong> ด้านบนเพื่อสำรองข้อมูลเก็บไว้เป็นไฟล์สำรองก่อนทำการรีเซ็ตทุกครั้ง
+                    </div>
+                  </div>
+                  <button 
+                    className="btn btn-danger" 
+                    onClick={() => {
+                      setConfirmPassword('');
+                      setResetError('');
+                      setShowResetModal(true);
+                    }}
+                    style={{ fontWeight: 650 }}
+                  >
+                    <Trash2 size={14} /> ล้างข้อมูลและรีเซ็ตระบบทั้งหมด (Factory Reset)
+                  </button>
+                </div>
+              ) : (
+                <div className="factory-reset-section glass-panel" style={{ marginTop: '2rem', padding: '1.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)', opacity: 0.8 }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 750, color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Trash2 size={18} /> 🔒 รีเซ็ตระบบทั้งหมดเป็นค่าเริ่มต้น (Factory Reset)
+                  </h4>
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: 1.45, marginBottom: 0 }}>
+                    ฟังก์ชันรีเซ็ตระบบทั้งหมดถูกจำกัดสิทธิ์ไว้สำหรับผู้ดูแลระบบสูงสุด (Admin) เท่านั้น บัญชีระดับสิทธิ์ของคุณไม่สามารถดำเนินการนี้ได้
+                  </p>
+                </div>
+              )}
+
               {importStatus && (
                 <div className={`alert ${importStatus.success ? 'alert-success' : 'alert-danger'} animate-fade-in`} style={{ marginTop: '1.5rem' }}>
                   {importStatus.success ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
@@ -613,6 +690,87 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
         </main>
 
       </div>
+
+      {showResetModal && (
+        <div className="modal-backdrop" style={{ zIndex: 99999 }}>
+          <div className="modal-content glass-panel animate-scale-up" style={{ maxWidth: '480px', width: '90%', padding: '1.75rem' }}>
+            
+            <div className="modal-header" style={{ marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger)', fontSize: '1.15rem', fontWeight: 800 }}>
+                <Trash2 size={20} /> ยืนยันการรีเซ็ตระบบทั้งหมด
+              </h3>
+              <button className="btn btn-ghost btn-icon-only" onClick={() => setShowResetModal(false)} disabled={resetting}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                คุณกำลังจะทำการรีเซ็ตข้อมูลครุภัณฑ์พัสดุ เคสแจ้งซ่อม และผลการสำรวจสภาพทั้งหมดในระบบให้ย้อนกลับเป็นค่าเริ่มต้นจากโรงงาน (Factory Reset)
+              </p>
+              
+              <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.85rem', backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid var(--danger)', borderRadius: 'var(--radius-sm)', fontSize: '0.775rem', color: '#dc2626' }}>
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+                <div>
+                  <strong>⚠️ คำเตือน:</strong> ข้อมูลทั้งหมดที่ถูกลบไปแล้วจะไม่สามารถกู้คืนกลับมาได้อีก โปรดตรวจสอบให้แน่ใจว่าคุณได้สำรองข้อมูล (Backup) เรียบร้อยแล้วก่อนทำการรีเซ็ต
+                </div>
+              </div>
+
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label className="form-label" style={{ fontSize: '0.825rem', fontWeight: 650, color: 'var(--text-secondary)' }}>
+                  🔑 กรุณากรอกรหัสผ่านบัญชีผู้ใช้ปัจจุบันเพื่อยืนยัน (Confirm Password)
+                </label>
+                <input 
+                  type="password" 
+                  className="form-input" 
+                  placeholder="ป้อนรหัสผ่านปัจจุบันของคุณ"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setResetError('');
+                  }}
+                  disabled={resetting}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--bg-primary)' }}
+                  required
+                />
+              </div>
+
+              {resetError && (
+                <div className="alert alert-danger animate-fade-in" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', fontSize: '0.775rem', backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid var(--danger)', borderRadius: 'var(--radius-sm)', color: '#dc2626' }}>
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                  <span>{resetError}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.75rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowResetModal(false)}
+                disabled={resetting}
+                style={{ minWidth: '80px' }}
+              >
+                ยกเลิก
+              </button>
+              <button 
+                className="btn btn-danger" 
+                onClick={handleFactoryReset}
+                disabled={resetting || !confirmPassword}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: '140px', justifyContent: 'center' }}
+              >
+                {resetting ? (
+                  <>กำลังรีเซ็ตระบบ...</>
+                ) : (
+                  <>
+                    <Trash2 size={14} /> ยืนยันการรีเซ็ตระบบ
+                  </>
+                )}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       <style>{`
         .settings-layout {

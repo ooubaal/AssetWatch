@@ -1489,3 +1489,106 @@ export const deletePMSchedule = async (id: string): Promise<void> => {
   const filtered = schedules.filter(s => s.id !== id);
   localStorage.setItem('assetwatch_schedules', JSON.stringify(filtered));
 };
+
+export const factoryResetDatabase = async (): Promise<void> => {
+  // 1. Clear LocalStorage
+  const keysToClear = [
+    'assetwatch_assets',
+    'assetwatch_audits',
+    'assetwatch_users',
+    'assetwatch_repairs',
+    'assetwatch_surveys',
+    'assetwatch_departments',
+    'assetwatch_contracts',
+    'assetwatch_schedules',
+    'assetwatch_pm_notifications',
+    'assetwatch_survey_rounds'
+  ];
+  keysToClear.forEach(key => localStorage.removeItem(key));
+
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    // 2. Fetch and delete all documents in each collection
+    const collectionsToClear = [
+      'assets',
+      'audit_trails',
+      'repairs',
+      'surveys',
+      'survey_rounds',
+      'departments',
+      'users',
+      'pm_contracts',
+      'pm_schedules',
+      'pm_notifications'
+    ];
+
+    for (const collName of collectionsToClear) {
+      try {
+        const q = query(collection(db, collName));
+        const snapshot = await getDocs(q);
+        const deletePromises: Promise<void>[] = [];
+        snapshot.forEach((docSnap) => {
+          deletePromises.push(deleteDoc(doc(db, collName, docSnap.id)));
+        });
+        await Promise.all(deletePromises);
+      } catch (err) {
+        console.error(`Failed to clear Firestore collection ${collName}:`, err);
+      }
+    }
+
+    // 3. Write initial seed data back to Firestore
+    try {
+      for (const asset of INITIAL_ASSETS) {
+        await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
+      }
+      for (const audit of INITIAL_AUDITS) {
+        await setDoc(doc(db, 'audit_trails', audit.id), sanitizeForFirestore(audit));
+      }
+      for (const user of INITIAL_USERS) {
+        await setDoc(doc(db, 'users', user.id), sanitizeForFirestore(user));
+      }
+      for (const repair of INITIAL_REPAIRS) {
+        await setDoc(doc(db, 'repairs', repair.id), sanitizeForFirestore(repair));
+      }
+      for (const dept of INITIAL_DEPARTMENTS) {
+        await setDoc(doc(db, 'departments', dept.id), sanitizeForFirestore(dept));
+      }
+      for (const contract of INITIAL_CONTRACTS) {
+        await setDoc(doc(db, 'pm_contracts', contract.id), sanitizeForFirestore(contract));
+      }
+      for (const schedule of INITIAL_SCHEDULES) {
+        await setDoc(doc(db, 'pm_schedules', schedule.id), sanitizeForFirestore(schedule));
+      }
+      for (const notification of INITIAL_NOTIFICATIONS) {
+        await setDoc(doc(db, 'pm_notifications', notification.id), sanitizeForFirestore(notification));
+      }
+
+      // Default active survey round
+      const defaultActiveRound: SurveyRound = {
+        id: 'round-default',
+        name: 'รอบสำรวจประจำปีงบประมาณ 2569 (ปีปัจจุบัน)',
+        dateCreated: new Date().toISOString(),
+        status: 'active',
+        totalAssets: INITIAL_ASSETS.length,
+        surveyedAssets: 0,
+        completionRate: 0,
+        statusBreakdown: {
+          'ใช้งานได้': 0,
+          'ชำรุด': 0,
+          'รอจำหน่าย': 0,
+          'ขอป้ายรหัสใหม่': 0,
+          'รอโอน': 0,
+          'อื่นๆ': 0
+        },
+        operator: 'ระบบอัตโนมัติ'
+      };
+      await setDoc(doc(db, 'survey_rounds', defaultActiveRound.id), sanitizeForFirestore(defaultActiveRound));
+    } catch (err) {
+      console.error('Failed to seed Firestore initial data after clear:', err);
+      throw err;
+    }
+  }
+
+  // 4. Initialize LocalStorage
+  initLocalStorageIfNeeded();
+};
