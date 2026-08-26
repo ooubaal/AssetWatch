@@ -461,6 +461,8 @@ export interface PMContract {
   contactPhone: string;
   createdBy?: string;
   department?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 export interface PMSchedule {

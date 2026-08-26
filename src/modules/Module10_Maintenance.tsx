@@ -110,6 +110,9 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [newCustomDate, setNewCustomDate] = useState('');
   const [assetPMDates, setAssetPMDates] = useState<Record<string, string[]>>({});
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
+  const [contractAttachmentUrl, setContractAttachmentUrl] = useState('');
+  const [contractAttachmentName, setContractAttachmentName] = useState('');
+  const [uploadingContractFile, setUploadingContractFile] = useState(false);
 
   // Filtered asset list for Contract modal search
   const filteredModalAssets = useMemo(() => {
@@ -592,10 +595,44 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     }
   };
 
+  const handleContractFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setUploadingContractFile(true);
+      try {
+        // Automatically compress image/pdf to HD with small size
+        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.78);
+        
+        // Convert to url via uploadImage (base64 fallback is automatic!)
+        const url = await uploadImage(compressed, 'contracts');
+        
+        setContractAttachmentUrl(url);
+        setContractAttachmentName(file.name);
+      } catch (err) {
+        console.error('Contract file compression/upload failed:', err);
+        alert('เกิดข้อผิดพลาดในการประมวลผลไฟล์แนบ: ' + (err instanceof Error ? err.message : String(err)));
+      } finally {
+        setUploadingContractFile(false);
+      }
+    }
+  };
+
+  const handleRemoveContractAttachment = () => {
+    setContractAttachmentUrl('');
+    setContractAttachmentName('');
+  };
+
+  const handleViewContractAttachment = (url: string, name: string) => {
+    handleOpenLightbox(url, `ไฟล์แนบสัญญา/แผนงาน - ${name}`);
+  };
+
   const handleOpenNewContract = (initialAssetId?: string, initialTitle?: string) => {
     setEditingContract(null);
     setHasNoEndDate(false);
     setModalAssetSearch('');
+    setContractAttachmentUrl('');
+    setContractAttachmentName('');
+    setUploadingContractFile(false);
     const today = new Date().toISOString().split('T')[0];
     setContractStart(today);
     const d = new Date();
@@ -666,6 +703,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           contactPhone: finalContactPhone,
           createdBy: editingContract.createdBy || currentUser?.username || 'admin',
           department: editingContract.department || currentUser?.department || '',
+          attachmentUrl: contractAttachmentUrl,
+          attachmentName: contractAttachmentName
         };
 
         // 1. Update contract in db
@@ -743,7 +782,9 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           contactPerson: finalContactPerson,
           contactPhone: finalContactPhone,
           createdBy: currentUser?.username || 'admin',
-          department: currentUser?.department || ''
+          department: currentUser?.department || '',
+          attachmentUrl: contractAttachmentUrl,
+          attachmentName: contractAttachmentName
         };
 
         // 1. Save Contract to db
@@ -830,6 +871,9 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setSelectedAssetIds(contract.assetIds);
     setVendorContact(contract.contactPerson);
     setVendorPhone(contract.contactPhone);
+    setContractAttachmentUrl(contract.attachmentUrl || '');
+    setContractAttachmentName(contract.attachmentName || '');
+    setUploadingContractFile(false);
     
     // Load scheduled dates from existing pending schedules or calculate per asset
     const contractSchedules = schedules.filter(s => s.contractId === contract.id);
@@ -2092,6 +2136,17 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                   ) : (
                                     <span className="badge badge-primary" style={{ fontSize: '0.65rem', padding: '0.05rem 0.3rem' }}>🧾 Outsource: {contract.vendorName} ({contract.contractNumber})</span>
                                   )}
+                                  {contract.attachmentUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenLightbox(contract.attachmentUrl!, `ไฟล์แนบสัญญา - ${contract.title}`)}
+                                      className="badge badge-muted text-primary"
+                                      style={{ fontSize: '0.65rem', padding: '0.05rem 0.3rem', border: '1px solid var(--border)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: 'var(--bg-secondary)' }}
+                                      title="คลิกเพื่อเปิดดูไฟล์แนบสัญญาบำรุงรักษา"
+                                    >
+                                      📁 ไฟล์แนบ
+                                    </button>
+                                  )}
                                 </div>
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem', color: 'var(--text-secondary)' }}>
@@ -3238,6 +3293,59 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </div>
             )}
 
+            {/* File Attachment Upload */}
+            <div className="form-group" style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.9rem', marginTop: '0.25rem' }}>
+              <label className="form-label" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                📁 แนบไฟล์ / รูปภาพสัญญาหรือแผนงาน (Attachment)
+              </label>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input 
+                  type="file" 
+                  accept="image/*,application/pdf"
+                  onChange={handleContractFileChange}
+                  style={{ display: 'none' }}
+                  id="contract-file-upload"
+                  disabled={uploadingContractFile}
+                />
+                <label 
+                  htmlFor="contract-file-upload"
+                  className="btn btn-ghost btn-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', border: '1px solid var(--border)', cursor: 'pointer', margin: 0, padding: '0.35rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem' }}
+                >
+                  📤 {uploadingContractFile ? 'กำลังอัปโหลด...' : (contractAttachmentUrl ? 'เปลี่ยนไฟล์แนบ' : 'เลือกไฟล์แนบ...')}
+                </label>
+
+                {contractAttachmentName && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'var(--bg-secondary)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontSize: '0.75rem' }}>
+                    <span>📄 {contractAttachmentName}</span>
+                    {contractAttachmentUrl && (
+                      <button 
+                        type="button" 
+                        onClick={() => handleViewContractAttachment(contractAttachmentUrl, contractAttachmentName)}
+                        className="btn btn-ghost btn-xs text-primary"
+                        style={{ padding: '0.05rem 0.25rem', height: 'auto', border: 'none', background: 'transparent' }}
+                        title="คลิกเพื่อเปิดดูไฟล์แนบ"
+                      >
+                        👁️ เปิดดู
+                      </button>
+                    )}
+                    <button 
+                      type="button" 
+                      onClick={handleRemoveContractAttachment}
+                      className="btn btn-ghost btn-xs text-danger"
+                      style={{ padding: '0.05rem 0.25rem', height: 'auto', border: 'none', background: 'transparent', color: 'var(--danger)' }}
+                      title="ลบไฟล์แนบ"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
+                * รองรับรูปภาพ (PNG, JPG, WebP) และเอกสาร PDF โดยระบบจะย่อขนาดรูปภาพให้อัตโนมัติเป็นระดับ HD ที่คมชัดแต่อ่านง่ายและมีขนาดเล็กที่สุด
+              </p>
+            </div>
+
             {/* --- INDIVIDUAL PM SCHEDULE DATES EDITOR PER ASSET (ACCORDION) --- */}
             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid var(--border)', padding: '1.15rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)', marginTop: '0.5rem', marginBottom: '0.75rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -3975,8 +4083,19 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                               <div style={{ color: 'var(--text-secondary)' }}>
                                 <strong>เลขที่สัญญา:</strong> <code>{c.contractNumber}</code> | <strong>บริษัท:</strong> {c.vendorName} | <strong>ติดต่อ:</strong> {c.contactPerson} ({c.contactPhone})
                               </div>
-                              <div style={{ color: 'var(--text-secondary)' }}>
+                              <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                 📅 <strong>ระยะเวลา:</strong> {getThaiDateFormatted(c.startDate)} ถึง {c.hasNoEndDate || !c.endDate ? 'ไม่มีกำหนดสิ้นสุด (ถาวร ♾️)' : getThaiDateFormatted(c.endDate)}
+                                {c.attachmentUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenLightbox(c.attachmentUrl!, `ไฟล์แนบสัญญา - ${c.title}`)}
+                                    className="badge badge-muted text-primary"
+                                    style={{ fontSize: '0.65rem', padding: '0.05rem 0.3rem', border: '1px solid var(--border)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: 'var(--bg-secondary)' }}
+                                    title="คลิกเพื่อเปิดดูไฟล์แนบสัญญาบำรุงรักษา"
+                                  >
+                                    📁 ไฟล์แนบ
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );
