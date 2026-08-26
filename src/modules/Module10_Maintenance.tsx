@@ -71,6 +71,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [selectedSchedule, setSelectedSchedule] = useState<PMSchedule | null>(null);
   const [isPMFormOpen, setIsPMFormOpen] = useState(false);
   const [isPrintReportOpen, setIsPrintReportOpen] = useState(false);
+  const [isPrintPlansSummaryOpen, setIsPrintPlansSummaryOpen] = useState(false);
+  const [isPrintHistorySummaryOpen, setIsPrintHistorySummaryOpen] = useState(false);
 
   // PM Recording Form States
   const [completedDate, setCompletedDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -1789,15 +1791,34 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                 </span>
               </div>
 
-              {currentUser?.role !== 'user' && (
-                <button 
-                  className="btn btn-primary" 
-                  onClick={() => handleOpenNewContract()} 
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setIsPrintPlansSummaryOpen(true)}
+                  style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'var(--bg-primary)', whiteSpace: 'nowrap', height: '36px', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
                 >
-                  <Plus size={16} /> + วางกำหนดบำรุงรักษา / สัญญาใหม่
+                  <Printer size={15} /> สรุปแผน PM
                 </button>
-              )}
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setIsPrintHistorySummaryOpen(true)}
+                  style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'var(--bg-primary)', whiteSpace: 'nowrap', height: '36px', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
+                >
+                  <Printer size={15} /> สรุปประวัติ PM
+                </button>
+
+                {currentUser?.role !== 'user' && (
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => handleOpenNewContract()} 
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap', height: '36px', fontSize: '0.8rem' }}
+                  >
+                    <Plus size={16} /> + วางกำหนดบำรุงรักษา / สัญญาใหม่
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Filter & Search Toolbar */}
@@ -4631,6 +4652,229 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                 />
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 4: PRINT PM PLANS SUMMARY --- */}
+      {isPrintPlansSummaryOpen && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
+          <div className="print-actions-bar glass-panel" style={{ maxWidth: '1000px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
+            <div>
+              <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์รายงานสรุปแผนงานบำรุงรักษาเชิงป้องกัน</h4>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>รายงานตารางแผนบำรุงรักษาของครุภัณฑ์แยกตามรหัสพัสดุและรอบสัญญา</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setIsPrintPlansSummaryOpen(false)}>ย้อนกลับ</button>
+              <button type="button" className="btn btn-primary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Printer size={16} /> สั่งพิมพ์ / PDF
+              </button>
+            </div>
+          </div>
+
+          <div className="print-paper-a4 printable-a4-document" style={{ background: '#ffffff', color: '#000000', maxWidth: '1000px', width: '100%', margin: '0 auto', padding: '2.5rem 3rem', minHeight: '11.28in', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', fontFamily: "'Sarabun', 'Noto Sans Thai', sans-serif", fontSize: '13px', lineHeight: '1.6', colorScheme: 'light', borderRadius: '4px' }}>
+            <div style={{ textAlign: 'center', position: 'relative', marginBottom: '2rem' }}>
+              <div style={{ fontSize: '28px', color: '#000000', marginBottom: '0.5rem' }}>🇹🇭</div>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#000000', margin: '0.2rem 0' }}>
+                รายงานสรุปแผนงานบำรุงรักษาเชิงป้องกันครุภัณฑ์ (PM Plan Summary)
+              </h1>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#333333', margin: '0.2rem 0' }}>
+                ระบบคลังทรัพย์สินและบำรุงรักษาพัสดุ AssetWatch
+              </h2>
+              <div style={{ fontSize: '0.8rem', color: '#666666', marginTop: '0.25rem' }}>
+                หน่วยงาน: {selectedDeptFilter === 'all' ? 'ทุกหน่วยงาน (ภาพรวมองค์กร)' : `ฝ่าย: ${selectedDeptFilter}`} | ข้อมูล ณ วันที่ {getThaiDateFormatted(new Date().toISOString().split('T')[0])}
+              </div>
+            </div>
+
+            <hr style={{ border: '0', borderTop: '2px double #333333', margin: '1rem 0 1.5rem 0' }} />
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ background: '#f3f4f6', borderBottom: '2px solid #374151' }}>
+                  <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', border: '1px solid #d1d5db', width: '45px' }}>ลำดับ</th>
+                  <th style={{ padding: '0.6rem 0.4rem', textAlign: 'left', border: '1px solid #d1d5db', width: '110px' }}>รหัสครุภัณฑ์</th>
+                  <th style={{ padding: '0.6rem 0.4rem', textAlign: 'left', border: '1px solid #d1d5db' }}>ชื่อรายการครุภัณฑ์</th>
+                  <th style={{ padding: '0.6rem 0.4rem', textAlign: 'left', border: '1px solid #d1d5db' }}>แผนงาน / เลขที่สัญญา</th>
+                  <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', border: '1px solid #d1d5db', width: '95px' }}>ประเภทแผน</th>
+                  <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', border: '1px solid #d1d5db', width: '75px' }}>ความถี่</th>
+                  <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', border: '1px solid #d1d5db', width: '100px' }}>วันนัดถัดไป</th>
+                  <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', border: '1px solid #d1d5db', width: '60px' }}>ทำแล้ว</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAssetPMList.map((asset, idx) => {
+                  const assetContracts = contracts.filter(c => c.assetIds.includes(asset.id));
+                  const assetSchedules = schedules.filter(s => s.assetId === asset.id);
+
+                  if (assetContracts.length === 0) {
+                    return (
+                      <tr key={asset.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', border: '1px solid #e5e7eb' }}>{idx + 1}</td>
+                        <td style={{ padding: '0.5rem 0.4rem', fontFamily: 'monospace', border: '1px solid #e5e7eb' }}>{asset.id}</td>
+                        <td style={{ padding: '0.5rem 0.4rem', border: '1px solid #e5e7eb' }}>{asset.name}</td>
+                        <td style={{ padding: '0.5rem 0.4rem', color: '#dc2626', fontStyle: 'italic', border: '1px solid #e5e7eb' }}>⚠️ ยังไม่ได้กำหนดแผนบำรุงรักษา</td>
+                        <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', color: '#6b7280', border: '1px solid #e5e7eb' }}>-</td>
+                        <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', color: '#6b7280', border: '1px solid #e5e7eb' }}>-</td>
+                        <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', color: '#6b7280', border: '1px solid #e5e7eb' }}>-</td>
+                        <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', border: '1px solid #e5e7eb' }}>0</td>
+                      </tr>
+                    );
+                  }
+
+                  return assetContracts.map((contract, cIdx) => {
+                    const nextSched = assetSchedules.find(s => s.contractId === contract.id && s.status === 'pending');
+                    const completedCount = assetSchedules.filter(s => s.contractId === contract.id && s.status === 'completed').length;
+                    const isInternal = contract.contractNumber.startsWith('INT-PM');
+
+                    return (
+                      <tr key={`${asset.id}-${contract.id}`} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', border: '1px solid #e5e7eb' }}>{cIdx === 0 ? idx + 1 : ''}</td>
+                        <td style={{ padding: '0.5rem 0.4rem', fontFamily: 'monospace', border: '1px solid #e5e7eb' }}>{cIdx === 0 ? asset.id : ''}</td>
+                        <td style={{ padding: '0.5rem 0.4rem', border: '1px solid #e5e7eb' }}>{cIdx === 0 ? asset.name : ''}</td>
+                        <td style={{ padding: '0.5rem 0.4rem', border: '1px solid #e5e7eb' }}>
+                          <strong>{contract.title}</strong> <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>({contract.contractNumber})</span>
+                        </td>
+                        <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', border: '1px solid #e5e7eb' }}>
+                          <span style={{ color: isInternal ? '#2563eb' : '#059669', fontWeight: 600 }}>
+                            {isInternal ? 'บำรุงรักษาเอง' : 'จ้าง Outsource'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', border: '1px solid #e5e7eb' }}>
+                          {contract.pmFrequency === 'monthly' ? 'รายเดือน' :
+                           contract.pmFrequency === 'quarterly' ? 'ราย 3 เดือน' :
+                           contract.pmFrequency === 'semi-annually' ? 'ราย 6 เดือน' :
+                           contract.pmFrequency === 'annually' ? 'รายปี' : 'กำหนดเอง'}
+                        </td>
+                        <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', fontWeight: 650, color: nextSched ? 'var(--primary)' : '#6b7280', border: '1px solid #e5e7eb' }}>
+                          {nextSched ? getThaiDateFormatted(nextSched.plannedDate) : 'เสร็จสิ้นทุกรอบ'}
+                        </td>
+                        <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', fontWeight: 600, border: '1px solid #e5e7eb' }}>{completedCount}</td>
+                      </tr>
+                    );
+                  });
+                })}
+              </tbody>
+            </table>
+
+            <div style={{ marginTop: '3rem', display: 'flex', justifyContent: 'flex-end', fontSize: '0.85rem' }}>
+              <div style={{ textAlign: 'center', width: '250px' }}>
+                <div style={{ marginBottom: '3rem' }}>ลงชื่อ............................................................ ผู้จัดทำรายงาน</div>
+                <div>( ............................................................ )</div>
+                <div style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}>เจ้าหน้าที่ทะเบียนควบคุมพัสดุ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 5: PRINT PM HISTORY SUMMARY --- */}
+      {isPrintHistorySummaryOpen && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
+          <div className="print-actions-bar glass-panel" style={{ maxWidth: '1000px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
+            <div>
+              <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์รายงานประวัติการบำรุงรักษาเชิงป้องกัน (Completed Log)</h4>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>รายงานประวัติการเข้าตรวจบำรุงรักษาตามกำหนดการพัสดุครุภัณฑ์สะสม</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setIsPrintHistorySummaryOpen(false)}>ย้อนกลับ</button>
+              <button type="button" className="btn btn-primary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Printer size={16} /> สั่งพิมพ์ / PDF
+              </button>
+            </div>
+          </div>
+
+          <div className="print-paper-a4 printable-a4-document" style={{ background: '#ffffff', color: '#000000', maxWidth: '1000px', width: '100%', margin: '0 auto', padding: '2.5rem 3rem', minHeight: '11.28in', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', fontFamily: "'Sarabun', 'Noto Sans Thai', sans-serif", fontSize: '13px', lineHeight: '1.6', colorScheme: 'light', borderRadius: '4px' }}>
+            <div style={{ textAlign: 'center', position: 'relative', marginBottom: '2rem' }}>
+              <div style={{ fontSize: '28px', color: '#000000', marginBottom: '0.5rem' }}>🇹🇭</div>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#000000', margin: '0.2rem 0' }}>
+                รายงานประวัติการบำรุงรักษาพัสดุครุภัณฑ์เชิงป้องกันสะสม (PM Service History Log)
+              </h1>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#333333', margin: '0.2rem 0' }}>
+                ระบบคลังทรัพย์สินและบำรุงรักษาพัสดุ AssetWatch
+              </h2>
+              <div style={{ fontSize: '0.8rem', color: '#666666', marginTop: '0.25rem' }}>
+                หน่วยงาน: {selectedDeptFilter === 'all' ? 'ทุกหน่วยงาน (ภาพรวมองค์กร)' : `ฝ่าย: ${selectedDeptFilter}`} | ข้อมูล ณ วันที่ {getThaiDateFormatted(new Date().toISOString().split('T')[0])}
+              </div>
+            </div>
+
+            <hr style={{ border: '0', borderTop: '2px double #333333', margin: '1rem 0 1.5rem 0' }} />
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+              <thead>
+                <tr style={{ background: '#f3f4f6', borderBottom: '2px solid #374151' }}>
+                  <th style={{ padding: '0.5rem 0.3rem', textAlign: 'center', border: '1px solid #d1d5db', width: '40px' }}>ลำดับ</th>
+                  <th style={{ padding: '0.5rem 0.3rem', textAlign: 'center', border: '1px solid #d1d5db', width: '85px' }}>วันที่เข้าทำ</th>
+                  <th style={{ padding: '0.5rem 0.3rem', textAlign: 'left', border: '1px solid #d1d5db', width: '90px' }}>รหัสครุภัณฑ์</th>
+                  <th style={{ padding: '0.5rem 0.3rem', textAlign: 'left', border: '1px solid #d1d5db' }}>ชื่อครุภัณฑ์</th>
+                  <th style={{ padding: '0.5rem 0.3rem', textAlign: 'left', border: '1px solid #d1d5db' }}>แผนงาน / สัญญา</th>
+                  <th style={{ padding: '0.5rem 0.3rem', textAlign: 'center', border: '1px solid #d1d5db', width: '60px' }}>รอบ PM</th>
+                  <th style={{ padding: '0.5rem 0.3rem', textAlign: 'center', border: '1px solid #d1d5db', width: '85px' }}>ผลการตรวจ</th>
+                  <th style={{ padding: '0.5rem 0.3rem', textAlign: 'left', border: '1px solid #d1d5db', width: '90px' }}>ผู้ทำรายการ</th>
+                  <th style={{ padding: '0.5rem 0.3rem', textAlign: 'left', border: '1px solid #d1d5db' }}>โน้ตเตือนใจ / หมายเหตุ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const historySchedules = schedules.filter(s => {
+                    return filteredAssetPMList.some(f => f.id === s.assetId) && s.status !== 'pending';
+                  }).sort((a, b) => (b.completedDate || b.plannedDate).localeCompare(a.completedDate || a.plannedDate));
+
+                  if (historySchedules.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', border: '1px solid #e5e7eb', color: '#6b7280', fontStyle: 'italic' }}>
+                          ยังไม่มีประวัติการเข้าบำรุงรักษา PM สำเร็จสำหรับพัสดุในระบบที่เลือก
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  return historySchedules.map((sched, idx) => {
+                    const contract = contracts.find(c => c.id === sched.contractId);
+                    const assetScheds = schedules
+                      .filter(s => s.contractId === sched.contractId && s.assetId === sched.assetId)
+                      .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
+                    const roundIndex = assetScheds.findIndex(s => s.id === sched.id) + 1;
+                    const totalRounds = assetScheds.length;
+
+                    let statusText = 'ปกติ (Completed)';
+                    let statusColor = '#059669';
+                    if (sched.status === 'postponed') {
+                      statusText = 'เลื่อนแผน';
+                      statusColor = '#d97706';
+                    } else if (sched.status === 'awaiting_repair') {
+                      statusText = 'ส่งช่างซ่อม CM';
+                      statusColor = '#dc2626';
+                    }
+
+                    return (
+                      <tr key={sched.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center', border: '1px solid #e5e7eb' }}>{idx + 1}</td>
+                        <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center', border: '1px solid #e5e7eb' }}>{getThaiDateFormatted(sched.completedDate || sched.plannedDate)}</td>
+                        <td style={{ padding: '0.4rem 0.3rem', fontFamily: 'monospace', border: '1px solid #e5e7eb' }}>{sched.assetId}</td>
+                        <td style={{ padding: '0.4rem 0.3rem', border: '1px solid #e5e7eb' }}>{sched.assetName}</td>
+                        <td style={{ padding: '0.4rem 0.3rem', border: '1px solid #e5e7eb' }}>{contract ? contract.title : 'แผนบำรุงรักษาทั่วไป'}</td>
+                        <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center', border: '1px solid #e5e7eb' }}>{roundIndex}/{totalRounds}</td>
+                        <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center', color: statusColor, fontWeight: 700, border: '1px solid #e5e7eb' }}>{statusText}</td>
+                        <td style={{ padding: '0.4rem 0.3rem', border: '1px solid #e5e7eb' }}>{sched.operator || '-'}</td>
+                        <td style={{ padding: '0.4rem 0.3rem', border: '1px solid #e5e7eb', fontSize: '10px' }}>
+                          {sched.notes && <div style={{ color: '#374151' }}>📝 {sched.notes}</div>}
+                          {sched.nextPMNotes && <div style={{ color: '#d97706', fontWeight: 600 }}>⏰ เตือนรอบหน้า: {sched.nextPMNotes}</div>}
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
+              </tbody>
+            </table>
+
+            <div style={{ marginTop: '3rem', display: 'flex', justifyContent: 'flex-end', fontSize: '0.85rem' }}>
+              <div style={{ textAlign: 'center', width: '250px' }}>
+                <div style={{ marginBottom: '3rem' }}>ลงชื่อ............................................................ ผู้ตรวจสอบประวัติ</div>
+                <div>( ............................................................ )</div>
+                <div style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}>หัวหน้าส่วนวิศวกรรมบำรุงรักษา</div>
+              </div>
+            </div>
           </div>
         </div>
       )}
