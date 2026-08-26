@@ -1662,6 +1662,25 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                           labelPrefix = '⏰ ';
                         }
                         
+                        const contract = contracts.find(c => c.id === sched.contractId);
+                        const planTitle = contract ? contract.title : 'แผนบำรุงรักษาทั่วไป';
+                        const displayPlanTitle = planTitle.length > 20 ? planTitle.slice(0, 20) + '...' : planTitle;
+
+                        const assetScheds = schedules
+                          .filter(s => s.contractId === sched.contractId && s.assetId === sched.assetId)
+                          .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
+                        const roundIndex = assetScheds.findIndex(s => s.id === sched.id) + 1;
+                        const totalRounds = assetScheds.length;
+
+                        const prevRoundSched = roundIndex > 1 ? assetScheds[roundIndex - 2] : null;
+                        const prevNextPMNotes = prevRoundSched?.nextPMNotes || '';
+
+                        const hoverTitle = `📋 แผนงาน/สัญญา: ${planTitle}
+📦 ครุภัณฑ์: ${sched.assetName} (รหัส: ${sched.assetId})
+📅 รอบบำรุงรักษา: รอบที่ ${roundIndex} จากทั้งหมด ${totalRounds} รอบ
+📅 วันที่วางแผน: ${getThaiDateFormatted(sched.plannedDate)}
+${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบก่อนหน้า:\n   👉 "${prevNextPMNotes}"\n` : ''}${sched.notes ? `📝 หมายเหตุ PM รอบนี้:\n   👉 "${sched.notes}"` : ''}`;
+
                         return (
                           <div 
                             key={sched.id}
@@ -1693,23 +1712,30 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                               style={{
                                 flex: 1,
                                 textAlign: 'left',
-                                fontSize: '0.675rem',
-                                padding: '0.15rem 0.35rem',
+                                fontSize: '0.65rem',
+                                padding: '0.25rem 0.45rem',
                                 borderRadius: '4px',
                                 backgroundColor: bgColor,
                                 color: statusColor,
                                 border: `1.25px solid ${statusColor}`,
                                 cursor: isDraggable ? 'grab' : 'pointer',
-                                fontWeight: 650,
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
                                 outline: 'none',
-                                transition: 'opacity 0.2s ease'
+                                transition: 'opacity 0.2s ease',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                gap: '1px',
+                                minHeight: '34px',
+                                overflow: 'hidden'
                               }}
-                              title={isDraggable ? `${sched.assetName} — คลิกบันทึก PM หรือลากเพื่อเลื่อนวัน` : `${sched.assetName} (${sched.status})`}
+                              title={hoverTitle}
                             >
-                              {labelPrefix} {sched.assetName}
+                              <div style={{ fontWeight: 750, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', lineHeight: '1.2' }}>
+                                {labelPrefix} {displayPlanTitle}
+                              </div>
+                              <div style={{ fontSize: '0.575rem', opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', lineHeight: '1.1' }}>
+                                {sched.assetName} (รอบ {roundIndex}/{totalRounds})
+                              </div>
                             </button>
 
                             {isDraggable && (
@@ -2532,11 +2558,41 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               </div>
             </div>
 
-            <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem', flexShrink: 0 }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>รหัสครุภัณฑ์: <code>{selectedSchedule.assetId}</code></div>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.15rem 0' }}>{resolveAssetName(selectedSchedule.assetId, selectedSchedule.assetName)}</h4>
-              <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 650 }}>📅 วันที่ตามแผนบำรุงรักษา: {getThaiDateFormatted(selectedSchedule.plannedDate)}</span>
-            </div>
+            {(() => {
+              if (!selectedSchedule) return null;
+              const contract = contracts.find(c => c.id === selectedSchedule.contractId);
+              const planTitle = contract ? contract.title : 'แผนบำรุงรักษาทั่วไป';
+              
+              const assetScheds = schedules
+                .filter(s => s.contractId === selectedSchedule.contractId && s.assetId === selectedSchedule.assetId)
+                .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
+              const roundIndex = assetScheds.findIndex(s => s.id === selectedSchedule.id) + 1;
+              const totalRounds = assetScheds.length;
+              
+              const prevRoundSched = roundIndex > 1 ? assetScheds[roundIndex - 2] : null;
+              const prevNextPMNotes = prevRoundSched?.nextPMNotes || '';
+              
+              return (
+                <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>รหัสครุภัณฑ์: <code>{selectedSchedule.assetId}</code></span>
+                    <span className="badge badge-primary" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '3px' }}>รอบ PM ที่ {roundIndex}/{totalRounds}</span>
+                  </div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.1rem 0' }}>{resolveAssetName(selectedSchedule.assetId, selectedSchedule.assetName)}</h4>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 650 }}>
+                    📋 แผนงาน/สัญญา: {planTitle}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    📅 วันที่ตามแผนบำรุงรักษา: {getThaiDateFormatted(selectedSchedule.plannedDate)}
+                  </div>
+                  {prevNextPMNotes && (
+                    <div style={{ marginTop: '0.4rem', padding: '0.45rem 0.65rem', background: 'rgba(217, 119, 6, 0.08)', borderLeft: '3px solid var(--warning)', borderRadius: '0 4px 4px 0', fontSize: '0.72rem', color: '#d97706', fontWeight: 600 }}>
+                      ⚠️ คำเตือน/ข้อพึงระวังจาก PM รอบก่อนหน้า: "{prevNextPMNotes}"
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Scrollable Form Fields */}
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
@@ -2792,6 +2848,16 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       <div><strong>รหัสครุภัณฑ์พัสดุ:</strong> <code>{selectedSchedule.assetId}</code></div>
                       <div><strong>ชื่อรายการครุภัณฑ์:</strong> {resolveAssetName(selectedSchedule.assetId, selectedSchedule.assetName)}</div>
                       <div><strong>วันที่ทำจริง (Completed):</strong> {getThaiDateFormatted(selectedSchedule.completedDate || selectedSchedule.plannedDate)}</div>
+                      {(() => {
+                        const assetScheds = schedules
+                          .filter(s => s.contractId === selectedSchedule.contractId && s.assetId === selectedSchedule.assetId)
+                          .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
+                        const roundIndex = assetScheds.findIndex(s => s.id === selectedSchedule.id) + 1;
+                        const totalRounds = assetScheds.length;
+                        return (
+                          <div><strong>รอบการ PM:</strong> รอบที่ {roundIndex} จากทั้งหมด {totalRounds} รอบ</div>
+                        );
+                      })()}
                       <div><strong>เจ้าหน้าที่ผู้ตรวจสอบพัสดุ:</strong> 👤 {selectedSchedule.operator || 'เจ้าหน้าที่ตรวจเช็ค'}</div>
                     </div>
                   </div>
@@ -2808,6 +2874,22 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       <div style={{ fontStyle: 'italic', color: '#555555', marginTop: '0.25rem' }}>"{selectedSchedule.notes}"</div>
                     </div>
                   )}
+
+                  {(() => {
+                    const assetScheds = schedules
+                      .filter(s => s.contractId === selectedSchedule.contractId && s.assetId === selectedSchedule.assetId)
+                      .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
+                    const roundIndex = assetScheds.findIndex(s => s.id === selectedSchedule.id) + 1;
+                    const prevRoundSched = roundIndex > 1 ? assetScheds[roundIndex - 2] : null;
+                    const prevNextPMNotes = prevRoundSched?.nextPMNotes || '';
+                    if (!prevNextPMNotes) return null;
+                    return (
+                      <div style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '4px', fontSize: '12.5px' }}>
+                        <strong style={{ color: '#b45309' }}>⚠️ ข้อพึงระวัง/สิ่งที่ฝากเตือนจาก PM รอบก่อนหน้า (Previous Warning):</strong>
+                        <div style={{ color: '#78350f', fontStyle: 'italic', marginTop: '0.25rem', paddingLeft: '0.5rem' }}>"{prevNextPMNotes}"</div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Proof of image */}
                   {selectedSchedule.proofImageUrl && (
