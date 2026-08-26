@@ -205,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           <div className="footer-copyright">
-            v1.4.0 © ooubaal / AssetWatch
+            v1.4.1 © ooubaal / AssetWatch
           </div>
         </div>
       </aside>

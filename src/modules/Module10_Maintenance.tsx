@@ -1433,7 +1433,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                   className="form-select"
                   value={currentMonth}
                   onChange={(e) => setCurrentMonth(parseInt(e.target.value, 10))}
-                  style={{ fontWeight: 800, fontSize: '1rem', height: '36px', minWidth: '130px' }}
+                  style={{ fontWeight: 800, fontSize: '1rem', height: '36px', minWidth: '130px', padding: '0 1.5rem 0 0.5rem', lineHeight: '36px' }}
                 >
                   {monthNames.map((name, idx) => (
                     <option key={idx} value={idx}>{name}</option>
@@ -1444,7 +1444,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                   className="form-select"
                   value={currentYear}
                   onChange={(e) => setCurrentYear(parseInt(e.target.value, 10))}
-                  style={{ fontWeight: 800, fontSize: '1rem', height: '36px', minWidth: '110px' }}
+                  style={{ fontWeight: 800, fontSize: '1rem', height: '36px', minWidth: '110px', padding: '0 1.5rem 0 0.5rem', lineHeight: '36px' }}
                 >
                   {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map((y) => (
                     <option key={y} value={y}>พ.ศ. {y + 543}</option>
