@@ -534,6 +534,64 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     return dates;
   };
 
+  const canEditContract = (contract: PMContract): boolean => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin' || currentUser.role === 'manager') return true;
+    if (currentUser.role === 'head') {
+      const isSameDept = contract.department === currentUser.department;
+      const hasAssetInDept = contract.assetIds.some(aid => {
+        const asset = assets.find(a => a.id === aid);
+        return asset?.department === currentUser.department;
+      });
+      return isSameDept || hasAssetInDept;
+    }
+    if (currentUser.role === 'operator') {
+      return !contract.createdBy || contract.createdBy === currentUser.username;
+    }
+    return false;
+  };
+
+  const canDeleteContract = (contract: PMContract): boolean => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin' || currentUser.role === 'manager') return true;
+    if (currentUser.role === 'head') {
+      const isSameDept = contract.department === currentUser.department;
+      const hasAssetInDept = contract.assetIds.some(aid => {
+        const asset = assets.find(a => a.id === aid);
+        return asset?.department === currentUser.department;
+      });
+      return isSameDept || hasAssetInDept;
+    }
+    if (currentUser.role === 'operator' || currentUser.role === 'user') {
+      return !contract.createdBy || contract.createdBy === currentUser.username;
+    }
+    return false;
+  };
+
+  const handleDeleteContractClick = async (contract: PMContract) => {
+    const confirmMessage = `⚠️ คำเตือน: คุณกำลังจะลบแผนบำรุงรักษา "${contract.title}" (${contract.contractNumber})\n\nการลบแผนนี้จะส่งผลให้รายการกำหนดการ PM (รอบที่ยังไม่ทำ) ทั้งหมดภายใต้แผนนี้ถูกลบออกด้วย\nคุณต้องการยืนยันที่จะลบข้อมูลนี้ใช่หรือไม่?`;
+    if (window.confirm(confirmMessage)) {
+      try {
+        await onDeleteContract(contract.id);
+        
+        // Log in Audit Trail
+        const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
+        await onLogAudit({
+          assetId: 'SYSTEM',
+          assetName: `ลบแผนบำรุงรักษา: ${contract.contractNumber}`,
+          action: 'delete',
+          operator: operatorName,
+          details: `ลบแผนบำรุงรักษาชื่อ "${contract.title}" รหัส ${contract.contractNumber} และยกเลิกรอบ PM ทั้งหมดในระบบ`
+        });
+        
+        alert('ลบแผนบำรุงรักษาเรียบร้อยแล้ว');
+      } catch (error) {
+        console.error('Error deleting contract:', error);
+        alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+      }
+    }
+  };
+
   const handleOpenNewContract = (initialAssetId?: string, initialTitle?: string) => {
     setEditingContract(null);
     setHasNoEndDate(false);
@@ -605,7 +663,9 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           pmFrequency,
           assetIds: selectedAssetIds,
           contactPerson: finalContactPerson,
-          contactPhone: finalContactPhone
+          contactPhone: finalContactPhone,
+          createdBy: editingContract.createdBy || currentUser?.username || 'admin',
+          department: editingContract.department || currentUser?.department || '',
         };
 
         // 1. Update contract in db
@@ -681,7 +741,9 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           pmFrequency,
           assetIds: selectedAssetIds,
           contactPerson: finalContactPerson,
-          contactPhone: finalContactPhone
+          contactPhone: finalContactPhone,
+          createdBy: currentUser?.username || 'admin',
+          department: currentUser?.department || ''
         };
 
         // 1. Save Contract to db
@@ -2000,16 +2062,28 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                   <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
                                     {assetContracts.length > 1 ? `แผนที่ ${planIdx + 1}: ` : ''}{contract.title}
                                   </div>
-                                  {currentUser?.role !== 'user' && (
-                                    <button 
-                                      onClick={() => handleEditContractClick(contract)}
-                                      className="btn btn-ghost btn-xs"
-                                      style={{ padding: '0.1rem 0.35rem', fontSize: '0.675rem', border: '1px solid var(--border)' }}
-                                      title="แก้ไขแผนนี้"
-                                    >
-                                      ✏️ แก้ไข
-                                    </button>
-                                  )}
+                                  <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                    {canEditContract(contract) && (
+                                      <button 
+                                        onClick={() => handleEditContractClick(contract)}
+                                        className="btn btn-ghost btn-xs"
+                                        style={{ padding: '0.1rem 0.35rem', fontSize: '0.675rem', border: '1px solid var(--border)' }}
+                                        title="แก้ไขแผนนี้"
+                                      >
+                                        ✏️ แก้ไข
+                                      </button>
+                                    )}
+                                    {canDeleteContract(contract) && (
+                                      <button 
+                                        onClick={() => handleDeleteContractClick(contract)}
+                                        className="btn btn-ghost btn-xs"
+                                        style={{ padding: '0.1rem 0.35rem', fontSize: '0.675rem', border: '1px solid var(--border)', color: 'var(--danger)' }}
+                                        title="ลบแผนนี้"
+                                      >
+                                        🗑️ ลบ
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
 
                                 <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
@@ -3878,13 +3952,22 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                   ) : (
                                     <span className="badge badge-muted" style={{ fontSize: '0.65rem' }}>สัญญาในอดีต (หมดอายุแล้ว)</span>
                                   )}
-                                  {currentUser?.role !== 'user' && (
+                                  {canEditContract(c) && (
                                     <button 
                                       onClick={() => { setIsLogbookOpen(false); handleEditContractClick(c); }}
                                       className="btn btn-ghost btn-xs"
                                       style={{ padding: '0.1rem 0.35rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
                                     >
                                       ✏️ แก้ไข
+                                    </button>
+                                  )}
+                                  {canDeleteContract(c) && (
+                                    <button 
+                                      onClick={() => { setIsLogbookOpen(false); handleDeleteContractClick(c); }}
+                                      className="btn btn-ghost btn-xs"
+                                      style={{ padding: '0.1rem 0.35rem', fontSize: '0.65rem', border: '1px solid var(--border)', color: 'var(--danger)' }}
+                                    >
+                                      🗑️ ลบ
                                     </button>
                                   )}
                                 </div>

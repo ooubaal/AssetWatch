@@ -459,6 +459,8 @@ export interface PMContract {
   assetIds: string[];
   contactPerson: string;
   contactPhone: string;
+  createdBy?: string;
+  department?: string;
 }
 
 export interface PMSchedule {

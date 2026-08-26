@@ -343,6 +343,11 @@ function App() {
   };
 
   const handleDeleteContract = async (id: string) => {
+    // Delete all schedules under this contract
+    const contractSchedules = schedules.filter(s => s.contractId === id);
+    for (const s of contractSchedules) {
+      await deletePMSchedule(s.id);
+    }
     await deletePMContract(id);
     await fetchAllData();
   };
