@@ -2039,6 +2039,15 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                       {/* Top Header Row */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          {asset.imageUrl && (
+                            <img 
+                              src={asset.imageUrl} 
+                              alt={asset.name}
+                              style={{ width: '28px', height: '28px', borderRadius: '4px', objectFit: 'cover', border: '1px solid var(--border)', cursor: 'pointer' }}
+                              onClick={() => handleOpenLightbox(asset.imageUrl!, asset.name)}
+                              title="คลิกเพื่อขยายดูรูปครุภัณฑ์"
+                            />
+                          )}
                           <span className="badge badge-primary" style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
                             {asset.id}
                           </span>
