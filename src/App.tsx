@@ -1167,6 +1167,7 @@ function App() {
                 schedules={schedules}
                 onAssetEdit={handleStartEditAsset}
                 currentUser={currentUser}
+                onRefreshData={fetchAllData}
               />
             )}
             {currentTab === 'module2' && (

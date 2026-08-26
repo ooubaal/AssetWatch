@@ -12,6 +12,7 @@ interface Module1DatabaseProps {
   schedules: PMSchedule[];
   onAssetEdit: (asset: Asset) => void;
   currentUser: UserAccount | null;
+  onRefreshData?: () => void;
 }
 
 export const Module1_Database: React.FC<Module1DatabaseProps> = ({
@@ -21,7 +22,8 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   surveys,
   schedules,
   onAssetEdit,
-  currentUser
+  currentUser,
+  onRefreshData
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -396,6 +398,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           surveys={surveys}
           schedules={schedules}
           currentUser={currentUser}
+          onRefreshData={onRefreshData}
         />
       )}
 

@@ -26,7 +26,8 @@ import {
   AlertTriangle,
   RefreshCw,
   ZoomIn,
-  Eye
+  Eye,
+  Barcode
 } from 'lucide-react';
 import { 
   Asset, 
@@ -40,6 +41,7 @@ import {
   loadSpareParts,
   saveSpareParts
 } from '../utils/mockData';
+import { updateAsset, addAuditTrail } from '../services/dbService';
 
 interface AssetModalProps {
   asset: Asset;
@@ -50,6 +52,7 @@ interface AssetModalProps {
   surveys: SurveyRecord[];
   schedules?: PMSchedule[];
   currentUser?: UserAccount | null;
+  onRefreshData?: () => void;
 }
 
 export const AssetModal: React.FC<AssetModalProps> = ({
@@ -60,9 +63,12 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   repairs,
   surveys,
   schedules = [],
-  currentUser = null
+  currentUser = null,
+  onRefreshData
 }) => {
-  const [activeTab, setActiveTab] = useState<'info' | 'history' | 'repairs' | 'surveys' | 'spare_parts'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'history' | 'repairs' | 'surveys' | 'barcode' | 'spare_parts'>('info');
+  const [noteText, setNoteText] = useState(asset.note || '');
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   // Spare Parts & Stock Card State
   const [allSpareParts, setAllSpareParts] = useState<SparePart[]>(() => loadSpareParts());
@@ -522,7 +528,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   };
 
   useEffect(() => {
-    if (activeTab === 'info') {
+    if (activeTab === 'barcode') {
       const svgEl = document.getElementById(`barcode-svg-${asset.id}`);
       if (svgEl) {
         try {
@@ -541,6 +547,34 @@ export const AssetModal: React.FC<AssetModalProps> = ({
       }
     }
   }, [asset.id, activeTab]);
+
+  useEffect(() => {
+    setNoteText(asset.note || '');
+  }, [asset.note, asset.id]);
+
+  const handleSaveNote = async () => {
+    setIsSavingNote(true);
+    try {
+      await updateAsset(asset.id, { note: noteText });
+      await addAuditTrail({
+        assetId: asset.id,
+        assetName: asset.name,
+        action: 'edit',
+        operator: currentUser?.name || 'เจ้าหน้าที่พัสดุ',
+        details: `บันทึกหมายเหตุ/โน้ตพิเศษ: "${noteText}"`,
+        timestamp: new Date().toISOString()
+      });
+      alert('บันทึกโน้ตพัสดุเรียบร้อยแล้ว');
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (err) {
+      console.error('Failed to save note:', err);
+      alert('บันทึกโน้ตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
 
 
 
@@ -589,6 +623,12 @@ export const AssetModal: React.FC<AssetModalProps> = ({
             <QrCode size={16} /> ผลการตรวจนับ ({assetSurveys.length})
           </button>
           <button 
+            className={`modal-tab-btn ${activeTab === 'barcode' ? 'tab-active' : ''}`}
+            onClick={() => setActiveTab('barcode')}
+          >
+            <Barcode size={16} /> บาร์โค้ด & QR
+          </button>
+          <button 
             className={`modal-tab-btn ${activeTab === 'spare_parts' ? 'tab-active' : ''}`}
             onClick={() => setActiveTab('spare_parts')}
             style={{ position: 'relative' }}
@@ -621,38 +661,48 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                   />
                 </div>
                 
-                {/* Barcode Sticker Label (Like the physical one) - Admin Only */}
-                {currentUser?.role === 'admin' && (
-                <div className="barcode-badge-card" style={{ background: '#ffffff', color: '#000000', padding: '1rem', border: '1px solid #cbd5e1', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%', maxWidth: '320px', margin: '0.5rem auto 0 auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                  
-                  {/* Top: Plus sign and asset name */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.35rem', width: '100%' }}>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>+</span>
-                    <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }} title={asset.name}>
-                      {asset.name}
-                    </span>
-                  </div>
-
-                  {/* Middle: Barcode SVG rendered by JsBarcode */}
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#ffffff', padding: '0.2rem 0' }}>
-                    <svg id={`barcode-svg-${asset.id}`} style={{ maxHeight: '55px', width: '100%' }}></svg>
-                  </div>
-
-                  {/* Bottom: Asset ID */}
-                  <div style={{ textAlign: 'center', fontSize: '0.85rem', fontWeight: 800, fontFamily: 'monospace', color: '#0f172a', letterSpacing: '0.05em' }}>
-                    {asset.id}
-                  </div>
-
-                  {/* Download Button */}
-                  <button 
-                    className="btn btn-secondary btn-xs" 
-                    onClick={handleDownloadBarcode} 
-                    style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', height: 'auto', padding: '0.35rem 0.5rem' }}
+                {/* Area for saving misc info / notes */}
+                <div style={{ marginTop: '0.85rem', width: '100%', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    📝 บันทึกข้อมูลโน้ต / หมายเหตุพัสดุ:
+                  </label>
+                  <textarea
+                    className="form-input"
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="พิมพ์โน้ตส่วนตัว ข้อควรระวัง หรือรายละเอียดเพิ่มเติมของครุภัณฑ์ชิ้นนี้..."
+                    style={{
+                      width: '100%',
+                      minHeight: '120px',
+                      fontSize: '0.75rem',
+                      padding: '0.5rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border)',
+                      resize: 'vertical',
+                      lineHeight: '1.4'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-xs"
+                    onClick={handleSaveNote}
+                    disabled={isSavingNote}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      padding: '0.35rem 0.5rem',
+                      fontSize: '0.72rem',
+                      height: 'auto'
+                    }}
                   >
-                    <Download size={12} /> ดาวน์โหลดฉลากบาร์โค้ด
+                    {isSavingNote ? '⏳ กำลังบันทึก...' : '💾 บันทึกโน้ตพัสดุ'}
                   </button>
                 </div>
-                )}
               </div>
 
               {/* Data Properties List */}
@@ -907,6 +957,47 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                   </div>
                 ))
               )}
+            </div>
+          )}
+
+          {/* TAB: Barcode & QR */}
+          {activeTab === 'barcode' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', padding: '2rem 1rem', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>🏷️ ป้ายสติกเกอร์รหัสบาร์โค้ดครุภัณฑ์</h4>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  ท่านสามารถดาวน์โหลดไฟล์รูปภาพป้ายบาร์โค้ดนี้ เพื่อนำไปสั่งพิมพ์และติดที่ตัวเครื่องครุภัณฑ์จริงสำหรับการใช้งานกับระบบสแกนตรวจสอบสภาพพัสดุ
+                </p>
+              </div>
+
+              <div className="barcode-badge-card" style={{ background: '#ffffff', color: '#000000', padding: '1.5rem', border: '2px solid #cbd5e1', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '0.6rem', width: '100%', maxWidth: '340px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+                {/* Top: Plus sign and asset name */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', borderBottom: '1.5px dashed #cbd5e1', paddingBottom: '0.5rem', width: '100%' }}>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>+</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90%' }} title={asset.name}>
+                    {asset.name}
+                  </span>
+                </div>
+
+                {/* Middle: Barcode SVG rendered by JsBarcode */}
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#ffffff', padding: '0.5rem 0' }}>
+                  <svg id={`barcode-svg-${asset.id}`} style={{ maxHeight: '70px', width: '100%' }}></svg>
+                </div>
+
+                {/* Bottom: Asset ID */}
+                <div style={{ textAlign: 'center', fontSize: '0.95rem', fontWeight: 800, fontFamily: 'monospace', color: '#0f172a', letterSpacing: '0.05em' }}>
+                  {asset.id}
+                </div>
+
+                {/* Download Button */}
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleDownloadBarcode} 
+                  style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', width: '100%', fontSize: '0.8rem' }}
+                >
+                  <Download size={14} /> ดาวน์โหลดภาพป้ายบาร์โค้ด
+                </button>
+              </div>
             </div>
           )}
 
