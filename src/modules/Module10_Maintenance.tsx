@@ -4740,53 +4740,43 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
           style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.94)', zIndex: 100050, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
           onClick={() => setLightboxUrl(null)}
         >
-          {/* Floating Close Button */}
-          <button
-            type="button"
-            style={{
-              position: 'absolute',
-              top: '1rem',
-              right: '1rem',
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              background: 'rgba(239, 68, 68, 0.95)',
-              color: '#fff',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              fontSize: '1.4rem',
-              fontWeight: 800,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6)',
-              zIndex: 100100,
-              transition: 'all 0.2s',
-              lineHeight: 1
-            }}
-            title="ปิด (Close)"
-            onClick={(e) => { e.stopPropagation(); setLightboxUrl(null); }}
-          >
-            ✕
-          </button>
-
-          {/* Lightbox Toolbar */}
+          {/* Unified Lightbox Header & Controls Panel */}
           <div 
-            style={{ position: 'absolute', top: '1rem', left: '1rem', right: '4.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(20, 24, 33, 0.88)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.15)', padding: '0.6rem 1.15rem', borderRadius: 'var(--radius-md)', zIndex: 10, color: '#fff', gap: '0.5rem', flexWrap: 'wrap' }}
+            style={{ 
+              position: 'absolute', 
+              top: '1rem', 
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '90%',
+              maxWidth: '650px',
+              display: 'flex', 
+              flexDirection: 'column',
+              background: 'rgba(20, 24, 33, 0.95)', 
+              backdropFilter: 'blur(16px)', 
+              border: '1px solid rgba(255, 255, 255, 0.18)', 
+              padding: '0.75rem 1.25rem', 
+              borderRadius: 'var(--radius-md)', 
+              zIndex: 10, 
+              color: '#fff', 
+              gap: '0.6rem',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: '1 1 200px', minWidth: 0 }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {/* Row 1: Image Title */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.4rem', width: '100%' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, textAlign: 'center', wordBreak: 'break-all' }}>
                 🔍 {lightboxTitle || 'ไฟล์เอกสาร / รูปภาพหลักฐาน (HD)'}
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+            {/* Row 2: Controls Toolbar */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', flexWrap: 'wrap', width: '100%' }}>
               <button 
                 type="button" 
                 className="btn btn-ghost btn-sm"
                 onClick={() => setLightboxZoom(prev => Math.min(prev + 0.25, 3))}
-                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem', display: 'flex', alignItems: 'center', gap: '3px', background: 'transparent' }}
                 title="ซูมขยายภาพ"
               >
                 ➕ ซูมเข้า
@@ -4795,7 +4785,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                 type="button" 
                 className="btn btn-ghost btn-sm"
                 onClick={() => setLightboxZoom(prev => Math.max(prev - 0.25, 0.5))}
-                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem', display: 'flex', alignItems: 'center', gap: '3px', background: 'transparent' }}
                 title="ย่อขนาดภาพ"
               >
                 ➖ ซูมออก
@@ -4804,7 +4794,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                 type="button" 
                 className="btn btn-ghost btn-sm"
                 onClick={() => setLightboxZoom(1)}
-                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem' }}
+                style={{ color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', fontSize: '0.72rem', padding: '0.2rem 0.45rem', background: 'transparent' }}
                 title="รีเซ็ตขนาดเท่าเดิม"
               >
                 🔄 {Math.round(lightboxZoom * 100)}%
@@ -4818,12 +4808,21 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               >
                 ⬇️ ดาวน์โหลด
               </button>
+              <button 
+                type="button" 
+                className="btn btn-danger btn-sm"
+                onClick={() => setLightboxUrl(null)}
+                style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.55rem', height: 'auto', background: 'var(--danger)' }}
+                title="ปิดการแสดงผลรูปภาพ"
+              >
+                ✕ ปิดหน้าต่าง
+              </button>
             </div>
           </div>
 
           {/* Lightbox Content Viewer */}
           <div 
-            style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: '4.5rem 1rem 1rem 1rem' }}
+            style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: '7.5rem 1rem 1rem 1rem' }}
             onClick={(e) => e.stopPropagation()}
           >
             {lightboxUrl.startsWith('data:application/pdf') || lightboxUrl.toLowerCase().includes('.pdf') ? (
