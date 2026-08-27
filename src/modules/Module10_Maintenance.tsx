@@ -3993,7 +3993,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
 
       {/* --- MODAL 5: ASSET LOGBOOK VIEWER --- */}
       {isLogbookOpen && selectedLogbookAsset && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9990, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
+        <div className="logbook-modal-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9990, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
           <div className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '920px', width: '100%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             {/* Header */}
