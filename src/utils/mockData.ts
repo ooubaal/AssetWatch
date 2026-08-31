@@ -97,6 +97,12 @@ export interface SparePartTransaction {
   createdAt: string;
 }
 
+export interface SparePartSupplier {
+  name: string;
+  contact?: string;
+  price?: number;
+}
+
 export interface SparePart {
   id: string;
   assetId: string; // Foreign key to Asset ID
@@ -108,9 +114,10 @@ export interface SparePart {
   quantity: number; // Current quantity on hand
   minQuantity: number; // Safety stock / reorder alert point
   unit: string; // e.g. "ชิ้น", "ชุด", "ลิตร", "แกลลอน", "กล่อง"
-  unitPrice?: number; // Cost per unit (THB)
-  supplier?: string; // e.g. "บริษัท แอตลาส คอปโก้ (ประเทศไทย) จำกัด"
-  supplierContact?: string; // e.g. "02-XXX-XXXX"
+  unitPrice?: number; // Cost per unit (THB) - primary supplier price
+  supplier?: string; // primary supplier name
+  supplierContact?: string; // primary supplier contact
+  suppliers?: SparePartSupplier[]; // List of all suppliers & prices
   notes?: string;
   imageUrl?: string;
   updatedAt: string;

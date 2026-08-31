@@ -68,6 +68,7 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
   const [formImageUrl, setFormImageUrl] = useState('');
   const [formRelatedAssetIds, setFormRelatedAssetIds] = useState<string[]>([]);
   const [assetSearchQuery, setAssetSearchQuery] = useState('');
+  const [formSuppliers, setFormSuppliers] = useState<{ name: string; contact?: string; price?: number }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Transaction form states
@@ -167,6 +168,7 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
     setFormImageUrl('');
     setFormRelatedAssetIds([]);
     setAssetSearchQuery('');
+    setFormSuppliers([{ name: '', contact: '', price: undefined }]);
     setIsAddEditOpen(true);
   };
 
@@ -186,6 +188,13 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
     setFormImageUrl(part.imageUrl || '');
     setFormRelatedAssetIds(part.relatedAssetIds || (part.assetId ? [part.assetId] : []));
     setAssetSearchQuery('');
+    setFormSuppliers(part.suppliers && part.suppliers.length > 0 
+      ? part.suppliers 
+      : (part.supplier 
+        ? [{ name: part.supplier, contact: part.supplierContact, price: part.unitPrice }] 
+        : [{ name: '', contact: '', price: undefined }]
+      )
+    );
     setIsAddEditOpen(true);
   };
 
@@ -216,6 +225,10 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
     const operatorName = currentUser?.name || 'พนักงาน';
     const dept = currentUser?.department || 'พัสดุกลาง';
 
+    const cleanSuppliers = formSuppliers.filter(s => s.name.trim() !== '');
+    const firstSupplier = cleanSuppliers[0] || { name: '', contact: '', price: undefined };
+    const priceNum = firstSupplier.price !== undefined && firstSupplier.price !== null && String(firstSupplier.price).trim() !== '' ? Number(firstSupplier.price) : undefined;
+
     const partData: SparePart = {
       id: selectedPart ? selectedPart.id : `sp-${Date.now()}`,
       assetId: formRelatedAssetIds[0] || '', // Backwards compatibility
@@ -227,9 +240,10 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
       quantity: selectedPart ? selectedPart.quantity : 0,
       minQuantity: formMinQty,
       unit: formUnit,
-      unitPrice: formUnitPrice ? Number(formUnitPrice) : undefined,
-      supplier: formSupplier,
-      supplierContact: formSupplierContact,
+      unitPrice: priceNum,
+      supplier: firstSupplier.name || undefined,
+      supplierContact: firstSupplier.contact || undefined,
+      suppliers: cleanSuppliers,
       notes: formNotes,
       imageUrl: formImageUrl,
       updatedAt: new Date().toISOString(),
@@ -829,8 +843,8 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <div className="form-group flex-1" style={{ minWidth: '110px' }}>
-                  <label className="form-label">หน่วยนับ</label>
+                <div className="form-group flex-1" style={{ minWidth: '150px' }}>
+                  <label className="form-label">หน่วยนับ *</label>
                   <input 
                     type="text"
                     className="form-input"
@@ -841,8 +855,8 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
                   />
                 </div>
 
-                <div className="form-group flex-1" style={{ minWidth: '110px' }}>
-                  <label className="form-label">⚠️ เกณฑ์เตือนซื้อขั้นต่ำ</label>
+                <div className="form-group flex-1" style={{ minWidth: '150px' }}>
+                  <label className="form-label">⚠️ เกณฑ์เตือนซื้อขั้นต่ำ *</label>
                   <input 
                     type="number"
                     className="form-input"
@@ -850,17 +864,6 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
                     onChange={(e) => setFormMinQty(Number(e.target.value))}
                     min={0}
                     required
-                  />
-                </div>
-
-                <div className="form-group flex-1" style={{ minWidth: '110px' }}>
-                  <label className="form-label">ราคาต่อหน่วยประมาณการ</label>
-                  <input 
-                    type="number"
-                    className="form-input"
-                    value={formUnitPrice}
-                    onChange={(e) => setFormUnitPrice(e.target.value)}
-                    placeholder="บาท"
                   />
                 </div>
               </div>
@@ -876,27 +879,83 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <div className="form-group flex-1" style={{ minWidth: '180px' }}>
-                  <label className="form-label">🛒 ร้านค้า / แหล่งซื้อล่าสุด (Supplier)</label>
-                  <input 
-                    type="text"
-                    className="form-input"
-                    value={formSupplier}
-                    onChange={(e) => setFormSupplier(e.target.value)}
-                    placeholder="เช่น บริษัท วอเตอร์ทรีทเม้นท์ จำกัด"
-                  />
+              {/* Dynamic Multiple Suppliers & Price History Records */}
+              <div style={{ border: '1px solid var(--border)', padding: '0.85rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="form-label" style={{ fontWeight: 800, margin: 0 }}>🛒 รายชื่อร้านค้าผู้จัดจำหน่ายและราคาซื้อ (Suppliers & Price List)</label>
+                  <button 
+                    type="button" 
+                    onClick={() => setFormSuppliers([...formSuppliers, { name: '', contact: '', price: undefined }])}
+                    className="btn btn-secondary btn-xs text-primary"
+                    style={{ fontSize: '0.72rem', padding: '0.25rem 0.5rem', display: 'inline-flex', alignItems: 'center', gap: '2px', background: 'transparent' }}
+                  >
+                    + เพิ่มร้านค้าคู่ค้า
+                  </button>
                 </div>
 
-                <div className="form-group flex-1" style={{ minWidth: '180px' }}>
-                  <label className="form-label">📞 ช่องทางติดต่อร้านค้า</label>
-                  <input 
-                    type="text"
-                    className="form-input"
-                    value={formSupplierContact}
-                    onChange={(e) => setFormSupplierContact(e.target.value)}
-                    placeholder="เช่น เบอร์โทรศัพท์, อีเมล, ไอดีไลน์"
-                  />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {formSuppliers.map((sup, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                      <div className="form-group" style={{ flex: '2 1 180px', margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ร้านค้าผู้จัดจำหน่าย #{idx + 1} *</label>
+                        <input 
+                          type="text"
+                          className="form-input"
+                          placeholder="ชื่อร้านค้า/ผู้จัดจำหน่าย"
+                          value={sup.name}
+                          onChange={(e) => {
+                            const updated = [...formSuppliers];
+                            updated[idx].name = e.target.value;
+                            setFormSuppliers(updated);
+                          }}
+                          required={idx === 0} // First one is required
+                        />
+                      </div>
+
+                      <div className="form-group" style={{ flex: '2 1 150px', margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ช่องทางติดต่อ</label>
+                        <input 
+                          type="text"
+                          className="form-input"
+                          placeholder="เบอร์โทร/อีเมล/ไลน์"
+                          value={sup.contact || ''}
+                          onChange={(e) => {
+                            const updated = [...formSuppliers];
+                            updated[idx].contact = e.target.value;
+                            setFormSuppliers(updated);
+                          }}
+                        />
+                      </div>
+
+                      <div className="form-group" style={{ flex: '1 1 90px', margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ราคาซื้อ (บาท)</label>
+                        <input 
+                          type="number"
+                          className="form-input"
+                          placeholder="ราคาล่าสุด"
+                          value={sup.price !== undefined ? sup.price : ''}
+                          onChange={(e) => {
+                            const updated = [...formSuppliers];
+                            updated[idx].price = e.target.value ? Number(e.target.value) : undefined;
+                            setFormSuppliers(updated);
+                          }}
+                          min={0}
+                        />
+                      </div>
+
+                      {formSuppliers.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setFormSuppliers(formSuppliers.filter((_, i) => i !== idx))}
+                          className="btn btn-ghost btn-sm text-danger"
+                          style={{ padding: '0.35rem 0.5rem', height: '34px', margin: 0, display: 'inline-flex', alignItems: 'center', border: '1px solid rgba(239,68,68,0.2)' }}
+                          title="ลบผู้จัดจำหน่ายรายนี้"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -930,7 +989,7 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
                             fontWeight: 600
                           }}
                         >
-                          <span>[{id.slice(-6)}] {ast ? ast.name : id}</span>
+                          <span>[{id}] {ast ? ast.name : id}</span>
                           <button 
                             type="button" 
                             onClick={() => setFormRelatedAssetIds(formRelatedAssetIds.filter(x => x !== id))}
@@ -1016,7 +1075,7 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
                             }}
                             style={{ width: '14px', height: '14px', margin: 0, cursor: 'pointer' }}
                           />
-                          <span style={{ fontFamily: 'monospace', color: 'var(--primary)', fontWeight: 700 }}>[{a.id.slice(-6)}]</span>
+                          <span style={{ fontFamily: 'monospace', color: 'var(--primary)', fontWeight: 700 }}>[{a.id}]</span>
                           <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
                           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>{a.department}</span>
                         </label>
