@@ -67,6 +67,7 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
   const [formNotes, setFormNotes] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
   const [formRelatedAssetIds, setFormRelatedAssetIds] = useState<string[]>([]);
+  const [assetSearchQuery, setAssetSearchQuery] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Transaction form states
@@ -165,6 +166,7 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
     setFormNotes('');
     setFormImageUrl('');
     setFormRelatedAssetIds([]);
+    setAssetSearchQuery('');
     setIsAddEditOpen(true);
   };
 
@@ -183,6 +185,7 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
     setFormNotes(part.notes || '');
     setFormImageUrl(part.imageUrl || '');
     setFormRelatedAssetIds(part.relatedAssetIds || (part.assetId ? [part.assetId] : []));
+    setAssetSearchQuery('');
     setIsAddEditOpen(true);
   };
 
@@ -897,28 +900,138 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
                 </div>
               </div>
 
-              {/* Related Assets Multiselect */}
+              {/* Related Assets Multiselect with Custom Search & Multichoice Dropdown */}
               <div className="form-group">
-                <label className="form-label">🔗 เชื่อมโยงเข้ากับครุภัณฑ์ที่เกี่ยวข้อง (Related Assets)</label>
-                <select
-                  multiple
-                  className="form-select"
-                  value={formRelatedAssetIds}
-                  onChange={(e) => {
-                    const values = Array.from(e.target.selectedOptions, option => option.value);
-                    setFormRelatedAssetIds(values);
+                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>🔗 เชื่อมโยงเข้ากับครุภัณฑ์ที่เกี่ยวข้อง (Related Assets)</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    เลือกแล้ว {formRelatedAssetIds.length} รายการ
+                  </span>
+                </label>
+
+                {/* Selected Assets Badge List */}
+                {formRelatedAssetIds.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.5rem', background: 'var(--bg-primary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                    {formRelatedAssetIds.map(id => {
+                      const ast = assets.find(a => a.id === id);
+                      return (
+                        <div 
+                          key={id} 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.25rem', 
+                            background: 'rgba(59, 130, 246, 0.15)', 
+                            color: 'var(--primary)', 
+                            padding: '0.15rem 0.45rem', 
+                            borderRadius: '10px', 
+                            fontSize: '0.72rem', 
+                            border: '1px solid rgba(59, 130, 246, 0.25)',
+                            fontWeight: 600
+                          }}
+                        >
+                          <span>[{id.slice(-6)}] {ast ? ast.name : id}</span>
+                          <button 
+                            type="button" 
+                            onClick={() => setFormRelatedAssetIds(formRelatedAssetIds.filter(x => x !== id))}
+                            style={{ 
+                              background: 'transparent', 
+                              border: 'none', 
+                              color: 'var(--danger)', 
+                              cursor: 'pointer', 
+                              padding: 0,
+                              fontWeight: 800,
+                              fontSize: '0.7rem',
+                              marginLeft: '2px',
+                              display: 'inline-flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Search Box */}
+                <div style={{ position: 'relative', marginBottom: '0.4rem' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                  <input 
+                    type="text"
+                    className="form-input"
+                    placeholder="ค้นหาตามรหัสครุภัณฑ์ หรือชื่อครุภัณฑ์..."
+                    value={assetSearchQuery}
+                    onChange={(e) => setAssetSearchQuery(e.target.value)}
+                    style={{ paddingLeft: '2rem', height: '34px', fontSize: '0.78rem' }}
+                  />
+                </div>
+
+                {/* Asset Scrollable Checkbox List */}
+                <div 
+                  className="custom-scrollbar"
+                  style={{ 
+                    maxHeight: '160px', 
+                    overflowY: 'auto', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '4px', 
+                    background: 'var(--bg-primary)',
+                    padding: '0.35rem'
                   }}
-                  style={{ height: '80px', fontSize: '0.8rem' }}
                 >
-                  {assets.map(a => (
-                    <option key={a.id} value={a.id}>
-                      [{a.id.slice(-6)}] {a.name} ({a.department})
-                    </option>
-                  ))}
-                </select>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  * กด Ctrl ค้างขณะคลิก เพื่อเลือกครุภัณฑ์ที่เกี่ยวข้องมากกว่า 1 เครื่อง
-                </p>
+                  {assets
+                    .filter(a => {
+                      if (!assetSearchQuery) return true;
+                      const q = assetSearchQuery.toLowerCase();
+                      return a.id.toLowerCase().includes(q) || a.name.toLowerCase().includes(q);
+                    })
+                    .map(a => {
+                      const isChecked = formRelatedAssetIds.includes(a.id);
+                      return (
+                        <label 
+                          key={a.id} 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.5rem', 
+                            padding: '0.3rem 0.45rem', 
+                            borderRadius: '3px', 
+                            cursor: 'pointer',
+                            fontSize: '0.76rem',
+                            background: isChecked ? 'rgba(255,255,255,0.03)' : 'transparent',
+                            transition: 'background 0.15s ease'
+                          }}
+                          className="hover-bg-secondary"
+                        >
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormRelatedAssetIds([...formRelatedAssetIds, a.id]);
+                              } else {
+                                setFormRelatedAssetIds(formRelatedAssetIds.filter(x => x !== a.id));
+                              }
+                            }}
+                            style={{ width: '14px', height: '14px', margin: 0, cursor: 'pointer' }}
+                          />
+                          <span style={{ fontFamily: 'monospace', color: 'var(--primary)', fontWeight: 700 }}>[{a.id.slice(-6)}]</span>
+                          <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>{a.department}</span>
+                        </label>
+                      );
+                    })}
+                  {assets.filter(a => {
+                    if (!assetSearchQuery) return true;
+                    const q = assetSearchQuery.toLowerCase();
+                    return a.id.toLowerCase().includes(q) || a.name.toLowerCase().includes(q);
+                  }).length === 0 && (
+                    <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1rem', fontSize: '0.75rem' }}>
+                      ไม่พบครุภัณฑ์ที่ตรงกับเงื่อนไขค้นหา
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Photo Upload with auto HD compression */}
