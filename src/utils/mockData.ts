@@ -114,6 +114,9 @@ export interface SparePart {
   notes?: string;
   imageUrl?: string;
   updatedAt: string;
+  createdBy?: string;
+  department?: string;
+  relatedAssetIds?: string[];
   transactions?: SparePartTransaction[];
 }
 

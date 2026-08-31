@@ -12,7 +12,7 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, PMContract, PMSchedule, PMNotification, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS, INITIAL_USERS, INITIAL_CONTRACTS, INITIAL_SCHEDULES, INITIAL_NOTIFICATIONS } from '../utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, PMContract, PMSchedule, PMNotification, SparePart, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS, INITIAL_USERS, INITIAL_CONTRACTS, INITIAL_SCHEDULES, INITIAL_NOTIFICATIONS, INITIAL_SPARE_PARTS } from '../utils/mockData';
 import { BLOOD_BAG_ASSETS } from '../utils/bloodBagAssetsData';
 
 // Helper to check if we are using Firebase
@@ -86,6 +86,9 @@ const initLocalStorageIfNeeded = () => {
       operator: 'ระบบอัตโนมัติ'
     };
     localStorage.setItem('assetwatch_survey_rounds', JSON.stringify([defaultActiveRound]));
+  }
+  if (!localStorage.getItem('assetwatch_spare_parts')) {
+    localStorage.setItem('assetwatch_spare_parts', JSON.stringify(INITIAL_SPARE_PARTS));
   }
 };
 initLocalStorageIfNeeded();
@@ -1490,6 +1493,67 @@ export const deletePMSchedule = async (id: string): Promise<void> => {
   localStorage.setItem('assetwatch_schedules', JSON.stringify(filtered));
 };
 
+// --- SPARE PARTS (คลังอะไหล่) DATABASE OPERATIONS ---
+export const fetchSpareParts = async (): Promise<SparePart[]> => {
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      const q = query(collection(db, 'spare_parts'));
+      const snapshot = await getDocs(q);
+      const parts: SparePart[] = [];
+      snapshot.forEach((docSnap) => {
+        parts.push(docSnap.data() as SparePart);
+      });
+      
+      if (parts.length === 0) {
+        // If Firestore is empty, seed from LocalStorage
+        const localParts: SparePart[] = JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
+        for (const part of localParts) {
+          await setDoc(doc(db, 'spare_parts', part.id), sanitizeForFirestore(part));
+        }
+        return localParts;
+      }
+      return parts;
+    } catch (err) {
+      console.error('Failed to fetch spare parts from Firestore, falling back to LocalStorage:', err);
+    }
+  }
+  return JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
+};
+
+export const saveSparePart = async (part: SparePart): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      await setDoc(doc(db, 'spare_parts', part.id), sanitizeForFirestore(part));
+    } catch (err) {
+      console.error('Failed to save spare part to Firestore, falling back to LocalStorage:', err);
+    }
+  }
+  const parts: SparePart[] = JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
+  const index = parts.findIndex(p => p.id === part.id);
+  if (index !== -1) {
+    parts[index] = part;
+  } else {
+    parts.push(part);
+  }
+  localStorage.setItem('assetwatch_spare_parts', JSON.stringify(parts));
+};
+
+export const deleteSparePart = async (id: string): Promise<void> => {
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      await deleteDoc(doc(db, 'spare_parts', id));
+    } catch (err) {
+      console.error('Failed to delete spare part from Firestore, falling back to LocalStorage:', err);
+    }
+  }
+  const parts: SparePart[] = JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
+  const filtered = parts.filter(p => p.id !== id);
+  localStorage.setItem('assetwatch_spare_parts', JSON.stringify(filtered));
+};
+
 export const factoryResetDatabase = async (): Promise<void> => {
   // 1. Clear LocalStorage
   const keysToClear = [
@@ -1502,7 +1566,8 @@ export const factoryResetDatabase = async (): Promise<void> => {
     'assetwatch_contracts',
     'assetwatch_schedules',
     'assetwatch_pm_notifications',
-    'assetwatch_survey_rounds'
+    'assetwatch_survey_rounds',
+    'assetwatch_spare_parts'
   ];
   keysToClear.forEach(key => localStorage.removeItem(key));
 
@@ -1519,7 +1584,8 @@ export const factoryResetDatabase = async (): Promise<void> => {
       'users',
       'pm_contracts',
       'pm_schedules',
-      'pm_notifications'
+      'pm_notifications',
+      'spare_parts'
     ];
 
     for (const collName of collectionsToClear) {
@@ -1561,6 +1627,9 @@ export const factoryResetDatabase = async (): Promise<void> => {
       }
       for (const notification of INITIAL_NOTIFICATIONS) {
         await setDoc(doc(db, 'pm_notifications', notification.id), sanitizeForFirestore(notification));
+      }
+      for (const part of INITIAL_SPARE_PARTS) {
+        await setDoc(doc(db, 'spare_parts', part.id), sanitizeForFirestore(part));
       }
 
       // Default active survey round

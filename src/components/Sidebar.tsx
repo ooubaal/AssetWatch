@@ -16,7 +16,8 @@ import {
   Building,
   Lock,
   Calendar,
-  FileText
+  FileText,
+  Package
 } from 'lucide-react';
 import { UserAccount } from '../utils/mockData';
 
@@ -69,6 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   menuItems.push(
     { id: 'module10_pm', label: 'บำรุงรักษา (PM/CM)', icon: Calendar },
     { id: 'module11_quality', label: 'เอกสารคุณภาพ', icon: FileText },
+    { id: 'module12_spareparts', label: 'คลังอะไหล่', icon: Package },
     { id: 'module6', label: 'ประวัติกิจกรรม (Audit)', icon: History }
   );
 
@@ -205,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           <div className="footer-copyright">
-            v1.6.3 © ooubaal / AMIS
+            v1.7.0 © ooubaal / AMIS
           </div>
         </div>
       </aside>

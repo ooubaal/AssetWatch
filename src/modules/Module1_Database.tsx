@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet, QrCode, Camera } from 'lucide-react';
-import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule } from '../utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule, SparePart } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 
@@ -13,6 +13,10 @@ interface Module1DatabaseProps {
   onAssetEdit: (asset: Asset) => void;
   currentUser: UserAccount | null;
   onRefreshData?: () => void;
+  spareParts?: SparePart[];
+  onAddSparePart?: (part: SparePart) => Promise<void>;
+  onUpdateSparePart?: (part: SparePart) => Promise<void>;
+  onDeleteSparePart?: (id: string) => Promise<void>;
 }
 
 export const Module1_Database: React.FC<Module1DatabaseProps> = ({
@@ -23,7 +27,11 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   schedules,
   onAssetEdit,
   currentUser,
-  onRefreshData
+  onRefreshData,
+  spareParts = [],
+  onAddSparePart,
+  onUpdateSparePart,
+  onDeleteSparePart
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -399,6 +407,10 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           schedules={schedules}
           currentUser={currentUser}
           onRefreshData={onRefreshData}
+          spareParts={spareParts}
+          onAddSparePart={onAddSparePart}
+          onUpdateSparePart={onUpdateSparePart}
+          onDeleteSparePart={onDeleteSparePart}
         />
       )}
 

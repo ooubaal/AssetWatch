@@ -38,7 +38,10 @@ import {
   getPMNotifications,
   addPMNotification,
   updatePMNotification,
-  deletePMNotification
+  deletePMNotification,
+  fetchSpareParts,
+  saveSparePart,
+  deleteSparePart
 } from './services/dbService';
 
 // Module Components
@@ -53,8 +56,9 @@ import { Module8_Departments } from './modules/Module8_Departments';
 import { Module9_AccessControl } from './modules/Module9_AccessControl';
 import { Module10_Maintenance } from './modules/Module10_Maintenance';
 import { Module11_QualityDocs } from './modules/Module11_QualityDocs';
+import { Module12_SpareParts } from './modules/Module12_SpareParts';
 
-import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS, PMContract, PMSchedule, PMNotification } from './utils/mockData';
+import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS, PMContract, PMSchedule, PMNotification, SparePart } from './utils/mockData';
 import { X, Camera, AlertCircle, Lock, Bell } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
@@ -87,6 +91,7 @@ function App() {
   const [contracts, setContracts] = useState<PMContract[]>([]);
   const [schedules, setSchedules] = useState<PMSchedule[]>([]);
   const [pmNotifications, setPmNotifications] = useState<PMNotification[]>([]);
+  const [spareParts, setSpareParts] = useState<SparePart[]>([]);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
@@ -201,6 +206,7 @@ function App() {
       const allContracts = await getPMContracts();
       const allSchedules = await getPMSchedules();
       const allPMNotifs = await getPMNotifications();
+      const allSpareParts = await fetchSpareParts();
 
       setAssets(allAssets);
       setAudits(allAudits);
@@ -212,6 +218,7 @@ function App() {
       setContracts(allContracts);
       setSchedules(allSchedules);
       setPmNotifications(allPMNotifs);
+      setSpareParts(allSpareParts);
 
       // Automated check and notification generation
       await checkAndGeneratePMNotifications(allSchedules, allPMNotifs, allContracts);
@@ -369,6 +376,21 @@ function App() {
 
   const handleUpdatePMNotification = async (id: string, updates: Partial<PMNotification>) => {
     await updatePMNotification(id, updates);
+    await fetchAllData();
+  };
+
+  const handleAddSparePart = async (part: SparePart) => {
+    await saveSparePart(part);
+    await fetchAllData();
+  };
+
+  const handleUpdateSparePart = async (part: SparePart) => {
+    await saveSparePart(part);
+    await fetchAllData();
+  };
+
+  const handleDeleteSparePart = async (id: string) => {
+    await deleteSparePart(id);
     await fetchAllData();
   };
 
@@ -1173,6 +1195,10 @@ function App() {
                 onAssetEdit={handleStartEditAsset}
                 currentUser={currentUser}
                 onRefreshData={fetchAllData}
+                spareParts={spareParts}
+                onAddSparePart={handleAddSparePart}
+                onUpdateSparePart={handleUpdateSparePart}
+                onDeleteSparePart={handleDeleteSparePart}
               />
             )}
             {currentTab === 'module2' && (
@@ -1249,6 +1275,17 @@ function App() {
               <Module11_QualityDocs 
                 assets={assets}
                 contracts={contracts}
+                currentUser={currentUser}
+              />
+            )}
+            {currentTab === 'module12_spareparts' && (
+              <Module12_SpareParts 
+                assets={assets}
+                spareParts={spareParts}
+                onAddSparePart={handleAddSparePart}
+                onUpdateSparePart={handleUpdateSparePart}
+                onDeleteSparePart={handleDeleteSparePart}
+                onLogAudit={handleLogAudit}
                 currentUser={currentUser}
               />
             )}

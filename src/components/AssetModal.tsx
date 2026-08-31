@@ -53,6 +53,10 @@ interface AssetModalProps {
   schedules?: PMSchedule[];
   currentUser?: UserAccount | null;
   onRefreshData?: () => void;
+  spareParts?: SparePart[];
+  onAddSparePart?: (part: SparePart) => Promise<void>;
+  onUpdateSparePart?: (part: SparePart) => Promise<void>;
+  onDeleteSparePart?: (id: string) => Promise<void>;
 }
 
 export const AssetModal: React.FC<AssetModalProps> = ({
@@ -64,14 +68,24 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   surveys,
   schedules = [],
   currentUser = null,
-  onRefreshData
+  onRefreshData,
+  spareParts,
+  onAddSparePart,
+  onUpdateSparePart,
+  onDeleteSparePart
 }) => {
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'repairs' | 'surveys' | 'barcode' | 'spare_parts'>('info');
   const [noteText, setNoteText] = useState(asset.note || '');
   const [isSavingNote, setIsSavingNote] = useState(false);
 
   // Spare Parts & Stock Card State
-  const [allSpareParts, setAllSpareParts] = useState<SparePart[]>(() => loadSpareParts());
+  const [allSpareParts, setAllSpareParts] = useState<SparePart[]>(() => spareParts || loadSpareParts());
+
+  React.useEffect(() => {
+    if (spareParts) {
+      setAllSpareParts(spareParts);
+    }
+  }, [spareParts]);
   const [partSearchQuery, setPartSearchQuery] = useState('');
   const [partFilterStatus, setPartFilterStatus] = useState<'all' | 'normal' | 'low' | 'out'>('all');
   
@@ -199,28 +213,29 @@ export const AssetModal: React.FC<AssetModalProps> = ({
 
     if (editingPart) {
       // Update existing part
-      const updated = allSpareParts.map(p => {
-        if (p.id === editingPart.id) {
-          return {
-            ...p,
-            partCode: formPartCode.trim(),
-            name: formName.trim(),
-            specification: formSpec.trim() || undefined,
-            brand: formBrand.trim() || undefined,
-            storageLocation: formLocation.trim() || undefined,
-            quantity: Number(formQty) || 0,
-            minQuantity: Number(formMinQty) || 1,
-            unit: formUnit.trim() || 'ชิ้น',
-            unitPrice: priceNum,
-            supplier: formSupplier.trim() || undefined,
-            supplierContact: formSupplierContact.trim() || undefined,
-            notes: formNotes.trim() || undefined,
-            imageUrl: formImageUrl.trim() || undefined,
-            updatedAt: nowISO
-          };
-        }
-        return p;
-      });
+      const updatedPart: SparePart = {
+        ...editingPart,
+        partCode: formPartCode.trim(),
+        name: formName.trim(),
+        specification: formSpec.trim() || undefined,
+        brand: formBrand.trim() || undefined,
+        storageLocation: formLocation.trim() || undefined,
+        quantity: Number(formQty) || 0,
+        minQuantity: Number(formMinQty) || 1,
+        unit: formUnit.trim() || 'ชิ้น',
+        unitPrice: priceNum,
+        supplier: formSupplier.trim() || undefined,
+        supplierContact: formSupplierContact.trim() || undefined,
+        notes: formNotes.trim() || undefined,
+        imageUrl: formImageUrl.trim() || undefined,
+        updatedAt: nowISO
+      };
+
+      if (onUpdateSparePart) {
+        onUpdateSparePart(updatedPart);
+      }
+
+      const updated = allSpareParts.map(p => p.id === editingPart.id ? updatedPart : p);
       setAllSpareParts(updated);
       saveSpareParts(updated);
     } else {
@@ -262,8 +277,15 @@ export const AssetModal: React.FC<AssetModalProps> = ({
         notes: formNotes.trim() || undefined,
         imageUrl: formImageUrl.trim() || undefined,
         updatedAt: nowISO,
+        createdBy: currentUser?.name || 'เจ้าหน้าที่พัสดุ',
+        department: asset.department || 'พัสดุกลาง',
+        relatedAssetIds: [asset.id],
         transactions: initialTx
       };
+
+      if (onAddSparePart) {
+        onAddSparePart(newPart);
+      }
 
       const updated = [newPart, ...allSpareParts];
       setAllSpareParts(updated);
@@ -277,6 +299,9 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     const part = allSpareParts.find(p => p.id === partId);
     if (!part) return;
     if (confirm(`คุณต้องการลบรายการอะไหล่ "${part.name}" (${part.partCode}) ใช่หรือไม่?`)) {
+      if (onDeleteSparePart) {
+        onDeleteSparePart(partId);
+      }
       const updated = allSpareParts.filter(p => p.id !== partId);
       setAllSpareParts(updated);
       saveSpareParts(updated);
@@ -327,13 +352,17 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     const updated = allSpareParts.map(p => {
       if (p.id === selectedPartForIn.id) {
         const txList = p.transactions || [];
-        return {
+        const updatedPart: SparePart = {
           ...p,
           quantity: newQty,
           unitPrice: priceNum || p.unitPrice,
           updatedAt: nowISO,
           transactions: [newTx, ...txList]
         };
+        if (onUpdateSparePart) {
+          onUpdateSparePart(updatedPart);
+        }
+        return updatedPart;
       }
       return p;
     });
@@ -396,12 +425,16 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     const updated = allSpareParts.map(p => {
       if (p.id === selectedPartForOut.id) {
         const txList = p.transactions || [];
-        return {
+        const updatedPart: SparePart = {
           ...p,
           quantity: newQty,
           updatedAt: nowISO,
           transactions: [newTx, ...txList]
         };
+        if (onUpdateSparePart) {
+          onUpdateSparePart(updatedPart);
+        }
+        return updatedPart;
       }
       return p;
     });
