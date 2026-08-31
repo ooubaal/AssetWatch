@@ -1126,7 +1126,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     const a = document.createElement('a');
     a.href = lightboxUrl;
     const isPdf = lightboxUrl.toLowerCase().includes('application/pdf') || lightboxUrl.toLowerCase().endsWith('.pdf') || lightboxUrl.startsWith('data:application/pdf');
-    a.download = `AssetWatch_${(lightboxTitle || 'file').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F]/g, '_')}_${new Date().toISOString().split('T')[0]}.${isPdf ? 'pdf' : 'jpg'}`;
+    a.download = `AMIS_${(lightboxTitle || 'file').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F]/g, '_')}_${new Date().toISOString().split('T')[0]}.${isPdf ? 'pdf' : 'jpg'}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -2987,7 +2987,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                       ใบรายงานการบำรุงรักษาเชิงป้องกัน (Preventive Maintenance Report)
                     </h1>
                     <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#333333', margin: '0.2rem 0' }}>
-                      ระบบคลังทรัพย์สินและบำรุงรักษาพัสดุ AssetWatch
+                      ระบบจัดการครุภัณฑ์ AMIS (Asset Management Information System)
                     </h2>
                   </div>
 
@@ -4889,7 +4889,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                 รายงานสรุปแผนงานบำรุงรักษาเชิงป้องกันครุภัณฑ์ (PM Plan Summary)
               </h1>
               <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#333333', margin: '0.2rem 0' }}>
-                ระบบคลังทรัพย์สินและบำรุงรักษาพัสดุ AssetWatch
+                ระบบจัดการครุภัณฑ์ AMIS (Asset Management Information System)
               </h2>
               <div style={{ fontSize: '0.8rem', color: '#666666', marginTop: '0.25rem' }}>
                 หน่วยงาน: {selectedDeptFilter === 'all' ? 'ทุกหน่วยงาน (ภาพรวมองค์กร)' : `ฝ่าย: ${selectedDeptFilter}`} | ข้อมูล ณ วันที่ {getThaiDateFormatted(new Date().toISOString().split('T')[0])}
@@ -5000,7 +5000,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                 รายงานประวัติการบำรุงรักษาพัสดุครุภัณฑ์เชิงป้องกันสะสม (PM Service History Log)
               </h1>
               <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#333333', margin: '0.2rem 0' }}>
-                ระบบคลังทรัพย์สินและบำรุงรักษาพัสดุ AssetWatch
+                ระบบจัดการครุภัณฑ์ AMIS (Asset Management Information System)
               </h2>
               <div style={{ fontSize: '0.8rem', color: '#666666', marginTop: '0.25rem' }}>
                 หน่วยงาน: {selectedDeptFilter === 'all' ? 'ทุกหน่วยงาน (ภาพรวมองค์กร)' : `ฝ่าย: ${selectedDeptFilter}`} | ข้อมูล ณ วันที่ {getThaiDateFormatted(new Date().toISOString().split('T')[0])}

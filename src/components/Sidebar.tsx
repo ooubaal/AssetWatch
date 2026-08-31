@@ -94,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <header className="mobile-header">
         <div className="logo-container">
           <div className="logo-icon-pulse"></div>
-          <span className="logo-text">AssetWatch</span>
+          <span className="logo-text">AMIS</span>
         </div>
         <div className="mobile-header-actions">
           <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="Toggle theme">
@@ -113,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <QrCode size={24} color="#ffffff" />
           </div>
           <div>
-            <h2 className="logo-title">AssetWatch</h2>
+            <h2 className="logo-title">AMIS</h2>
             <span className="logo-subtitle">ระบบจัดการครุภัณฑ์</span>
           </div>
         </div>
@@ -205,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           <div className="footer-copyright">
-            v1.6.3 © ooubaal / AssetWatch
+            v1.6.3 © ooubaal / AMIS
           </div>
         </div>
       </aside>

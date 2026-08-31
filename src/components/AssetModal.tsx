@@ -429,7 +429,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     const a = document.createElement('a');
     a.href = lightboxUrl;
     const isPdf = lightboxUrl.toLowerCase().includes('application/pdf') || lightboxUrl.toLowerCase().endsWith('.pdf') || lightboxUrl.startsWith('data:application/pdf');
-    a.download = `AssetWatch_${(lightboxTitle || 'file').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F]/g, '_')}_${new Date().toISOString().split('T')[0]}.${isPdf ? 'pdf' : 'jpg'}`;
+    a.download = `AMIS_${(lightboxTitle || 'file').replace(/[^a-zA-Z0-9_\u0E00-\u0E7F]/g, '_')}_${new Date().toISOString().split('T')[0]}.${isPdf ? 'pdf' : 'jpg'}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1880,7 +1880,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                 บัญชีคุมพัสดุและอะไหล่สำรอง (STOCK CARD)
               </h2>
               <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155' }}>
-                ระบบบริหารจัดการครุภัณฑ์และบำรุงรักษาเชิงป้องกัน (AssetWatch Maintenance Module)
+                ระบบจัดการครุภัณฑ์ AMIS (Asset Management Information System)
               </p>
             </div>
 

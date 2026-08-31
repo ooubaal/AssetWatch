@@ -794,8 +794,8 @@ function App() {
               <div className="logo-symbol" style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Lock size={26} color="#ffffff" className="logo-lock-icon" />
               </div>
-              <h2>AssetWatch Login</h2>
-              <p>ระบบควบคุมการเข้าถึงควบคุมสิทธิ์ทรัพย์สินทางราชการ</p>
+              <h2>AMIS Login</h2>
+              <p>ระบบควบคุมสิทธิ์และจัดการครุภัณฑ์ภาครัฐ (Asset Management Information System)</p>
             </div>
 
             <form onSubmit={handleLoginSubmit} className="login-form-fields">

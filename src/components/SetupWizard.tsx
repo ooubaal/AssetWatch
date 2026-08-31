@@ -98,7 +98,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
           setError('การเชื่อมต่อผ่าน QR Code ล้มเหลว โปรดสแกน QR Code ที่ถูกต้อง');
         }
       } else {
-        setError('QR Code นี้ไม่ใช่การตั้งค่าของ AssetWatch');
+        setError('QR Code นี้ไม่ใช่การตั้งค่าของ AMIS');
       }
     } catch (e) {
       setError('ไม่สามารถถอดรหัส QR Code ได้ โปรดสแกนการแชร์ข้อมูลจากหน้าตั้งค่าของเครื่องอื่น');
@@ -115,7 +115,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
             <div className="wizard-hero-icon">
               <Sparkles size={40} className="glow-icon" />
             </div>
-            <h1 className="wizard-title">ยินดีต้อนรับสู่ AssetWatch</h1>
+            <h1 className="wizard-title">ยินดีต้อนรับสู่ระบบจัดการครุภัณฑ์ AMIS</h1>
             <p className="wizard-desc">
               ระบบสแกนตรวจนับและจัดการครุภัณฑ์ผ่านเว็บแอปพลิเคชัน 
               ช่วยอำนวยความสะดวกให้ฝ่ายพัสดุตรวจนับครุภัณฑ์ผ่านมือถือได้พร้อมกันหลายคน
