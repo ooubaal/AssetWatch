@@ -80,6 +80,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [pmNotes, setPmNotes] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [proofInfo, setProofInfo] = useState<{ name: string; size: string; isPdf: boolean } | null>(null);
+  const [compressingProof, setCompressingProof] = useState<boolean>(false);
   const [submittingPM, setSubmittingPM] = useState(false);
   const [pmStatus, setPmStatus] = useState<'completed' | 'postponed' | 'awaiting_repair'>('completed');
   const [nextPMNotes, setNextPMNotes] = useState('');
@@ -217,35 +219,33 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   };
 
   // Add Ad-hoc Repair Modal States
+  // Step 1: Add Ad-hoc Repair Modal States
   const [isRepairFormOpen, setIsRepairFormOpen] = useState(false);
   const [repairAssetId, setRepairAssetId] = useState('');
   const [repairSymptom, setRepairSymptom] = useState('');
+  const [symptomProofFiles, setSymptomProofFiles] = useState<File[]>([]);
+  const [symptomProofPreviews, setSymptomProofPreviews] = useState<{ url: string; name: string; isPdf: boolean; size: string }[]>([]);
+  const [compressingSymptomProof, setCompressingSymptomProof] = useState<boolean>(false);
   const [submittingRepair, setSubmittingRepair] = useState(false);
 
   // CM Repair Workflow States
   const [workflowCase, setWorkflowCase] = useState<RepairCase | null>(null);
   const [workflowAction, setWorkflowAction] = useState<'send' | 'receive' | null>(null);
   
-  // Sent form states
+  // Step 2: Sent form states
   const [repairVendorName, setRepairVendorName] = useState('');
   const [repairContactPhone, setRepairContactPhone] = useState('');
-  const [sendProofFile, setSendProofFile] = useState<File | null>(null);
-  const [sendProofPreview, setSendProofPreview] = useState<string | null>(null);
+  const [sendProofFiles, setSendProofFiles] = useState<File[]>([]);
+  const [sendProofPreviews, setSendProofPreviews] = useState<{ url: string; name: string; isPdf: boolean; size: string }[]>([]);
+  const [compressingSendProof, setCompressingSendProof] = useState<boolean>(false);
   const [submittingSend, setSubmittingSend] = useState(false);
 
-  // Receive form states
+  // Step 3: Receive form states
   const [receiveDate, setReceiveDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [receiveProofFile, setReceiveProofFile] = useState<File | null>(null);
-  const [receiveProofPreview, setReceiveProofPreview] = useState<string | null>(null);
-  const [submittingReceive, setSubmittingReceive] = useState(false);
-
-  // File Attachment & HD Compression Metadata States
-  const [proofInfo, setProofInfo] = useState<{ name: string; size: string; isPdf: boolean } | null>(null);
-  const [sendProofInfo, setSendProofInfo] = useState<{ name: string; size: string; isPdf: boolean } | null>(null);
-  const [receiveProofInfo, setReceiveProofInfo] = useState<{ name: string; size: string; isPdf: boolean } | null>(null);
-  const [compressingProof, setCompressingProof] = useState<boolean>(false);
-  const [compressingSendProof, setCompressingSendProof] = useState<boolean>(false);
+  const [receiveProofFiles, setReceiveProofFiles] = useState<File[]>([]);
+  const [receiveProofPreviews, setReceiveProofPreviews] = useState<{ url: string; name: string; isPdf: boolean; size: string }[]>([]);
   const [compressingReceiveProof, setCompressingReceiveProof] = useState<boolean>(false);
+  const [submittingReceive, setSubmittingReceive] = useState(false);
 
   // CM Case Details & Edit States
   const [selectedCMDetailCase, setSelectedCMDetailCase] = useState<RepairCase | null>(null);
@@ -255,9 +255,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   const [cmEditRepairCompany, setCmEditRepairCompany] = useState('');
   const [cmEditContactPerson, setCmEditContactPerson] = useState('');
   const [cmEditDateReceived, setCmEditDateReceived] = useState('');
-  const [cmEditProofFile, setCmEditProofFile] = useState<File | null>(null);
-  const [cmEditProofPreview, setCmEditProofPreview] = useState<string | null>(null);
-  const [cmEditProofInfo, setCmEditProofInfo] = useState<{ name: string; size: string; isPdf: boolean } | null>(null);
+  const [cmEditProofFiles, setCmEditProofFiles] = useState<File[]>([]);
+  const [cmEditProofPreviews, setCmEditProofPreviews] = useState<{ url: string; name: string; isPdf: boolean; size: string }[]>([]);
   const [compressingCMEditProof, setCompressingCMEditProof] = useState<boolean>(false);
   const [cmSavingDetail, setCmSavingDetail] = useState<boolean>(false);
   const [isCMPrintReportOpen, setIsCMPrintReportOpen] = useState(false);
@@ -944,11 +943,19 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       const operatorName = localStorage.getItem('assetwatch_operator') || 'เจ้าหน้าที่พัสดุ';
 
+      const symptomUrls: string[] = [];
+      for (const file of symptomProofFiles) {
+        const url = await uploadImage(file, 'repairs');
+        if (url) symptomUrls.push(url);
+      }
+
       // 1. Create repair case (CM)
       const repairId = await onAddRepair({
         assetId: repairAssetId,
         assetName: asset.name,
         symptom: repairSymptom,
+        symptomImageUrl: symptomUrls[0] || undefined,
+        symptomImages: symptomUrls,
         dateOpened: new Date().toISOString().split('T')[0],
         status: 'open',
         operator: operatorName,
@@ -964,7 +971,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         assetName: asset.name,
         action: 'repair_open',
         operator: operatorName,
-        details: `เปิดใบสั่งแจ้งชำรุดเร่งด่วน (Corrective Maintenance) รหัสใบแจ้งซ่อม: ${repairId} อาการเสีย: ${repairSymptom}`
+        details: `เปิดใบสั่งแจ้งชำรุดเร่งด่วน (Corrective Maintenance) รหัสใบแจ้งซ่อม: ${repairId} อาการเสีย: ${repairSymptom}${symptomUrls.length > 0 ? ` (แนบรูปภาพ/เอกสาร ${symptomUrls.length} ไฟล์)` : ''}`
       });
 
       confetti({
@@ -975,6 +982,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       setIsRepairFormOpen(false);
       setRepairAssetId('');
       setRepairSymptom('');
+      setSymptomProofFiles([]);
+      setSymptomProofPreviews([]);
       await onRefreshData();
     } catch (err) {
       console.error(err);
@@ -984,76 +993,196 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     }
   };
 
-  const handleSendProofImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-      setCompressingSendProof(true);
+  const handleSymptomProofImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
+      setCompressingSymptomProof(true);
       try {
-        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
-        setSendProofFile(compressed);
-        setSendProofInfo({
-          name: file.name,
-          size: `${Math.round(compressed.size / 1024)} KB`,
-          isPdf
-        });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setSendProofPreview(reader.result as string);
-          setCompressingSendProof(false);
-        };
-        reader.readAsDataURL(compressed);
+        const newFiles: File[] = [];
+        const newPreviews: { url: string; name: string; isPdf: boolean; size: string }[] = [];
+        for (const file of selectedFiles) {
+          const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+          let processedFile = file;
+          if (!isPdf) {
+            try {
+              processedFile = await compressFileOrPdf(file, 1400, 1400, 0.80);
+            } catch {
+              processedFile = file;
+            }
+          }
+          newFiles.push(processedFile);
+
+          const previewUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(processedFile);
+          });
+
+          newPreviews.push({
+            url: previewUrl,
+            name: file.name,
+            isPdf,
+            size: `${Math.round(processedFile.size / 1024)} KB`
+          });
+        }
+        setSymptomProofFiles(prev => [...prev, ...newFiles]);
+        setSymptomProofPreviews(prev => [...prev, ...newPreviews]);
       } catch (err) {
-        setSendProofFile(file);
-        setSendProofInfo({
-          name: file.name,
-          size: `${Math.round(file.size / 1024)} KB`,
-          isPdf
-        });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setSendProofPreview(reader.result as string);
-          setCompressingSendProof(false);
-        };
-        reader.readAsDataURL(file);
+        console.error('Error compressing symptom files:', err);
+      } finally {
+        setCompressingSymptomProof(false);
+        e.target.value = '';
       }
     }
   };
 
-  const handleReceiveProofImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-      setCompressingReceiveProof(true);
+  const handleRemoveSymptomFile = (index: number) => {
+    setSymptomProofFiles(prev => prev.filter((_, i) => i !== index));
+    setSymptomProofPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSendProofImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
+      setCompressingSendProof(true);
       try {
-        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
-        setReceiveProofFile(compressed);
-        setReceiveProofInfo({
-          name: file.name,
-          size: `${Math.round(compressed.size / 1024)} KB`,
-          isPdf
-        });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setReceiveProofPreview(reader.result as string);
-          setCompressingReceiveProof(false);
-        };
-        reader.readAsDataURL(compressed);
+        const newFiles: File[] = [];
+        const newPreviews: { url: string; name: string; isPdf: boolean; size: string }[] = [];
+        for (const file of selectedFiles) {
+          const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+          let processedFile = file;
+          if (!isPdf) {
+            try {
+              processedFile = await compressFileOrPdf(file, 1400, 1400, 0.80);
+            } catch {
+              processedFile = file;
+            }
+          }
+          newFiles.push(processedFile);
+
+          const previewUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(processedFile);
+          });
+
+          newPreviews.push({
+            url: previewUrl,
+            name: file.name,
+            isPdf,
+            size: `${Math.round(processedFile.size / 1024)} KB`
+          });
+        }
+        setSendProofFiles(prev => [...prev, ...newFiles]);
+        setSendProofPreviews(prev => [...prev, ...newPreviews]);
       } catch (err) {
-        setReceiveProofFile(file);
-        setReceiveProofInfo({
-          name: file.name,
-          size: `${Math.round(file.size / 1024)} KB`,
-          isPdf
-        });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setReceiveProofPreview(reader.result as string);
-          setCompressingReceiveProof(false);
-        };
-        reader.readAsDataURL(file);
+        console.error('Error compressing send files:', err);
+      } finally {
+        setCompressingSendProof(false);
+        e.target.value = '';
       }
     }
+  };
+
+  const handleRemoveSendFile = (index: number) => {
+    setSendProofFiles(prev => prev.filter((_, i) => i !== index));
+    setSendProofPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleReceiveProofImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
+      setCompressingReceiveProof(true);
+      try {
+        const newFiles: File[] = [];
+        const newPreviews: { url: string; name: string; isPdf: boolean; size: string }[] = [];
+        for (const file of selectedFiles) {
+          const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+          let processedFile = file;
+          if (!isPdf) {
+            try {
+              processedFile = await compressFileOrPdf(file, 1400, 1400, 0.80);
+            } catch {
+              processedFile = file;
+            }
+          }
+          newFiles.push(processedFile);
+
+          const previewUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(processedFile);
+          });
+
+          newPreviews.push({
+            url: previewUrl,
+            name: file.name,
+            isPdf,
+            size: `${Math.round(processedFile.size / 1024)} KB`
+          });
+        }
+        setReceiveProofFiles(prev => [...prev, ...newFiles]);
+        setReceiveProofPreviews(prev => [...prev, ...newPreviews]);
+      } catch (err) {
+        console.error('Error compressing receive files:', err);
+      } finally {
+        setCompressingReceiveProof(false);
+        e.target.value = '';
+      }
+    }
+  };
+
+  const handleRemoveReceiveFile = (index: number) => {
+    setReceiveProofFiles(prev => prev.filter((_, i) => i !== index));
+    setReceiveProofPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCMEditProofImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
+      setCompressingCMEditProof(true);
+      try {
+        const newFiles: File[] = [];
+        const newPreviews: { url: string; name: string; isPdf: boolean; size: string }[] = [];
+        for (const file of selectedFiles) {
+          const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+          let processedFile = file;
+          if (!isPdf) {
+            try {
+              processedFile = await compressFileOrPdf(file, 1400, 1400, 0.80);
+            } catch {
+              processedFile = file;
+            }
+          }
+          newFiles.push(processedFile);
+
+          const previewUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(processedFile);
+          });
+
+          newPreviews.push({
+            url: previewUrl,
+            name: file.name,
+            isPdf,
+            size: `${Math.round(processedFile.size / 1024)} KB`
+          });
+        }
+        setCmEditProofFiles(prev => [...prev, ...newFiles]);
+        setCmEditProofPreviews(prev => [...prev, ...newPreviews]);
+      } catch (err) {
+        console.error('Error compressing edit proof files:', err);
+      } finally {
+        setCompressingCMEditProof(false);
+        e.target.value = '';
+      }
+    }
+  };
+
+  const handleRemoveCMEditFile = (index: number) => {
+    setCmEditProofFiles(prev => prev.filter((_, i) => i !== index));
+    setCmEditProofPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   // Dispatch CM case to shop
@@ -1063,11 +1192,14 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
     setSubmittingSend(true);
     try {
-      let proofUrl = '';
-      if (sendProofFile) {
-        proofUrl = await uploadImage(sendProofFile, 'repairs');
+      const sentUrls: string[] = [];
+      for (const file of sendProofFiles) {
+        const url = await uploadImage(file, 'repairs');
+        if (url) sentUrls.push(url);
       }
 
+      const existingSent = workflowCase.sentProofImages || (workflowCase.sentProofUrl ? [workflowCase.sentProofUrl] : []);
+      const combinedSent = [...existingSent, ...sentUrls];
       const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินส่งซ่อม';
 
       await onUpdateRepair(workflowCase.id, {
@@ -1075,7 +1207,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         dateSent: new Date().toISOString().split('T')[0],
         repairCompany: repairVendorName,
         contactPerson: repairContactPhone,
-        sentProofUrl: proofUrl || undefined,
+        sentProofImages: combinedSent,
+        sentProofUrl: combinedSent[0] || undefined,
         updatedAt: new Date().toISOString()
       });
 
@@ -1084,15 +1217,15 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         assetName: workflowCase.assetName,
         action: 'repair_send',
         operator: operatorName,
-        details: `นำส่งครุภัณฑ์ไปยังช่างซ่อม บริษัท: ${repairVendorName} เบอร์โทร: ${repairContactPhone}`
+        details: `นำส่งครุภัณฑ์ไปยังช่างซ่อม บริษัท: ${repairVendorName} เบอร์โทร: ${repairContactPhone}${sentUrls.length > 0 ? ` (แนบหลักฐาน ${sentUrls.length} ไฟล์)` : ''}`
       });
 
       setWorkflowCase(null);
       setWorkflowAction(null);
       setRepairVendorName('');
       setRepairContactPhone('');
-      setSendProofFile(null);
-      setSendProofPreview(null);
+      setSendProofFiles([]);
+      setSendProofPreviews([]);
       await onRefreshData();
     } catch (err) {
       console.error(err);
@@ -1109,17 +1242,21 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
     setSubmittingReceive(true);
     try {
-      let returnedProofUrl = '';
-      if (receiveProofFile) {
-        returnedProofUrl = await uploadImage(receiveProofFile, 'repairs');
+      const receivedUrls: string[] = [];
+      for (const file of receiveProofFiles) {
+        const url = await uploadImage(file, 'repairs');
+        if (url) receivedUrls.push(url);
       }
 
+      const existingReceived = workflowCase.receivedProofImages || (workflowCase.receivedProofUrl ? [workflowCase.receivedProofUrl] : []);
+      const combinedReceived = [...existingReceived, ...receivedUrls];
       const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินรับคืน';
 
       await onUpdateRepair(workflowCase.id, {
         status: 'completed',
         dateReceived: receiveDate,
-        receivedProofUrl: returnedProofUrl || undefined,
+        receivedProofImages: combinedReceived,
+        receivedProofUrl: combinedReceived[0] || undefined,
         updatedAt: new Date().toISOString()
       });
 
@@ -1130,7 +1267,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         assetName: workflowCase.assetName,
         action: 'repair_receive',
         operator: operatorName,
-        details: `ตรวจรับครุภัณฑ์พัสดุส่งซ่อมคืนคลังสำเร็จ ตรวจเช็คเครื่องแล้วสามารถนำกลับมา "ใช้งานได้" ตามปกติ`
+        details: `ตรวจรับครุภัณฑ์พัสดุส่งซ่อมคืนคลังสำเร็จ ตรวจเช็คเครื่องแล้วสามารถนำกลับมา "ใช้งานได้" ตามปกติ${receivedUrls.length > 0 ? ` (แนบหลักฐานตรวจรับ ${receivedUrls.length} ไฟล์)` : ''}`
       });
 
       confetti({
@@ -1140,8 +1277,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       setWorkflowCase(null);
       setWorkflowAction(null);
-      setReceiveProofFile(null);
-      setReceiveProofPreview(null);
+      setReceiveProofFiles([]);
+      setReceiveProofPreviews([]);
       await onRefreshData();
     } catch (err) {
       console.error(err);
@@ -1178,9 +1315,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setCmEditRepairCompany(r.repairCompany || '');
     setCmEditContactPerson(r.contactPerson || '');
     setCmEditDateReceived(r.dateReceived || '');
-    setCmEditProofPreview(r.receivedProofUrl || r.sentProofUrl || r.symptomImageUrl || null);
-    setCmEditProofFile(null);
-    setCmEditProofInfo(null);
+    setCmEditProofFiles([]);
+    setCmEditProofPreviews([]);
     setIsCMDetailOpen(true);
   };
 
@@ -1189,10 +1325,14 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     if (!selectedCMDetailCase) return;
     setCmSavingDetail(true);
     try {
-      let extraProofUrl = selectedCMDetailCase.receivedProofUrl;
-      if (cmEditProofFile) {
-        extraProofUrl = await uploadImage(cmEditProofFile, 'repairs');
+      const extraUrls: string[] = [];
+      for (const file of cmEditProofFiles) {
+        const url = await uploadImage(file, 'repairs');
+        if (url) extraUrls.push(url);
       }
+
+      const existingReceived = selectedCMDetailCase.receivedProofImages || (selectedCMDetailCase.receivedProofUrl ? [selectedCMDetailCase.receivedProofUrl] : []);
+      const updatedReceived = [...existingReceived, ...extraUrls];
 
       const updates: Partial<RepairCase> = {
         notes: cmEditNotes,
@@ -1201,7 +1341,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         repairCompany: cmEditRepairCompany,
         contactPerson: cmEditContactPerson,
         dateReceived: cmEditDateReceived || selectedCMDetailCase.dateReceived,
-        receivedProofUrl: extraProofUrl || selectedCMDetailCase.receivedProofUrl,
+        receivedProofImages: updatedReceived,
+        receivedProofUrl: updatedReceived[0] || selectedCMDetailCase.receivedProofUrl,
         updatedAt: new Date().toISOString()
       };
 
@@ -1213,10 +1354,12 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         assetName: selectedCMDetailCase.assetName,
         action: 'repair_send',
         operator: operatorName,
-        details: `อัปเดตบันทึกข้อมูลเพิ่มเติมในเคส CM รหัสครุภัณฑ์ ${selectedCMDetailCase.assetId}: ${cmEditNotes ? `ข้อสังเกต: ${cmEditNotes}` : ''} ${cmEditCost ? `ค่าซ่อม: ${cmEditCost} บาท` : ''}`
+        details: `อัปเดตบันทึกข้อมูลเพิ่มเติมในเคส CM รหัสครุภัณฑ์ ${selectedCMDetailCase.assetId}: ${cmEditNotes ? `ข้อสังเกต: ${cmEditNotes}` : ''} ${cmEditCost ? `ค่าซ่อม: ${cmEditCost} บาท` : ''}${extraUrls.length > 0 ? ` (แนบเอกสารเพิ่ม ${extraUrls.length} ไฟล์)` : ''}`
       });
 
       setSelectedCMDetailCase({ ...selectedCMDetailCase, ...updates });
+      setCmEditProofFiles([]);
+      setCmEditProofPreviews([]);
       await onRefreshData();
       alert('บันทึกข้อมูลเพิ่มเติมเรียบร้อยแล้ว');
     } catch (err) {
@@ -1254,42 +1397,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     }
   };
 
-  // HD Compression for CM Detail extra image/file
-  const handleCMEditProofImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-      setCompressingCMEditProof(true);
-      try {
-        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
-        setCmEditProofFile(compressed);
-        setCmEditProofInfo({
-          name: file.name,
-          size: `${Math.round(compressed.size / 1024)} KB`,
-          isPdf
-        });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setCmEditProofPreview(reader.result as string);
-          setCompressingCMEditProof(false);
-        };
-        reader.readAsDataURL(compressed);
-      } catch (err) {
-        setCmEditProofFile(file);
-        setCmEditProofInfo({
-          name: file.name,
-          size: `${Math.round(file.size / 1024)} KB`,
-          isPdf
-        });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setCmEditProofPreview(reader.result as string);
-          setCompressingCMEditProof(false);
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-  };
+
 
   // Delete contract
   const handleDeleteContract = async (id: string) => {
@@ -2485,36 +2593,51 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                           <span style={{ lineHeight: '1.35', fontSize: '0.775rem' }}>{r.symptom}</span>
                           <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
-                            {r.symptomImageUrl && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenLightbox(r.symptomImageUrl!, `รูปถ่ายอาการเสีย - ${r.assetName}`)}
-                                style={{ fontSize: '0.7rem', color: 'var(--primary)', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '3px', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600 }}
-                                title="คลิกเพื่อเปิดดูรูปถ่ายอาการเสียขนาดเต็ม HD"
-                              >
-                                🖼️ รูปอาการเสีย (HD)
-                              </button>
-                            )}
-                            {r.sentProofUrl && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenLightbox(r.sentProofUrl!, `หลักฐานการนำส่งช่าง - ${r.assetName}`)}
-                                style={{ fontSize: '0.7rem', color: 'var(--warning)', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '3px', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600 }}
-                                title="คลิกเพื่อเปิดดูหลักฐานนำส่งช่าง"
-                              >
-                                🚚 รูปส่งช่าง (HD)
-                              </button>
-                            )}
-                            {r.receivedProofUrl && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenLightbox(r.receivedProofUrl!, `หลักฐานการตรวจรับของคืน - ${r.assetName}`)}
-                                style={{ fontSize: '0.7rem', color: 'var(--success)', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '3px', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600 }}
-                                title="คลิกเพื่อเปิดดูหลักฐานตรวจรับของคืน"
-                              >
-                                ✅ รูปตรวจรับคืน (HD)
-                              </button>
-                            )}
+                            {(() => {
+                              const symptomList = r.symptomImages && r.symptomImages.length > 0 ? r.symptomImages : (r.symptomImageUrl ? [r.symptomImageUrl] : []);
+                              const sentList = r.sentProofImages && r.sentProofImages.length > 0 ? r.sentProofImages : (r.sentProofUrl ? [r.sentProofUrl] : []);
+                              const receivedList = r.receivedProofImages && r.receivedProofImages.length > 0 ? r.receivedProofImages : (r.receivedProofUrl ? [r.receivedProofUrl] : []);
+
+                              return (
+                                <>
+                                  {symptomList.map((url, idx) => (
+                                    <button
+                                      key={`sym-${idx}`}
+                                      type="button"
+                                      onClick={() => handleOpenLightbox(url, `รูปถ่ายอาการเสีย #${idx + 1} - ${r.assetName}`)}
+                                      style={{ fontSize: '0.7rem', color: 'var(--primary)', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '3px', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600 }}
+                                      title="คลิกเพื่อเปิดดูรูปถ่ายอาการเสียขนาดเต็ม HD"
+                                    >
+                                      🖼️ รูปอาการเสีย {symptomList.length > 1 ? `#${idx + 1}` : '(HD)'}
+                                    </button>
+                                  ))}
+
+                                  {sentList.map((url, idx) => (
+                                    <button
+                                      key={`sent-${idx}`}
+                                      type="button"
+                                      onClick={() => handleOpenLightbox(url, `หลักฐานการนำส่งช่าง #${idx + 1} - ${r.assetName}`)}
+                                      style={{ fontSize: '0.7rem', color: 'var(--warning)', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '3px', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600 }}
+                                      title="คลิกเพื่อเปิดดูหลักฐานนำส่งช่าง"
+                                    >
+                                      🚚 รูปส่งช่าง {sentList.length > 1 ? `#${idx + 1}` : '(HD)'}
+                                    </button>
+                                  ))}
+
+                                  {receivedList.map((url, idx) => (
+                                    <button
+                                      key={`rec-${idx}`}
+                                      type="button"
+                                      onClick={() => handleOpenLightbox(url, `หลักฐานการตรวจรับของคืน #${idx + 1} - ${r.assetName}`)}
+                                      style={{ fontSize: '0.7rem', color: 'var(--success)', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '3px', padding: '0.15rem 0.4rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600 }}
+                                      title="คลิกเพื่อเปิดดูหลักฐานตรวจรับของคืน"
+                                    >
+                                      ✅ รูปตรวจรับคืน {receivedList.length > 1 ? `#${idx + 1}` : '(HD)'}
+                                    </button>
+                                  ))}
+                                </>
+                              );
+                            })()}
                           </div>
                           {r.dateSent && (
                             <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
@@ -2560,8 +2683,8 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                     setWorkflowAction('send');
                                     setRepairVendorName('');
                                     setRepairContactPhone('');
-                                    setSendProofFile(null);
-                                    setSendProofPreview(null);
+                                    setSendProofFiles([]);
+                                    setSendProofPreviews([]);
                                   }}
                                   style={{ padding: '0.2rem 0.45rem', height: 'auto', fontSize: '0.725rem' }}
                                 >
@@ -2574,8 +2697,8 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                   onClick={() => {
                                     setWorkflowCase(r);
                                     setWorkflowAction('receive');
-                                    setReceiveProofFile(null);
-                                    setReceiveProofPreview(null);
+                                    setReceiveProofFiles([]);
+                                    setReceiveProofPreviews([]);
                                   }}
                                   style={{ padding: '0.2rem 0.45rem', height: 'auto', fontSize: '0.725rem' }}
                                 >
@@ -3795,6 +3918,84 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               />
             </div>
 
+            <div className="form-group">
+              <label className="form-label">📷 ถ่ายรูปหรือแนบไฟล์/รูปภาพอาการชำรุด (เพิ่มได้หลายรูป/ไฟล์ PDF)</label>
+              <div className="image-dropzone" style={{ minHeight: '110px', padding: '0.85rem', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)' }}>
+                <input 
+                  type="file" 
+                  id="symptom-proof-picker"
+                  multiple
+                  accept="image/*,application/pdf,.pdf"
+                  onChange={handleSymptomProofImagesChange}
+                  className="file-hidden-input"
+                />
+                <label htmlFor="symptom-proof-picker" className="dropzone-label" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
+                  {compressingSymptomProof ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', padding: '1rem' }}>
+                      <RefreshCw size={20} className="spin-animate" />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>กำลังบีบอัดไฟล์ให้อยู่ในระดับ HD...</span>
+                    </div>
+                  ) : symptomProofPreviews.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '0.75rem' }} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(105px, 1fr))', gap: '0.6rem', width: '100%' }}>
+                        {symptomProofPreviews.map((p, idx) => (
+                          <div 
+                            key={idx} 
+                            style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--danger)', background: '#000', height: '95px' }}
+                          >
+                            <img 
+                              src={p.url} 
+                              alt={`Symptom ${idx + 1}`} 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                              onClick={() => handleOpenLightbox(p.url, `รูปอาการชำรุด #${idx + 1} - ${repairAssetId}`)}
+                              title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD"
+                            />
+                            {p.isPdf && (
+                              <span style={{ position: 'absolute', top: '3px', left: '3px', background: '#ef4444', color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '0.1rem 0.3rem', borderRadius: '3px', pointerEvents: 'none' }}>
+                                PDF HD
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleRemoveSymptomFile(idx); }}
+                              style={{ position: 'absolute', top: '3px', right: '3px', background: 'rgba(0,0,0,0.75)', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                              title="ลบไฟล์นี้"
+                            >
+                              ✕
+                            </button>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '0.6rem', textAlign: 'center', padding: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                              {p.size}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600 }}>
+                          ✓ แนบแล้ว {symptomProofPreviews.length} ไฟล์
+                        </span>
+                        <label
+                          htmlFor="symptom-proof-picker"
+                          style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                        >
+                          ➕ เพิ่มรูป/ไฟล์อีก
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                        <Camera size={26} color="var(--primary)" />
+                        <FileText size={26} color="#ef4444" />
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>คลิกเพื่อแนบรูปภาพอาการชำรุด หรือไฟล์ PDF (แนบได้หลายไฟล์)</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>⚡ บีบอัด HD อัตโนมัติ ประหยัดพื้นที่จัดเก็บบนคลาวด์</span>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+
             <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.25rem' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setIsRepairFormOpen(false)}>
                 ยกเลิก
@@ -3811,7 +4012,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
       {/* --- MODAL 5: CM REPAIR DISPATCH (SEND TO VENDOR) --- */}
       {workflowAction === 'send' && workflowCase && (
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
-          <form onSubmit={handleSentToVendorSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '520px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+          <form onSubmit={handleSentToVendorSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '540px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>🚚 นำส่งครุภัณฑ์ไปยังช่างซ่อม</h3>
@@ -3851,68 +4052,66 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
             <div className="form-group">
-              <label className="form-label">📷 ถ่ายรูปหรือแนบเอกสาร PDF การเซ็นส่งของ / ใบรับเคลม (ตัวเลือก)</label>
-              <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.85rem', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)' }}>
+              <label className="form-label">📷 ถ่ายรูปหรือแนบเอกสาร PDF การเซ็นส่งของ / ใบรับเคลม (เพิ่มได้หลายรูป/ไฟล์)</label>
+              <div className="image-dropzone" style={{ minHeight: '110px', padding: '0.85rem', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)' }}>
                 <input 
                   type="file" 
                   id="send-proof-picker"
+                  multiple
                   accept="image/*,application/pdf,.pdf"
-                  onChange={handleSendProofImageChange}
+                  onChange={handleSendProofImagesChange}
                   className="file-hidden-input"
                 />
-                <label htmlFor="send-proof-picker" className="dropzone-label" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+                <label htmlFor="send-proof-picker" className="dropzone-label" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
                   {compressingSendProof ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', padding: '1rem' }}>
                       <RefreshCw size={20} className="spin-animate" />
                       <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>กำลังบีบอัดไฟล์ให้อยู่ในระดับ HD...</span>
                     </div>
-                  ) : sendProofPreview ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
-                      <div 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleOpenLightbox(sendProofPreview, `หลักฐานการนำส่งช่าง - ${workflowCase.assetName}`);
-                        }}
-                        style={{ position: 'relative', maxWidth: '180px', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--warning)', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)', cursor: 'pointer', background: '#000' }}
-                        title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD"
-                      >
-                        <img src={sendProofPreview} alt="Send proof preview" style={{ width: '100%', display: 'block', maxHeight: '140px', objectFit: 'cover' }} />
-                        {sendProofInfo?.isPdf && (
-                          <span style={{ position: 'absolute', top: '4px', left: '4px', background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '3px' }}>
-                            PDF HD
-                          </span>
-                        )}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '3px 0', fontWeight: 650 }}>
-                          🔍 คลิกซูมดูรูปเต็ม
-                        </div>
+                  ) : sendProofPreviews.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '0.75rem' }} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(105px, 1fr))', gap: '0.6rem', width: '100%' }}>
+                        {sendProofPreviews.map((p, idx) => (
+                          <div 
+                            key={idx} 
+                            style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--warning)', background: '#000', height: '95px' }}
+                          >
+                            <img 
+                              src={p.url} 
+                              alt={`Send proof ${idx + 1}`} 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                              onClick={() => handleOpenLightbox(p.url, `หลักฐานนำส่งช่าง #${idx + 1} - ${workflowCase.assetName}`)}
+                              title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD"
+                            />
+                            {p.isPdf && (
+                              <span style={{ position: 'absolute', top: '3px', left: '3px', background: '#ef4444', color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '0.1rem 0.3rem', borderRadius: '3px', pointerEvents: 'none' }}>
+                                PDF HD
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleRemoveSendFile(idx); }}
+                              style={{ position: 'absolute', top: '3px', right: '3px', background: 'rgba(0,0,0,0.75)', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                              title="ลบไฟล์นี้"
+                            >
+                              ✕
+                            </button>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '0.6rem', textAlign: 'center', padding: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                              {p.size}
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
-                      <div style={{ textAlign: 'center', fontSize: '0.75rem' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{sendProofInfo?.name || 'ใบนำส่งเคลม'}</span>
-                        {sendProofInfo?.size && <span style={{ color: 'var(--success)', marginLeft: '0.35rem', fontWeight: 700 }}>({sendProofInfo.size} - บีบอัด HD)</span>}
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        <button
-                          type="button"
-                          className="btn btn-warning btn-xs"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleOpenLightbox(sendProofPreview, `หลักฐานการนำส่งช่าง - ${workflowCase.assetName}`);
-                          }}
-                          style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.6rem' }}
-                        >
-                          🔍 เปิดดูรูปภาพ/PDF ขนาดเต็ม (HD)
-                        </button>
-
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600 }}>
+                          ✓ แนบแล้ว {sendProofPreviews.length} ไฟล์
+                        </span>
                         <label
                           htmlFor="send-proof-picker"
-                          style={{ fontSize: '0.72rem', color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer', padding: '0.25rem' }}
-                          onClick={(e) => e.stopPropagation()}
+                          style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
                         >
-                          🔄 คลิกเพื่อเปลี่ยนไฟล์
+                          ➕ เพิ่มรูป/ไฟล์อีก
                         </label>
                       </div>
                     </div>
@@ -3922,7 +4121,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                         <Camera size={26} color="var(--primary)" />
                         <FileText size={26} color="#ef4444" />
                       </div>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>คลิกเพื่อแนบเอกสาร PDF หรือ รูปภาพใบนำส่ง</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>คลิกเพื่อแนบเอกสาร PDF หรือรูปภาพใบนำส่ง (แนบได้หลายไฟล์)</span>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>⚡ บีบอัด HD อัตโนมัติ ประหยัดพื้นที่จัดเก็บบนคลาวด์</span>
                     </>
                   )}
@@ -3944,7 +4143,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
       {/* --- MODAL 6: CM REPAIR RECEIVE (RECEIVE BACK FROM VENDOR) --- */}
       {workflowAction === 'receive' && workflowCase && (
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
-          <form onSubmit={handleReceiveSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '520px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+          <form onSubmit={handleReceiveSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '540px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>✅ ตรวจรับของคืนคลังและปิดงานซ่อม</h3>
@@ -3971,68 +4170,66 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
             <div className="form-group">
-              <label className="form-label">📷 ถ่ายรูปหรือแนบเอกสาร PDF ใบเสร็จปิดงาน / สภาพของรับคืน (ตัวเลือก)</label>
-              <div className="image-dropzone" style={{ minHeight: '120px', padding: '0.85rem', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)' }}>
+              <label className="form-label">📷 ถ่ายรูปหรือแนบเอกสาร PDF ใบเสร็จปิดงาน / สภาพของรับคืน (เพิ่มได้หลายรูป/ไฟล์)</label>
+              <div className="image-dropzone" style={{ minHeight: '110px', padding: '0.85rem', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)' }}>
                 <input 
                   type="file" 
                   id="receive-proof-picker"
+                  multiple
                   accept="image/*,application/pdf,.pdf"
-                  onChange={handleReceiveProofImageChange}
+                  onChange={handleReceiveProofImagesChange}
                   className="file-hidden-input"
                 />
-                <label htmlFor="receive-proof-picker" className="dropzone-label" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+                <label htmlFor="receive-proof-picker" className="dropzone-label" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem', width: '100%' }}>
                   {compressingReceiveProof ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', padding: '1rem' }}>
                       <RefreshCw size={20} className="spin-animate" />
                       <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>กำลังบีบอัดไฟล์ให้อยู่ในระดับ HD...</span>
                     </div>
-                  ) : receiveProofPreview ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
-                      <div 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleOpenLightbox(receiveProofPreview, `หลักฐานการตรวจรับของคืน - ${workflowCase.assetName}`);
-                        }}
-                        style={{ position: 'relative', maxWidth: '180px', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--success)', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)', cursor: 'pointer', background: '#000' }}
-                        title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD"
-                      >
-                        <img src={receiveProofPreview} alt="Receive proof preview" style={{ width: '100%', display: 'block', maxHeight: '140px', objectFit: 'cover' }} />
-                        {receiveProofInfo?.isPdf && (
-                          <span style={{ position: 'absolute', top: '4px', left: '4px', background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '3px' }}>
-                            PDF HD
-                          </span>
-                        )}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '3px 0', fontWeight: 650 }}>
-                          🔍 คลิกซูมดูรูปเต็ม
-                        </div>
+                  ) : receiveProofPreviews.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '0.75rem' }} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(105px, 1fr))', gap: '0.6rem', width: '100%' }}>
+                        {receiveProofPreviews.map((p, idx) => (
+                          <div 
+                            key={idx} 
+                            style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--success)', background: '#000', height: '95px' }}
+                          >
+                            <img 
+                              src={p.url} 
+                              alt={`Receive proof ${idx + 1}`} 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                              onClick={() => handleOpenLightbox(p.url, `หลักฐานตรวจรับของคืน #${idx + 1} - ${workflowCase.assetName}`)}
+                              title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD"
+                            />
+                            {p.isPdf && (
+                              <span style={{ position: 'absolute', top: '3px', left: '3px', background: '#ef4444', color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '0.1rem 0.3rem', borderRadius: '3px', pointerEvents: 'none' }}>
+                                PDF HD
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleRemoveReceiveFile(idx); }}
+                              style={{ position: 'absolute', top: '3px', right: '3px', background: 'rgba(0,0,0,0.75)', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                              title="ลบไฟล์นี้"
+                            >
+                              ✕
+                            </button>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '0.6rem', textAlign: 'center', padding: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                              {p.size}
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
-                      <div style={{ textAlign: 'center', fontSize: '0.75rem' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{receiveProofInfo?.name || 'หลักฐานตรวจรับของ'}</span>
-                        {receiveProofInfo?.size && <span style={{ color: 'var(--success)', marginLeft: '0.35rem', fontWeight: 700 }}>({receiveProofInfo.size} - บีบอัด HD)</span>}
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        <button
-                          type="button"
-                          className="btn btn-success btn-xs"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleOpenLightbox(receiveProofPreview, `หลักฐานการตรวจรับของคืน - ${workflowCase.assetName}`);
-                          }}
-                          style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.6rem' }}
-                        >
-                          🔍 เปิดดูรูปภาพ/PDF ขนาดเต็ม (HD)
-                        </button>
-
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600 }}>
+                          ✓ แนบแล้ว {receiveProofPreviews.length} ไฟล์
+                        </span>
                         <label
                           htmlFor="receive-proof-picker"
-                          style={{ fontSize: '0.72rem', color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer', padding: '0.25rem' }}
-                          onClick={(e) => e.stopPropagation()}
+                          style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
                         >
-                          🔄 คลิกเพื่อเปลี่ยนไฟล์
+                          ➕ เพิ่มรูป/ไฟล์อีก
                         </label>
                       </div>
                     </div>
@@ -4042,7 +4239,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                         <Camera size={26} color="var(--primary)" />
                         <FileText size={26} color="#ef4444" />
                       </div>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>คลิกเพื่อแนบเอกสาร PDF หรือ รูปภาพตรวจรับของ</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>คลิกเพื่อแนบเอกสาร PDF หรือรูปภาพตรวจรับของ (แนบได้หลายไฟล์)</span>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>⚡ บีบอัด HD อัตโนมัติ ประหยัดพื้นที่จัดเก็บบนคลาวด์</span>
                     </>
                   )}
@@ -4397,104 +4594,100 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               
               {/* Step 1: Symptom */}
-              <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--danger)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  🚨 1. อาการชำรุด/ปัญหาที่พบ (Symptom)
-                </h4>
-                <p style={{ margin: 0, fontSize: '0.825rem', lineHeight: '1.45' }}>{selectedCMDetailCase.symptom}</p>
-                {selectedCMDetailCase.symptomImageUrl && (
-                  <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <div 
-                      onClick={() => handleOpenLightbox(selectedCMDetailCase.symptomImageUrl!, `รูปถ่ายอาการชำรุด - ${selectedCMDetailCase.assetName}`)}
-                      style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
-                      title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
-                    >
-                      <img src={selectedCMDetailCase.symptomImageUrl} alt="Symptom" style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
-                        🔍 ซูมดูรูป
+              {(() => {
+                const symptomList = selectedCMDetailCase.symptomImages && selectedCMDetailCase.symptomImages.length > 0 ? selectedCMDetailCase.symptomImages : (selectedCMDetailCase.symptomImageUrl ? [selectedCMDetailCase.symptomImageUrl] : []);
+                return (
+                  <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--danger)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      🚨 1. อาการชำรุด/ปัญหาที่พบ (Symptom){symptomList.length > 0 ? ` [${symptomList.length} รูป/ไฟล์]` : ''}
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.825rem', lineHeight: '1.45' }}>{selectedCMDetailCase.symptom}</p>
+                    {symptomList.length > 0 && (
+                      <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                        {symptomList.map((url, idx) => (
+                          <div 
+                            key={`sym-dtl-${idx}`}
+                            onClick={() => handleOpenLightbox(url, `รูปถ่ายอาการชำรุด #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
+                            style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
+                            title={`คลิกเพื่อขยายดูรูปภาพขนาดเต็ม #${idx + 1} (HD Lightbox)`}
+                          >
+                            <img src={url} alt={`Symptom ${idx + 1}`} style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
+                              🔍 ซูมรูป #{idx + 1}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                    <button 
-                      type="button" 
-                      className="btn btn-ghost btn-xs"
-                      onClick={() => handleOpenLightbox(selectedCMDetailCase.symptomImageUrl!, `รูปถ่ายอาการชำรุด - ${selectedCMDetailCase.assetName}`)}
-                      style={{ fontSize: '0.75rem', color: 'var(--primary)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem' }}
-                    >
-                      🖼️ ดูรูปถ่ายอาการชำรุด (HD)
-                    </button>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* Step 2: Vendor / Dispatch */}
-              {(selectedCMDetailCase.status === 'sent' || selectedCMDetailCase.status === 'completed' || selectedCMDetailCase.repairCompany) && (
-                <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--warning)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-                  <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    🚚 2. ข้อมูลการส่งซ่อม / ช่างผู้รับผิดชอบ
-                  </h4>
-                  <div style={{ fontSize: '0.8rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
-                    <div>ร้าน/บริษัทซ่อม: <strong>{selectedCMDetailCase.repairCompany || '-'}</strong></div>
-                    <div>เบอร์ติดต่อช่าง: <strong>{selectedCMDetailCase.contactPerson || '-'}</strong></div>
-                    <div>วันที่ส่งซ่อม: <strong>{selectedCMDetailCase.dateSent ? getThaiDateFormatted(selectedCMDetailCase.dateSent) : '-'}</strong></div>
-                  </div>
-                  {selectedCMDetailCase.sentProofUrl && (
-                    <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      <div 
-                        onClick={() => handleOpenLightbox(selectedCMDetailCase.sentProofUrl!, `หลักฐานการนำส่งช่าง - ${selectedCMDetailCase.assetName}`)}
-                        style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
-                        title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
-                      >
-                        <img src={selectedCMDetailCase.sentProofUrl} alt="Sent Proof" style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
-                          🔍 ซูมดูรูป
-                        </div>
-                      </div>
-                      <button 
-                        type="button" 
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => handleOpenLightbox(selectedCMDetailCase.sentProofUrl!, `หลักฐานการนำส่งช่าง - ${selectedCMDetailCase.assetName}`)}
-                        style={{ fontSize: '0.75rem', color: 'var(--warning)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem' }}
-                      >
-                        🚚 ดูหลักฐานการนำส่งช่าง (HD)
-                      </button>
+              {(selectedCMDetailCase.status === 'sent' || selectedCMDetailCase.status === 'completed' || selectedCMDetailCase.repairCompany) && (() => {
+                const sentList = selectedCMDetailCase.sentProofImages && selectedCMDetailCase.sentProofImages.length > 0 ? selectedCMDetailCase.sentProofImages : (selectedCMDetailCase.sentProofUrl ? [selectedCMDetailCase.sentProofUrl] : []);
+                return (
+                  <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--warning)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      🚚 2. ข้อมูลการส่งซ่อม / ช่างผู้รับผิดชอบ{sentList.length > 0 ? ` [${sentList.length} รูป/ไฟล์]` : ''}
+                    </h4>
+                    <div style={{ fontSize: '0.8rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
+                      <div>ร้าน/บริษัทซ่อม: <strong>{selectedCMDetailCase.repairCompany || '-'}</strong></div>
+                      <div>เบอร์ติดต่อช่าง: <strong>{selectedCMDetailCase.contactPerson || '-'}</strong></div>
+                      <div>วันที่ส่งซ่อม: <strong>{selectedCMDetailCase.dateSent ? getThaiDateFormatted(selectedCMDetailCase.dateSent) : '-'}</strong></div>
                     </div>
-                  )}
-                </div>
-              )}
+                    {sentList.length > 0 && (
+                      <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                        {sentList.map((url, idx) => (
+                          <div 
+                            key={`sent-dtl-${idx}`}
+                            onClick={() => handleOpenLightbox(url, `หลักฐานการนำส่งช่าง #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
+                            style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
+                            title={`คลิกเพื่อขยายดูรูปภาพขนาดเต็ม #${idx + 1} (HD Lightbox)`}
+                          >
+                            <img src={url} alt={`Sent Proof ${idx + 1}`} style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
+                              🔍 ซูมรูป #{idx + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Step 3: Completed / Return */}
-              {selectedCMDetailCase.status === 'completed' && (
-                <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--success)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-                  <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    ✅ 3. ตรวจรับของคืนคลังและปิดเคสเรียบร้อย
-                  </h4>
-                  <div style={{ fontSize: '0.8rem' }}>
-                    วันที่รับของคืน: <strong>{selectedCMDetailCase.dateReceived ? getThaiDateFormatted(selectedCMDetailCase.dateReceived) : '-'}</strong>
-                  </div>
-                  {selectedCMDetailCase.receivedProofUrl && (
-                    <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      <div 
-                        onClick={() => handleOpenLightbox(selectedCMDetailCase.receivedProofUrl!, `หลักฐานการตรวจรับของคืน - ${selectedCMDetailCase.assetName}`)}
-                        style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
-                        title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
-                      >
-                        <img src={selectedCMDetailCase.receivedProofUrl} alt="Return Proof" style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
-                          🔍 ซูมดูรูป
-                        </div>
-                      </div>
-                      <button 
-                        type="button" 
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => handleOpenLightbox(selectedCMDetailCase.receivedProofUrl!, `หลักฐานการตรวจรับของคืน - ${selectedCMDetailCase.assetName}`)}
-                        style={{ fontSize: '0.75rem', color: 'var(--success)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem' }}
-                      >
-                        ✅ ดูหลักฐานการตรวจรับของคืน (HD)
-                      </button>
+              {selectedCMDetailCase.status === 'completed' && (() => {
+                const receivedList = selectedCMDetailCase.receivedProofImages && selectedCMDetailCase.receivedProofImages.length > 0 ? selectedCMDetailCase.receivedProofImages : (selectedCMDetailCase.receivedProofUrl ? [selectedCMDetailCase.receivedProofUrl] : []);
+                return (
+                  <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--success)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      ✅ 3. ตรวจรับของคืนคลังและปิดเคสเรียบร้อย{receivedList.length > 0 ? ` [${receivedList.length} รูป/ไฟล์]` : ''}
+                    </h4>
+                    <div style={{ fontSize: '0.8rem' }}>
+                      วันที่รับของคืน: <strong>{selectedCMDetailCase.dateReceived ? getThaiDateFormatted(selectedCMDetailCase.dateReceived) : '-'}</strong>
                     </div>
-                  )}
-                </div>
-              )}
+                    {receivedList.length > 0 && (
+                      <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                        {receivedList.map((url, idx) => (
+                          <div 
+                            key={`rec-dtl-${idx}`}
+                            onClick={() => handleOpenLightbox(url, `หลักฐานการตรวจรับของคืน #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
+                            style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
+                            title={`คลิกเพื่อขยายดูรูปภาพขนาดเต็ม #${idx + 1} (HD Lightbox)`}
+                          >
+                            <img src={url} alt={`Return Proof ${idx + 1}`} style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
+                              🔍 ซูมรูป #{idx + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Editable Additional Information & Notes Section */}
@@ -4567,13 +4760,14 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               {/* Extra File Attachment with HD Compression & Interactive Preview */}
               <div style={{ marginTop: '0.25rem' }}>
                 <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>
-                  📎 แนบเอกสาร/ใบเสร็จ/รูปภาพผลงานซ่อมเพิ่มเติม (รองรับ PDF และภาพคมชัดระดับ HD พร้อมบีบอัดอัตโนมัติ):
+                  📎 แนบเอกสาร/ใบเสร็จ/รูปภาพผลงานซ่อมเพิ่มเติม (เพิ่มได้หลายรูป/ไฟล์ PDF คมชัดระดับ HD บีบอัดอัตโนมัติ):
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input 
                     type="file" 
+                    multiple
                     accept="image/*,application/pdf"
-                    onChange={handleCMEditProofImageChange}
+                    onChange={handleCMEditProofImagesChange}
                     className="form-input"
                     style={{ fontSize: '0.75rem', padding: '0.35rem' }}
                   />
@@ -4581,31 +4775,44 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                     <span style={{ fontSize: '0.72rem', color: 'var(--primary)', whiteSpace: 'nowrap' }}>⚡ กำลังบีบอัด HD...</span>
                   )}
                 </div>
-                {cmEditProofInfo && (
-                  <div style={{ marginTop: '0.35rem', fontSize: '0.725rem', color: 'var(--success)', fontWeight: 600 }}>
-                    {cmEditProofInfo.isPdf ? '📄 แนบไฟล์ PDF:' : '📷 ภาพ HD บีบอัดแล้ว:'} {cmEditProofInfo.name} ({cmEditProofInfo.size})
-                  </div>
-                )}
-                {cmEditProofPreview && (
-                  <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <div 
-                      onClick={() => handleOpenLightbox(cmEditProofPreview, `รูปภาพ/เอกสารแนบ - ${selectedCMDetailCase.assetName}`)}
-                      style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--primary)', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)', background: '#000' }}
-                      title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
-                    >
-                      <img src={cmEditProofPreview} alt="Preview" style={{ height: '80px', maxWidth: '140px', objectFit: 'cover', display: 'block' }} />
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '2px 0' }}>
-                        🔍 คลิกซูมดูรูป
-                      </div>
+
+                {cmEditProofPreviews.length > 0 && (
+                  <div style={{ marginTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))', gap: '0.5rem' }}>
+                      {cmEditProofPreviews.map((p, idx) => (
+                        <div 
+                          key={idx} 
+                          style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--primary)', background: '#000', height: '85px' }}
+                        >
+                          <img 
+                            src={p.url} 
+                            alt={`Preview ${idx + 1}`} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                            onClick={() => handleOpenLightbox(p.url, `รูปภาพ/เอกสารแนบ #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
+                            title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
+                          />
+                          {p.isPdf && (
+                            <span style={{ position: 'absolute', top: '2px', left: '2px', background: '#ef4444', color: '#fff', fontSize: '0.55rem', fontWeight: 700, padding: '0.1rem 0.25rem', borderRadius: '2px', pointerEvents: 'none' }}>
+                              PDF
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCMEditFile(idx)}
+                            style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.75)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            title="ลบไฟล์นี้"
+                          >
+                            ✕
+                          </button>
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '0.55rem', textAlign: 'center', padding: '1px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                            {p.size}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <button 
-                      type="button" 
-                      className="btn btn-primary btn-xs"
-                      onClick={() => handleOpenLightbox(cmEditProofPreview, `รูปภาพ/เอกสารแนบ - ${selectedCMDetailCase.assetName}`)}
-                      style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem' }}
-                    >
-                      🔍 เปิดดูภาพขยาย / ตรวจสอบเอกสาร (HD)
-                    </button>
+                    <span style={{ fontSize: '0.725rem', color: 'var(--success)', fontWeight: 600 }}>
+                      ✓ เลือกแนบเพิ่ม {cmEditProofPreviews.length} ไฟล์
+                    </span>
                   </div>
                 )}
               </div>
@@ -4752,31 +4959,39 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </div>
 
               {/* Photo Proofs if any */}
-              {(selectedCMDetailCase.symptomImageUrl || selectedCMDetailCase.sentProofUrl || selectedCMDetailCase.receivedProofUrl) && (
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.5rem' }}>📷 หลักฐานรูปถ่ายประกอบการซ่อมบำรุง:</div>
-                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                    {selectedCMDetailCase.symptomImageUrl && (
-                      <div style={{ textAlign: 'center', border: '1px solid #e5e7eb', padding: '0.5rem', borderRadius: '4px' }}>
-                        <img src={selectedCMDetailCase.symptomImageUrl} alt="Symptom" style={{ maxHeight: '120px', maxWidth: '180px', objectFit: 'contain' }} />
-                        <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '0.25rem' }}>รูปถ่ายอาการชำรุด</div>
-                      </div>
-                    )}
-                    {selectedCMDetailCase.sentProofUrl && (
-                      <div style={{ textAlign: 'center', border: '1px solid #e5e7eb', padding: '0.5rem', borderRadius: '4px' }}>
-                        <img src={selectedCMDetailCase.sentProofUrl} alt="Sent" style={{ maxHeight: '120px', maxWidth: '180px', objectFit: 'contain' }} />
-                        <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '0.25rem' }}>รูปหลักฐานนำส่งช่าง</div>
-                      </div>
-                    )}
-                    {selectedCMDetailCase.receivedProofUrl && (
-                      <div style={{ textAlign: 'center', border: '1px solid #e5e7eb', padding: '0.5rem', borderRadius: '4px' }}>
-                        <img src={selectedCMDetailCase.receivedProofUrl} alt="Received" style={{ maxHeight: '120px', maxWidth: '180px', objectFit: 'contain' }} />
-                        <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '0.25rem' }}>รูปหลักฐานตรวจรับคืน</div>
-                      </div>
-                    )}
+              {(() => {
+                const allSymptom = selectedCMDetailCase.symptomImages && selectedCMDetailCase.symptomImages.length > 0 ? selectedCMDetailCase.symptomImages : (selectedCMDetailCase.symptomImageUrl ? [selectedCMDetailCase.symptomImageUrl] : []);
+                const allSent = selectedCMDetailCase.sentProofImages && selectedCMDetailCase.sentProofImages.length > 0 ? selectedCMDetailCase.sentProofImages : (selectedCMDetailCase.sentProofUrl ? [selectedCMDetailCase.sentProofUrl] : []);
+                const allReceived = selectedCMDetailCase.receivedProofImages && selectedCMDetailCase.receivedProofImages.length > 0 ? selectedCMDetailCase.receivedProofImages : (selectedCMDetailCase.receivedProofUrl ? [selectedCMDetailCase.receivedProofUrl] : []);
+
+                if (allSymptom.length === 0 && allSent.length === 0 && allReceived.length === 0) return null;
+
+                return (
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.5rem' }}>📷 หลักฐานรูปถ่ายประกอบการซ่อมบำรุง ({allSymptom.length + allSent.length + allReceived.length} รูป):</div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      {allSymptom.map((url, idx) => (
+                        <div key={`prt-sym-${idx}`} style={{ textAlign: 'center', border: '1px solid #e5e7eb', padding: '0.35rem', borderRadius: '4px' }}>
+                          <img src={url} alt={`Symptom ${idx + 1}`} style={{ maxHeight: '110px', maxWidth: '160px', objectFit: 'contain' }} />
+                          <div style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '0.2rem' }}>รูปอาการชำรุด #{idx + 1}</div>
+                        </div>
+                      ))}
+                      {allSent.map((url, idx) => (
+                        <div key={`prt-sent-${idx}`} style={{ textAlign: 'center', border: '1px solid #e5e7eb', padding: '0.35rem', borderRadius: '4px' }}>
+                          <img src={url} alt={`Sent ${idx + 1}`} style={{ maxHeight: '110px', maxWidth: '160px', objectFit: 'contain' }} />
+                          <div style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '0.2rem' }}>รูปส่งช่าง #{idx + 1}</div>
+                        </div>
+                      ))}
+                      {allReceived.map((url, idx) => (
+                        <div key={`prt-rec-${idx}`} style={{ textAlign: 'center', border: '1px solid #e5e7eb', padding: '0.35rem', borderRadius: '4px' }}>
+                          <img src={url} alt={`Received ${idx + 1}`} style={{ maxHeight: '110px', maxWidth: '160px', objectFit: 'contain' }} />
+                          <div style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '0.2rem' }}>รูปตรวจรับคืน #{idx + 1}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Signatures */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '2rem', textAlign: 'center', fontSize: '0.8rem' }}>

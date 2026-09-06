@@ -133,13 +133,16 @@ export interface RepairCase {
   assetName: string;
   symptom: string;
   symptomImageUrl?: string;
+  symptomImages?: string[];
   dateOpened: string;
   dateSent?: string;
   sentProofUrl?: string;
+  sentProofImages?: string[];
   repairCompany?: string;
   contactPerson?: string;
   dateReceived?: string;
   receivedProofUrl?: string;
+  receivedProofImages?: string[];
   status: 'open' | 'sent' | 'completed';
   operator: string;
   updatedAt: string;
