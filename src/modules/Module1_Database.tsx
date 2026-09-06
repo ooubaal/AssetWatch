@@ -123,7 +123,8 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
 
     const matchesSearch = 
       asset.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.name.toLowerCase().includes(searchTerm.toLowerCase());
+      asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (asset.note && asset.note.toLowerCase().includes(searchTerm.toLowerCase()));
       
     const matchesStatus = statusFilter ? asset.status === statusFilter : true;
     const matchesDept = deptFilter ? asset.department === deptFilter : true;
@@ -306,6 +307,12 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
               <div className="asset-card-body">
                 <span className="asset-card-id">{asset.id}</span>
                 <h3 className="asset-card-title">{asset.name}</h3>
+                {asset.note && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', padding: '0.15rem 0.4rem', borderRadius: '4px', margin: '0.2rem 0 0.35rem 0', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', maxWidth: '100%' }}>
+                    <span>🏷️</span>
+                    <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{asset.note}</span>
+                  </div>
+                )}
                 <div className="asset-card-meta">
                   <span className="meta-loc">📍 {asset.location}</span>
                   <span className="meta-dept">🏢 {asset.department}</span>
@@ -353,7 +360,14 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
               {filteredAssets.map((asset) => (
                 <tr key={asset.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedAsset(asset)}>
                   <td><code>{asset.id}</code></td>
-                  <td><strong style={{ color: 'var(--text-primary)' }}>{asset.name}</strong></td>
+                  <td>
+                    <strong style={{ color: 'var(--text-primary)' }}>{asset.name}</strong>
+                    {asset.note && (
+                      <div style={{ fontSize: '0.725rem', color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '2px' }}>
+                        🏷️ {asset.note}
+                      </div>
+                    )}
+                  </td>
                   <td>{asset.location}</td>
                   <td>{asset.department}</td>
                   <td>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Wrench, Calendar, FileText, Bell, Plus, CheckCircle, Clock, AlertTriangle, 
-  Trash2, Phone, User, Building, ExternalLink, Printer, ChevronLeft, ChevronRight, Camera, Search, ArrowRight, RefreshCw 
+  Trash2, Phone, User, Building, ExternalLink, Printer, ChevronLeft, ChevronRight, Camera, Search, ArrowRight, RefreshCw, Edit3 
 } from 'lucide-react';
 import { Asset, PMContract, PMSchedule, PMNotification, RepairCase, UserAccount } from '../utils/mockData';
-import { uploadImage, compressFileOrPdf } from '../services/dbService';
+import { uploadImage, compressFileOrPdf, updateAsset } from '../services/dbService';
 import { SearchableSelect } from '../components/SearchableSelect';
 import confetti from 'canvas-confetti';
 
@@ -169,6 +169,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       return (
         asset.id.toLowerCase().includes(term) ||
         asset.name.toLowerCase().includes(term) ||
+        (asset.note && asset.note.toLowerCase().includes(term)) ||
         (asset.location && asset.location.toLowerCase().includes(term)) ||
         (asset.department && asset.department.toLowerCase().includes(term)) ||
         vendor.includes(term) ||
@@ -177,6 +178,43 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       );
     });
   }, [assets, contracts, selectedDeptFilter, assetPMTypeFilter, assetPMSearch]);
+
+  // Quick Note / Equipment Nickname Modal States
+  const [isQuickNoteOpen, setIsQuickNoteOpen] = useState(false);
+  const [selectedNoteAsset, setSelectedNoteAsset] = useState<Asset | null>(null);
+  const [quickNoteText, setQuickNoteText] = useState('');
+  const [isSavingNote, setIsSavingNote] = useState(false);
+
+  const handleOpenQuickNoteModal = (asset: Asset) => {
+    setSelectedNoteAsset(asset);
+    setQuickNoteText(asset.note || '');
+    setIsQuickNoteOpen(true);
+  };
+
+  const handleSaveQuickNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedNoteAsset) return;
+    setIsSavingNote(true);
+    try {
+      const trimmedNote = quickNoteText.trim();
+      await updateAsset(selectedNoteAsset.id, { note: trimmedNote });
+      await onLogAudit({
+        assetId: selectedNoteAsset.id,
+        assetName: selectedNoteAsset.name,
+        action: 'edit',
+        operator: currentUser?.name || 'ผู้ใช้งาน',
+        details: `อัปเดตโน้ต/ชื่อเล่นครุภัณฑ์: "${trimmedNote || '(ลบโน้ต)'}"`
+      });
+      await onRefreshData();
+      setIsQuickNoteOpen(false);
+      setSelectedNoteAsset(null);
+    } catch (err) {
+      console.error('Failed to update note:', err);
+      alert('ไม่สามารถบันทึกโน้ตได้ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
 
   // Add Ad-hoc Repair Modal States
   const [isRepairFormOpen, setIsRepairFormOpen] = useState(false);
@@ -2067,9 +2105,41 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                       </div>
 
                       {/* Asset Title */}
-                      <h4 style={{ fontSize: '0.975rem', fontWeight: 800, margin: '0.2rem 0 0.5rem 0', color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                      <h4 style={{ fontSize: '0.975rem', fontWeight: 800, margin: '0.2rem 0 0.35rem 0', color: 'var(--text-primary)', lineHeight: 1.4 }}>
                         {asset.name}
                       </h4>
+
+                      {/* Asset Nickname / Note Badge */}
+                      <div style={{ margin: '0.2rem 0 0.45rem 0' }}>
+                        <div 
+                          style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '0.35rem', 
+                            background: asset.note ? 'rgba(59, 130, 246, 0.12)' : 'rgba(255, 255, 255, 0.04)', 
+                            border: asset.note ? '1px solid rgba(59, 130, 246, 0.35)' : '1px dashed var(--border)', 
+                            padding: '0.2rem 0.55rem', 
+                            borderRadius: '6px',
+                            fontSize: '0.775rem',
+                            color: asset.note ? 'var(--text-primary)' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            maxWidth: '100%',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onClick={() => handleOpenQuickNoteModal(asset)}
+                          title="คลิกเพื่อแก้ไขโน้ต / บันทึกชื่อเล่นเครื่องมือ"
+                        >
+                          <span style={{ fontSize: '0.8rem' }}>🏷️</span>
+                          {asset.note ? (
+                            <span style={{ fontWeight: 700, color: '#38bdf8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {asset.note}
+                            </span>
+                          ) : (
+                            <span style={{ fontStyle: 'italic', fontSize: '0.72rem' }}>+ บันทึกโน้ต/ชื่อเล่น</span>
+                          )}
+                          <Edit3 size={11} style={{ opacity: 0.7, marginLeft: '2px', flexShrink: 0 }} />
+                        </div>
+                      </div>
 
                       {/* Maintenance Plans List for this Asset */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.5rem 0' }}>
@@ -5086,6 +5156,87 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* --- MODAL 6: QUICK NOTE / EQUIPMENT NICKNAME --- */}
+      {isQuickNoteOpen && selectedNoteAsset && (
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 1rem' }}>
+          <form onSubmit={handleSaveQuickNote} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '480px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-primary)' }}>
+                <span>🏷️</span> บันทึกโน้ต / ชื่อเล่นเครื่องมือ
+              </h3>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm" 
+                onClick={() => {
+                  setIsQuickNoteOpen(false);
+                  setSelectedNoteAsset(null);
+                }} 
+                style={{ padding: '0.25rem', height: 'auto', outline: 'none' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ background: 'var(--bg-primary)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                <div style={{ fontFamily: 'monospace', color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 700 }}>
+                  {selectedNoteAsset.id}
+                </div>
+                <div style={{ fontWeight: 700, fontSize: '0.925rem', color: 'var(--text-primary)', marginTop: '2px' }}>
+                  {selectedNoteAsset.name}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  📍 {selectedNoteAsset.location || selectedNoteAsset.department}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
+                  <span>📝 ข้อความโน้ต / ชื่อเล่นเครื่องมือ</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>เช่น ชื่อเรียกเฉพาะจุด</span>
+                </label>
+                <input 
+                  type="text"
+                  className="form-input"
+                  placeholder="เช่น เครื่องเป่าอัด 1, ตู้นึ่ง AR-2, ปั๊มหลักตึก 5..."
+                  value={quickNoteText}
+                  onChange={(e) => setQuickNoteText(e.target.value)}
+                  autoFocus
+                  style={{ fontSize: '0.9rem' }}
+                />
+                <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  * บันทึกนี้จะแสดงบนการ์ดครุภัณฑ์ และช่วยให้ค้นหาเครื่องได้ง่ายขึ้นด้วยคำค้นหานี้
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => {
+                    setIsQuickNoteOpen(false);
+                    setSelectedNoteAsset(null);
+                  }}
+                  disabled={isSavingNote}
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={isSavingNote}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  {isSavingNote ? 'กำลังบันทึก...' : '💾 บันทึกข้อมูล'}
+                </button>
+              </div>
+            </div>
+
+          </form>
         </div>
       )}
 

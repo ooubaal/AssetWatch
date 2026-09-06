@@ -1409,10 +1409,11 @@ function App() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">📝 หมายเหตุเพิ่มเติม</label>
+                <label className="form-label">📝 โน้ตบันทึกข้อมูล / ชื่อเล่นเครื่องมือ (Note / Equipment Nickname)</label>
                 <input 
                   type="text" 
                   className="form-input" 
+                  placeholder="เช่น เครื่องเป่าอัด 1, ตู้นึ่ง AR-2, ปั๊มหลักตึก 5..."
                   value={editNote}
                   onChange={(e) => setEditNote(e.target.value)}
                 />

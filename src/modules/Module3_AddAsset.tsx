@@ -940,11 +940,11 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
             </div>
 
             <div className="form-group flex-1">
-              <label className="form-label">📝 หมายเหตุเพิ่มเติม (ความจำเฉพาะตัวเครื่อง)</label>
+              <label className="form-label">📝 โน้ตบันทึกข้อมูล / ชื่อเล่นเครื่องมือ (Note / Nickname)</label>
               <input 
                 type="text" 
                 className="form-input"
-                placeholder="เช่น สเปคเครื่อง Core i7 RAM 16GB, ยี่ห้อแท้ศูนย์..."
+                placeholder="เช่น เครื่องเป่าอัด 1, ตู้นึ่ง AR-2, ปั๊มหลักตึก 5, สเปคเฉพาะ..."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
               />

@@ -622,6 +622,11 @@ export const AssetModal: React.FC<AssetModalProps> = ({
               {asset.status}
             </span>
             <h2>{asset.name}</h2>
+            {asset.note && (
+              <span className="badge badge-primary" style={{ fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem', width: 'fit-content' }}>
+                🏷️ {asset.note}
+              </span>
+            )}
             <span className="modal-asset-id">รหัส: <code>{asset.id}</code></span>
           </div>
           <button className="btn-close" onClick={onClose} aria-label="Close details">
@@ -697,13 +702,13 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                 {/* Area for saving misc info / notes */}
                 <div style={{ marginTop: '0.85rem', width: '100%', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    📝 บันทึกข้อมูลโน้ต / หมายเหตุพัสดุ:
+                    📝 บันทึกข้อมูลโน้ต / ชื่อเล่นเครื่องมือ (Note / Nickname):
                   </label>
                   <textarea
                     className="form-input"
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}
-                    placeholder="พิมพ์โน้ตส่วนตัว ข้อควรระวัง หรือรายละเอียดเพิ่มเติมของครุภัณฑ์ชิ้นนี้..."
+                    placeholder="พิมพ์บันทึกโน้ต ชื่อเล่นเครื่องมือ เช่น ตู้นึ่ง AR-2, ปั๊มหลักตึก 5 หรือข้อควรระวัง..."
                     style={{
                       width: '100%',
                       minHeight: '120px',
