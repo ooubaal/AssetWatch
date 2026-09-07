@@ -27,14 +27,23 @@ const getServices = () => {
 
 // Utility to strip undefined values from objects before sending to Firestore
 // Firestore rejects undefined values in setDoc/updateDoc calls
-const sanitizeForFirestore = (obj: Record<string, any>): Record<string, any> => {
-  const clean: Record<string, any> = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (value !== undefined) {
-      clean[key] = value;
-    }
+const sanitizeForFirestore = (obj: any): any => {
+  if (obj === null || obj === undefined) return null;
+  if (Array.isArray(obj)) {
+    return obj
+      .filter(item => item !== undefined)
+      .map(item => (typeof item === 'object' && item !== null ? sanitizeForFirestore(item) : item));
   }
-  return clean;
+  if (typeof obj === 'object') {
+    const clean: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        clean[key] = typeof value === 'object' && value !== null ? sanitizeForFirestore(value) : value;
+      }
+    }
+    return clean;
+  }
+  return obj;
 };
 
 // --- INITIALIZE LOCAL STORAGE MOCK DATA IF EMPTY ---
@@ -438,55 +447,50 @@ export const getAsset = async (id: string): Promise<Asset | null> => {
 };
 
 export const addAsset = async (asset: Asset): Promise<void> => {
-  const { isFirebase, db } = getServices();
-  
-  if (isFirebase && db) {
-    try {
-      const docRef = doc(db, 'assets', asset.id);
-      await setDoc(docRef, asset);
-      return;
-    } catch (e) {
-      console.error('Firebase addAsset failed, falling back to localStorage:', e);
-    }
-  }
-
-  // LocalStorage Fallback
+  // 1. LocalStorage update
   initLocalStorageIfNeeded();
   const assets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
-  // Check if exists
   if (assets.some(a => a.id === asset.id)) {
     throw new Error('รหัสครุภัณฑ์นี้มีอยู่แล้วในระบบ');
   }
   assets.push(asset);
   localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
+
+  // 2. Sync to Firebase Firestore
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'assets', asset.id);
+      await setDoc(docRef, sanitizeForFirestore(asset as any));
+      return;
+    } catch (e) {
+      console.error('Firebase addAsset failed, saved to localStorage:', e);
+    }
+  }
 };
 
 export const addAssetsBulk = async (newAssets: Asset[]): Promise<void> => {
+  // 1. LocalStorage update
+  initLocalStorageIfNeeded();
+  const assets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+  const existingIds = new Set(assets.map(a => a.id));
+  const uniqueNewAssets = newAssets.filter(a => !existingIds.has(a.id));
+  assets.push(...uniqueNewAssets);
+  localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
+
+  // 2. Sync to Firebase Firestore
   const { isFirebase, db } = getServices();
-  
   if (isFirebase && db) {
     try {
-      // In Firestore, we can set docs in parallel.
       await Promise.all(newAssets.map(async (asset) => {
         const docRef = doc(db, 'assets', asset.id);
-        await setDoc(docRef, asset);
+        await setDoc(docRef, sanitizeForFirestore(asset as any));
       }));
       return;
     } catch (e) {
-      console.error('Firebase addAssetsBulk failed, falling back to localStorage:', e);
+      console.error('Firebase addAssetsBulk failed, saved to localStorage:', e);
     }
   }
-
-  // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const assets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
-  
-  // Filter out duplicates that might be already in database (though live validated beforehand)
-  const existingIds = new Set(assets.map(a => a.id));
-  const uniqueNewAssets = newAssets.filter(a => !existingIds.has(a.id));
-  
-  assets.push(...uniqueNewAssets);
-  localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
 };
 
 
@@ -597,23 +601,23 @@ export const addAuditTrail = async (trail: Omit<AuditTrail, 'id'>): Promise<void
   const id = `audit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const fullTrail: AuditTrail = { id, ...trail };
   
+  // 1. Update LocalStorage first
+  initLocalStorageIfNeeded();
+  const audits: AuditTrail[] = JSON.parse(localStorage.getItem('assetwatch_audits') || '[]');
+  audits.unshift(fullTrail);
+  localStorage.setItem('assetwatch_audits', JSON.stringify(audits));
+
+  // 2. Sync to Firebase Firestore
   const { isFirebase, db } = getServices();
-  
   if (isFirebase && db) {
     try {
       const docRef = doc(db, 'audit_trails', id);
-      await setDoc(docRef, fullTrail);
+      await setDoc(docRef, sanitizeForFirestore(fullTrail as any));
       return;
     } catch (e) {
-      console.error('Firebase addAuditTrail failed, falling back to localStorage:', e);
+      console.error('Firebase addAuditTrail failed, saved to localStorage:', e);
     }
   }
-
-  // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const audits: AuditTrail[] = JSON.parse(localStorage.getItem('assetwatch_audits') || '[]');
-  audits.push(fullTrail);
-  localStorage.setItem('assetwatch_audits', JSON.stringify(audits));
 };
 
 // --- SURVEY SERVICES ---
@@ -692,6 +696,9 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
 
 // --- REPAIR SERVICES ---
 export const getRepairs = async (): Promise<RepairCase[]> => {
+  initLocalStorageIfNeeded();
+  const localRepairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
+
   const { isFirebase, db } = getServices();
   
   if (isFirebase && db) {
@@ -703,49 +710,66 @@ export const getRepairs = async (): Promise<RepairCase[]> => {
         list.push({ id: doc.id, ...doc.data() } as RepairCase);
       });
 
-      // Seeding Firestore if completely empty
-      if (list.length === 0) {
-        initLocalStorageIfNeeded();
-        const localRepairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
-        for (const repair of localRepairs) {
-          await setDoc(doc(db, 'repairs', repair.id), repair);
+      // Auto-heal: Sync any local repairs not yet present in Firestore
+      const firestoreIds = new Set(list.map(r => r.id));
+      for (const localR of localRepairs) {
+        if (!firestoreIds.has(localR.id)) {
+          list.push(localR);
+          try {
+            await setDoc(doc(db, 'repairs', localR.id), sanitizeForFirestore(localR as any));
+          } catch (syncErr) {
+            console.error('Auto-sync local repair to Firestore failed:', syncErr);
+          }
         }
-        return localRepairs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       }
 
-      return list;
+      // Seeding Firestore if completely empty
+      if (list.length === 0 && localRepairs.length > 0) {
+        for (const repair of localRepairs) {
+          await setDoc(doc(db, 'repairs', repair.id), sanitizeForFirestore(repair as any));
+        }
+        return localRepairs.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+      }
+
+      const sortedList = list.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+      localStorage.setItem('assetwatch_repairs', JSON.stringify(sortedList));
+      return sortedList;
     } catch (e) {
       console.error('Firebase getRepairs failed, falling back to localStorage:', e);
     }
   }
 
   // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
-  return repairs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  return localRepairs.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
 };
 
 export const addRepair = async (repair: Omit<RepairCase, 'id'>): Promise<string> => {
   const id = `rep-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
   const fullRepair: RepairCase = { id, ...repair };
   
+  // 1. Update LocalStorage first
+  initLocalStorageIfNeeded();
+  const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
+  const index = repairs.findIndex(r => r.id === id);
+  if (index !== -1) {
+    repairs[index] = fullRepair;
+  } else {
+    repairs.push(fullRepair);
+  }
+  localStorage.setItem('assetwatch_repairs', JSON.stringify(repairs));
+
+  // 2. Sync to Firebase Firestore
   const { isFirebase, db } = getServices();
-  
   if (isFirebase && db) {
     try {
       const docRef = doc(db, 'repairs', id);
-      await setDoc(docRef, fullRepair);
+      await setDoc(docRef, sanitizeForFirestore(fullRepair as any));
       return id;
     } catch (e) {
-      console.error('Firebase addRepair failed, falling back to localStorage:', e);
+      console.error('Firebase addRepair failed, saved to localStorage:', e);
     }
   }
 
-  // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
-  repairs.push(fullRepair);
-  localStorage.setItem('assetwatch_repairs', JSON.stringify(repairs));
   return id;
 };
 
@@ -961,7 +985,7 @@ export const getDepartments = async (): Promise<DepartmentLocationConfig[]> => {
         const localDepts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
         const seedDepts = localDepts.length > 0 ? localDepts : INITIAL_DEPARTMENTS;
         for (const dept of seedDepts) {
-          await setDoc(doc(db, 'departments', dept.id), dept);
+          await setDoc(doc(db, 'departments', dept.id), sanitizeForFirestore(dept as any));
         }
         const syncedSeed = await syncBloodBagDepartment(seedDepts, isFirebase, db);
         return syncedSeed.sort((a, b) => a.name.localeCompare(b.name, 'th'));
@@ -982,47 +1006,43 @@ export const getDepartments = async (): Promise<DepartmentLocationConfig[]> => {
 };
 
 export const addDepartment = async (dept: DepartmentLocationConfig): Promise<void> => {
-  const { isFirebase, db } = getServices();
-  
-  if (isFirebase && db) {
-    try {
-      const docRef = doc(db, 'departments', dept.id);
-      await setDoc(docRef, dept);
-      return;
-    } catch (e) {
-      console.error('Firebase addDepartment failed, falling back to localStorage:', e);
-    }
-  }
-
-  // LocalStorage Fallback
+  // 1. LocalStorage update
   initLocalStorageIfNeeded();
   const depts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
   depts.push(dept);
   localStorage.setItem('assetwatch_departments', JSON.stringify(depts));
+
+  // 2. Sync to Firebase Firestore
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'departments', dept.id);
+      await setDoc(docRef, sanitizeForFirestore(dept as any));
+      return;
+    } catch (e) {
+      console.error('Firebase addDepartment failed, saved to localStorage:', e);
+    }
+  }
 };
 
 export const updateDepartment = async (id: string, updates: Partial<DepartmentLocationConfig>): Promise<void> => {
-  const { isFirebase, db } = getServices();
-  
-  if (isFirebase && db) {
-    try {
-      const docRef = doc(db, 'departments', id);
-      await updateDoc(docRef, updates as any);
-      return;
-    } catch (e) {
-      console.error('Firebase updateDepartment failed, falling back to localStorage:', e);
-    }
-  }
-
-  // LocalStorage Fallback
+  // 1. LocalStorage update
   initLocalStorageIfNeeded();
   const depts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
   const index = depts.findIndex(d => d.id === id);
   if (index !== -1) {
     depts[index] = { ...depts[index], ...updates };
     localStorage.setItem('assetwatch_departments', JSON.stringify(depts));
-  } else {
-    throw new Error('ไม่พบข้อมูลหน่วยงานที่ต้องการอัปเดต');
+  }
+
+  // 2. Sync to Firebase Firestore
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      await setDoc(doc(db, 'departments', id), sanitizeForFirestore(updates), { merge: true });
+    } catch (e) {
+      console.error('Firebase updateDepartment failed:', e);
+    }
   }
 };
 
@@ -1171,19 +1191,7 @@ export const getUsers = async (): Promise<UserAccount[]> => {
 };
 
 export const addOrUpdateUser = async (user: UserAccount): Promise<void> => {
-  const { isFirebase, db } = getServices();
-  
-  if (isFirebase && db) {
-    try {
-      const docRef = doc(db, 'users', user.id);
-      await setDoc(docRef, user);
-      return;
-    } catch (e) {
-      console.error('Firebase addOrUpdateUser failed, falling back to localStorage:', e);
-    }
-  }
-
-  // LocalStorage Fallback
+  // 1. LocalStorage update
   initLocalStorageIfNeeded();
   const users: UserAccount[] = JSON.parse(localStorage.getItem('assetwatch_users') || '[]');
   const index = users.findIndex(u => u.id === user.id);
@@ -1193,6 +1201,18 @@ export const addOrUpdateUser = async (user: UserAccount): Promise<void> => {
     users.push(user);
   }
   localStorage.setItem('assetwatch_users', JSON.stringify(users));
+
+  // 2. Sync to Firebase Firestore
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'users', user.id);
+      await setDoc(docRef, sanitizeForFirestore(user as any));
+      return;
+    } catch (e) {
+      console.error('Firebase addOrUpdateUser failed, saved to localStorage:', e);
+    }
+  }
 };
 
 export const deleteUser = async (id: string): Promise<void> => {
@@ -1247,21 +1267,22 @@ export const getPMContracts = async (): Promise<PMContract[]> => {
 };
 
 export const addPMContract = async (contract: PMContract): Promise<void> => {
-  const { isFirebase, db } = getServices();
-  
-  if (isFirebase && db) {
-    try {
-      await setDoc(doc(db, 'pm_contracts', contract.id), contract);
-      return;
-    } catch (e) {
-      console.error('Firebase addPMContract failed, falling back to localStorage:', e);
-    }
-  }
-
+  // 1. Update LocalStorage first
   initLocalStorageIfNeeded();
   const contracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
   contracts.push(contract);
   localStorage.setItem('assetwatch_contracts', JSON.stringify(contracts));
+
+  // 2. Sync to Firebase Firestore
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      await setDoc(doc(db, 'pm_contracts', contract.id), sanitizeForFirestore(contract as any));
+      return;
+    } catch (e) {
+      console.error('Firebase addPMContract failed, saved to localStorage:', e);
+    }
+  }
 };
 
 export const updatePMContract = async (id: string, updates: Partial<PMContract>): Promise<void> => {
@@ -1325,7 +1346,7 @@ export const getPMSchedules = async (): Promise<PMSchedule[]> => {
         initLocalStorageIfNeeded();
         const localSchedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
         for (const sched of localSchedules) {
-          await setDoc(doc(db, 'pm_schedules', sched.id), sched);
+          await setDoc(doc(db, 'pm_schedules', sched.id), sanitizeForFirestore(sched as any));
         }
         return localSchedules;
       }
@@ -1340,21 +1361,22 @@ export const getPMSchedules = async (): Promise<PMSchedule[]> => {
 };
 
 export const addPMSchedule = async (schedule: PMSchedule): Promise<void> => {
-  const { isFirebase, db } = getServices();
-  
-  if (isFirebase && db) {
-    try {
-      await setDoc(doc(db, 'pm_schedules', schedule.id), schedule);
-      return;
-    } catch (e) {
-      console.error('Firebase addPMSchedule failed, falling back to localStorage:', e);
-    }
-  }
-
+  // 1. Update LocalStorage first
   initLocalStorageIfNeeded();
   const schedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
   schedules.push(schedule);
   localStorage.setItem('assetwatch_schedules', JSON.stringify(schedules));
+
+  // 2. Sync to Firebase Firestore
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      await setDoc(doc(db, 'pm_schedules', schedule.id), sanitizeForFirestore(schedule as any));
+      return;
+    } catch (e) {
+      console.error('Firebase addPMSchedule failed, saved to localStorage:', e);
+    }
+  }
 };
 
 export const updatePMSchedule = async (id: string, updates: Partial<PMSchedule>): Promise<void> => {
@@ -1400,7 +1422,7 @@ export const getPMNotifications = async (): Promise<PMNotification[]> => {
         initLocalStorageIfNeeded();
         const localNotifications: PMNotification[] = JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
         for (const notif of localNotifications) {
-          await setDoc(doc(db, 'pm_notifications', notif.id), notif);
+          await setDoc(doc(db, 'pm_notifications', notif.id), sanitizeForFirestore(notif as any));
         }
         return localNotifications;
       }
@@ -1415,21 +1437,22 @@ export const getPMNotifications = async (): Promise<PMNotification[]> => {
 };
 
 export const addPMNotification = async (notification: PMNotification): Promise<void> => {
-  const { isFirebase, db } = getServices();
-  
-  if (isFirebase && db) {
-    try {
-      await setDoc(doc(db, 'pm_notifications', notification.id), notification);
-      return;
-    } catch (e) {
-      console.error('Firebase addPMNotification failed, falling back to localStorage:', e);
-    }
-  }
-
+  // 1. Update LocalStorage first
   initLocalStorageIfNeeded();
   const notifications: PMNotification[] = JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
   notifications.push(notification);
   localStorage.setItem('assetwatch_pm_notifications', JSON.stringify(notifications));
+
+  // 2. Sync to Firebase Firestore
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      await setDoc(doc(db, 'pm_notifications', notification.id), sanitizeForFirestore(notification as any));
+      return;
+    } catch (e) {
+      console.error('Firebase addPMNotification failed, saved to localStorage:', e);
+    }
+  }
 };
 
 export const updatePMNotification = async (id: string, updates: Partial<PMNotification>): Promise<void> => {
