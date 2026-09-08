@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet, QrCode, Camera } from 'lucide-react';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule, SparePart } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
@@ -403,7 +404,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
       )}
 
       {/* Asset Lifecycle Drawer Modal */}
-      {selectedAsset && (
+      {selectedAsset && createPortal(
         <AssetModal
           asset={selectedAsset}
           onClose={() => setSelectedAsset(null)}
@@ -425,7 +426,8 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           onAddSparePart={onAddSparePart}
           onUpdateSparePart={onUpdateSparePart}
           onDeleteSparePart={onDeleteSparePart}
-        />
+        />,
+        document.body
       )}
 
       <style>{`
@@ -637,9 +639,9 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         }
       `}</style>
       {/* REPORT PRINT MODAL OVERLAY */}
-      {showPrintModal && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
-          <div className="print-actions-bar glass-panel" style={{ maxWidth: '900px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10000 }}>
+      {showPrintModal && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
+          <div className="print-actions-bar glass-panel" style={{ maxWidth: '900px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100000 }}>
             <div>
               <h4 style={{ fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>📑 พิมพ์รายงานบัญชีครุภัณฑ์</h4>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
@@ -736,19 +738,22 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* CAMERA BARCODE / QR SCANNER MODAL */}
-      {isScannerOpen && (
+      {isScannerOpen && createPortal(
         <div 
           className="modal-overlay animate-fade-in" 
           style={{ 
             position: 'fixed', 
             top: 0, 
             left: 0, 
-            width: '100%', 
-            height: '100%', 
+            right: 0,
+            bottom: 0,
+            width: '100vw', 
+            height: '100vh', 
             background: 'rgba(0,0,0,0.85)', 
             zIndex: 99999, 
             display: 'flex', 
@@ -813,7 +818,8 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Printable CSS Media Rules */}
