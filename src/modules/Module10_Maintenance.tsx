@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Wrench, Calendar, FileText, Bell, Plus, CheckCircle, Clock, AlertTriangle, 
   Trash2, Phone, User, Building, ExternalLink, Printer, ChevronLeft, ChevronRight, Camera, Search, ArrowRight, RefreshCw, Edit3 
@@ -2848,9 +2849,9 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
       )}
 
       {/* --- MODAL: RESCHEDULE DATE PICKER (MOVE ACROSS MONTHS/YEARS) --- */}
-      {isRescheduleOpen && rescheduleTarget && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
-          <div className="glass-panel animate-scale-up" style={{ maxWidth: '480px', width: '100%', padding: '1.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+      {isRescheduleOpen && rescheduleTarget && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <div className="glass-panel animate-scale-up" style={{ maxWidth: '480px', width: '100%', margin: 'auto', padding: '1.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Calendar size={18} color="var(--primary)" /> 📅 เลื่อนวันนัด / ย้ายกำหนดการข้ามเดือน
@@ -2864,64 +2865,20 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               <span style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 650 }}>📅 วันที่ตามแผนเดิม: {getThaiDateFormatted(rescheduleTarget.plannedDate)}</span>
             </div>
 
-            {/* Quick Month Shift Shortcuts */}
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.4rem' }}>
                 ⚡ ปุ่มลัดเลื่อนข้ามเดือนด่วน (Quick Month Jump):
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
-                <button 
-                  type="button" 
-                  className="btn btn-ghost btn-xs" 
-                  onClick={() => handleShiftRescheduleMonth(1)} 
-                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
-                >
-                  ⏩ +1 เดือน (เดือนหน้า)
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-ghost btn-xs" 
-                  onClick={() => handleShiftRescheduleMonth(2)} 
-                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
-                >
-                  ⏩ +2 เดือน
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-ghost btn-xs" 
-                  onClick={() => handleShiftRescheduleMonth(3)} 
-                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
-                >
-                  ⏩ +3 เดือน (ไตรมาส)
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-ghost btn-xs" 
-                  onClick={() => handleShiftRescheduleMonth(6)} 
-                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
-                >
-                  ⏩ +6 เดือน (ครึ่งปี)
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-ghost btn-xs" 
-                  onClick={() => handleShiftRescheduleMonth(12)} 
-                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
-                >
-                  ⏩ +1 ปี (ปีถัดไป)
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-ghost btn-xs" 
-                  onClick={() => handleShiftRescheduleMonth(-1)} 
-                  style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}
-                >
-                  ⏪ -1 เดือน (ย้อนกลับ)
-                </button>
+                <button type="button" className="btn btn-ghost btn-xs" onClick={() => handleShiftRescheduleMonth(1)} style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}>⏩ +1 เดือน</button>
+                <button type="button" className="btn btn-ghost btn-xs" onClick={() => handleShiftRescheduleMonth(2)} style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}>⏩ +2 เดือน</button>
+                <button type="button" className="btn btn-ghost btn-xs" onClick={() => handleShiftRescheduleMonth(3)} style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}>⏩ +3 เดือน</button>
+                <button type="button" className="btn btn-ghost btn-xs" onClick={() => handleShiftRescheduleMonth(6)} style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}>⏩ +6 เดือน</button>
+                <button type="button" className="btn btn-ghost btn-xs" onClick={() => handleShiftRescheduleMonth(12)} style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}>⏩ +1 ปี</button>
+                <button type="button" className="btn btn-ghost btn-xs" onClick={() => handleShiftRescheduleMonth(-1)} style={{ border: '1px solid var(--border)', fontSize: '0.72rem', background: 'var(--bg-primary)' }}>⏪ -1 เดือน</button>
               </div>
             </div>
 
-            {/* Quick Month & Year Selectors */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.85rem' }}>
               <div>
                 <label style={{ fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>🗓️ เลือกเดือนเป้าหมาย</label>
@@ -2966,7 +2923,6 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </div>
             </div>
 
-            {/* Exact Date Picker Input */}
             <div className="form-group" style={{ marginBottom: '1rem' }}>
               <label className="form-label" style={{ fontWeight: 700 }}>📅 หรือระบุวันที่ใหม่อย่างละเอียด</label>
               <input 
@@ -3005,13 +2961,14 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL 1: PM RECORDING FORM --- */}
-      {isPMFormOpen && selectedSchedule && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
-          <form onSubmit={handlePMSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '580px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+      {isPMFormOpen && selectedSchedule && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <form onSubmit={handlePMSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '580px', width: '100%', maxHeight: '90vh', margin: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem', flexShrink: 0 }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}><Wrench size={18} style={{ display: 'inline', marginRight: '0.35rem', color: 'var(--primary)' }} /> บันทึกผลการบำรุงรักษา PM</h3>
@@ -3024,7 +2981,6 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                     handleOpenReschedule(selectedSchedule); 
                   }} 
                   style={{ fontSize: '0.75rem', color: 'var(--warning)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.5rem' }}
-                  title="เลื่อนวันนัด PM ไปเดือนอื่น"
                 >
                   <Calendar size={14} /> 📅 ย้ายแผน/เลื่อนวัน
                 </button>
@@ -3038,42 +2994,53 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               if (!selectedSchedule) return null;
               const contract = contracts.find(c => c.id === selectedSchedule.contractId);
               const planTitle = contract ? contract.title : 'แผนบำรุงรักษาทั่วไป';
-              
-              const assetScheds = schedules
-                .filter(s => s.contractId === selectedSchedule.contractId && s.assetId === selectedSchedule.assetId)
-                .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
-              const roundIndex = assetScheds.findIndex(s => s.id === selectedSchedule.id) + 1;
-              const totalRounds = assetScheds.length;
-              
-              const prevRoundSched = roundIndex > 1 ? assetScheds[roundIndex - 2] : null;
-              const prevNextPMNotes = prevRoundSched?.nextPMNotes || '';
-              
               return (
-                <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>รหัสครุภัณฑ์: <code>{selectedSchedule.assetId}</code></span>
-                    <span className="badge badge-primary" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '3px' }}>รอบ PM ที่ {roundIndex}/{totalRounds}</span>
-                  </div>
-                  <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: '0.1rem 0' }}>{resolveAssetName(selectedSchedule.assetId, selectedSchedule.assetName)}</h4>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 650 }}>
-                    📋 แผนงาน/สัญญา: {planTitle}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    📅 วันที่ตามแผนบำรุงรักษา: {getThaiDateFormatted(selectedSchedule.plannedDate)}
-                  </div>
-                  {prevNextPMNotes && (
-                    <div style={{ marginTop: '0.4rem', padding: '0.45rem 0.65rem', background: 'rgba(217, 119, 6, 0.08)', borderLeft: '3px solid var(--warning)', borderRadius: '0 4px 4px 0', fontSize: '0.72rem', color: '#d97706', fontWeight: 600 }}>
-                      ⚠️ คำเตือน/ข้อพึงระวังจาก PM รอบก่อนหน้า: "{prevNextPMNotes}"
+                <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: '1rem', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        รหัสครุภัณฑ์: <code>{selectedSchedule.assetId}</code>
+                      </div>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.2rem 0' }}>
+                        {resolveAssetName(selectedSchedule.assetId, selectedSchedule.assetName)}
+                      </h4>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        📋 แผน/สัญญา: <strong>{planTitle}</strong>
+                      </div>
                     </div>
-                  )}
+                    <div style={{ textAlign: 'right' }}>
+                      <span className="badge badge-primary" style={{ fontSize: '0.7rem' }}>
+                        {getThaiDateFormatted(selectedSchedule.plannedDate)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               );
             })()}
 
-            {/* Scrollable Form Fields */}
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {(() => {
+                const assetScheds = schedules
+                  .filter(s => s.contractId === selectedSchedule.contractId && s.assetId === selectedSchedule.assetId)
+                  .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
+                const roundIndex = assetScheds.findIndex(s => s.id === selectedSchedule.id) + 1;
+                const prevRoundSched = roundIndex > 1 ? assetScheds[roundIndex - 2] : null;
+                const prevNextPMNotes = prevRoundSched?.nextPMNotes || '';
+                if (!prevNextPMNotes) return null;
+                return (
+                  <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                      <AlertTriangle size={15} /> ⚠️ ข้อสังเกต/ฝากเตือนจากรอบก่อนหน้า ({roundIndex - 1}):
+                    </div>
+                    <div style={{ fontStyle: 'italic', color: 'var(--text-primary)', paddingLeft: '0.5rem' }}>
+                      "{prevNextPMNotes}"
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="form-group">
-                <label className="form-label">📅 วันที่ดำเนินการตรวจ PM จริง</label>
+                <label className="form-label">📅 วันที่ดำเนินการจริง (Actual Date)</label>
                 <input 
                   type="date" 
                   className="form-input"
@@ -3085,7 +3052,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
 
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <label className="form-label" style={{ margin: 0, fontWeight: 700 }}>📋 เช็คลิสต์รายละเอียดดำเนินการ PM (เช็คลิสต์ตรวจสภาพ)</label>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 700 }}>📝 รายละเอียดผลการตรวจเช็คเพิ่มเติม (Details & Findings)</label>
                   <button
                     type="button"
                     className="btn btn-ghost btn-xs"
@@ -3257,14 +3224,15 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL 2: A4 PM REPORT PRINT PREVIEW --- */}
-      {isPrintReportOpen && selectedSchedule && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
+      {isPrintReportOpen && selectedSchedule && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
           
-          <div className="print-actions-bar glass-panel" style={{ maxWidth: '800px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
+          <div className="print-actions-bar glass-panel" style={{ maxWidth: '800px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100000 }}>
             <div>
               <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ พิมพ์ใบรายงานผลบำรุงรักษาครุภัณฑ์ (PM Service Report)</h4>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>รายงานประวัติการเข้าตรวจบำรุงรักษาตามสัญญาเชิงวิศวกรรม</p>
@@ -3409,13 +3377,14 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             })()}
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL 3: CONTRACT ENTRY FORM --- */}
-      {isContractFormOpen && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
-          <form onSubmit={handleContractSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '650px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+      {isContractFormOpen && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <form onSubmit={handleContractSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '650px', width: '100%', maxHeight: '90vh', margin: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem', flexShrink: 0 }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>
@@ -4001,13 +3970,14 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL 4: AD-HOC REPAIR (CM) --- */}
-      {isRepairFormOpen && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
-          <form onSubmit={handleRepairSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '520px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+      {isRepairFormOpen && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <form onSubmit={handleRepairSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '520px', width: '100%', margin: 'auto', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>🚨 เปิดเคสแจ้งซ่อมด่วนเป็นครั้งคราว (Corrective Maintenance)</h3>
@@ -4130,13 +4100,14 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL 5: CM REPAIR DISPATCH (SEND TO VENDOR) --- */}
-      {workflowAction === 'send' && workflowCase && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
-          <form onSubmit={handleSentToVendorSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '540px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+      {workflowAction === 'send' && workflowCase && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <form onSubmit={handleSentToVendorSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '540px', width: '100%', margin: 'auto', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>🚚 นำส่งครุภัณฑ์ไปยังช่างซ่อม</h3>
@@ -4261,13 +4232,14 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL 6: CM REPAIR RECEIVE (RECEIVE BACK FROM VENDOR) --- */}
-      {workflowAction === 'receive' && workflowCase && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
-          <form onSubmit={handleReceiveSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '540px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+      {workflowAction === 'receive' && workflowCase && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <form onSubmit={handleReceiveSubmit} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '540px', width: '100%', margin: 'auto', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>✅ ตรวจรับของคืนคลังและปิดงานซ่อม</h3>
@@ -4375,7 +4347,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               <label className="form-label">📝 รายละเอียดผลการซ่อม / ข้อสังเกตการตรวจรับ (Repair Details & Notes)</label>
               <textarea 
                 className="form-input" 
-                rows={3}
+                rows={3} 
                 placeholder="ระบุรายละเอียดผลการซ่อม เช่น ช่างได้เปลี่ยนอะไหล่แผงวงจรและมอเตอร์ใหม่ ทดสอบการทำงาน 1 ชั่วโมงแล้ว ทำงานได้ตามปกติ..."
                 value={receiveNotes}
                 onChange={(e) => setReceiveNotes(e.target.value)}
@@ -4403,12 +4375,13 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL 5: ASSET LOGBOOK VIEWER --- */}
-      {isLogbookOpen && selectedLogbookAsset && (
-        <div className="logbook-modal-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 9990, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
+      {isLogbookOpen && selectedLogbookAsset && createPortal(
+        <div className="logbook-modal-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2.5rem 1rem' }}>
           <div className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '920px', width: '100%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
             
             {/* Header */}
@@ -4689,12 +4662,13 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: CM CASE FULL DETAILS & EDIT ADDITIONAL LOG --- */}
-      {isCMDetailOpen && selectedCMDetailCase && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem' }}>
+      {isCMDetailOpen && selectedCMDetailCase && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem' }}>
           <div className="glass-panel animate-scale-up" style={{ maxWidth: '720px', width: '100%', padding: '1.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '90vh', overflowY: 'auto' }}>
             
             {/* Header */}
@@ -5139,12 +5113,13 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: CM PRINTABLE SERVICE REPORT --- */}
-      {isCMPrintReportOpen && selectedCMDetailCase && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10060, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem' }}>
+      {isCMPrintReportOpen && selectedCMDetailCase && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem' }}>
           <div className="glass-panel animate-scale-up" style={{ maxWidth: '780px', width: '100%', padding: '2rem', borderRadius: 'var(--radius-md)', background: '#fff', color: '#111827', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
             
             {/* Header & Print toolbar */}
@@ -5290,11 +5265,12 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- UNIVERSAL MEDIA / PDF FULLSCREEN LIGHTBOX VIEWER --- */}
-      {lightboxUrl && (
+      {lightboxUrl && createPortal(
         <div 
           className="print-preview-overlay animate-fade-in" 
           style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 0, 0, 0.94)', zIndex: 100050, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
@@ -5423,11 +5399,12 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL 4: PRINT PM PLANS SUMMARY --- */}
-      {isPrintPlansSummaryOpen && (
+      {isPrintPlansSummaryOpen && createPortal(
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
           <div className="print-actions-bar glass-panel" style={{ maxWidth: '1000px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
             <div>
@@ -5534,11 +5511,12 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL 5: PRINT PM HISTORY SUMMARY --- */}
-      {isPrintHistorySummaryOpen && (
+      {isPrintHistorySummaryOpen && createPortal(
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '2rem 1rem' }}>
           <div className="print-actions-bar glass-panel" style={{ maxWidth: '1000px', width: '100%', margin: '0 auto 1.5rem auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10060 }}>
             <div>
@@ -5646,12 +5624,13 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL 6: QUICK NOTE / EQUIPMENT NICKNAME --- */}
-      {isQuickNoteOpen && selectedNoteAsset && (
-        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 1rem' }}>
+      {isQuickNoteOpen && selectedNoteAsset && createPortal(
+        <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 99999, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 1rem' }}>
           <form onSubmit={handleSaveQuickNote} className="survey-form-panel glass-panel animate-scale-up" style={{ maxWidth: '480px', width: '100%', background: 'var(--bg-secondary)', padding: '1.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
@@ -5727,7 +5706,8 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             </div>
 
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
