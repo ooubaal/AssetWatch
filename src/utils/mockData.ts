@@ -149,6 +149,8 @@ export interface RepairCase {
   repairCost?: number | string;
   notes?: string;
   additionalNotes?: string;
+  createdBy?: string;
+  department?: string;
 }
 
 export const INITIAL_ASSETS: Asset[] = [

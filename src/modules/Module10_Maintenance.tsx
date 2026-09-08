@@ -22,6 +22,7 @@ interface Module10MaintenanceProps {
   onDeletePMSchedule: (id: string) => Promise<void>;
   onAddRepair: (repair: Omit<RepairCase, 'id'>) => Promise<string>;
   onUpdateRepair: (id: string, updates: Partial<RepairCase>) => Promise<void>;
+  onDeleteRepair?: (id: string) => Promise<void>;
   onUpdateAssetStatus: (id: string, status: Asset['status']) => Promise<void>;
   onLogAudit: (trail: { assetId: string; assetName: string; action: any; operator: string; details: string }) => Promise<void>;
   currentUser: UserAccount | null;
@@ -42,6 +43,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   onDeletePMSchedule,
   onAddRepair,
   onUpdateRepair,
+  onDeleteRepair,
   onUpdateAssetStatus,
   onLogAudit,
   currentUser,
@@ -242,6 +244,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
   // Step 3: Receive form states
   const [receiveDate, setReceiveDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [receiveNotes, setReceiveNotes] = useState('');
+  const [receiveCost, setReceiveCost] = useState('');
   const [receiveProofFiles, setReceiveProofFiles] = useState<File[]>([]);
   const [receiveProofPreviews, setReceiveProofPreviews] = useState<{ url: string; name: string; isPdf: boolean; size: string }[]>([]);
   const [compressingReceiveProof, setCompressingReceiveProof] = useState<boolean>(false);
@@ -250,11 +254,18 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   // CM Case Details & Edit States
   const [selectedCMDetailCase, setSelectedCMDetailCase] = useState<RepairCase | null>(null);
   const [isCMDetailOpen, setIsCMDetailOpen] = useState(false);
+  const [cmEditSymptom, setCmEditSymptom] = useState('');
+  const [cmEditDateOpened, setCmEditDateOpened] = useState('');
+  const [cmEditDateSent, setCmEditDateSent] = useState('');
+  const [cmEditStatus, setCmEditStatus] = useState<'open' | 'sent' | 'completed'>('open');
   const [cmEditNotes, setCmEditNotes] = useState('');
   const [cmEditCost, setCmEditCost] = useState('');
   const [cmEditRepairCompany, setCmEditRepairCompany] = useState('');
   const [cmEditContactPerson, setCmEditContactPerson] = useState('');
   const [cmEditDateReceived, setCmEditDateReceived] = useState('');
+  const [cmEditSymptomImages, setCmEditSymptomImages] = useState<string[]>([]);
+  const [cmEditSentImages, setCmEditSentImages] = useState<string[]>([]);
+  const [cmEditReceivedImages, setCmEditReceivedImages] = useState<string[]>([]);
   const [cmEditProofFiles, setCmEditProofFiles] = useState<File[]>([]);
   const [cmEditProofPreviews, setCmEditProofPreviews] = useState<{ url: string; name: string; isPdf: boolean; size: string }[]>([]);
   const [compressingCMEditProof, setCompressingCMEditProof] = useState<boolean>(false);
@@ -438,6 +449,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       // Check if CM should be opened automatically
       if (shouldCreateCM && cmSymptom.trim()) {
+        const targetAsset = assets.find(a => a.id === selectedSchedule.assetId);
         spawnedRepairId = await onAddRepair({
           assetId: selectedSchedule.assetId,
           assetName: selectedSchedule.assetName,
@@ -445,6 +457,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
           dateOpened: completedDate,
           status: 'open',
           operator: operatorName,
+          createdBy: currentUser?.username || currentUser?.name || operatorName,
+          department: targetAsset?.department || currentUser?.department || '',
           updatedAt: new Date().toISOString()
         });
 
@@ -628,6 +642,64 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       } catch (error) {
         console.error('Error deleting contract:', error);
         alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+      }
+    }
+  };
+
+  // CM Repair Permission Helpers:
+  // - Admin & Manager: full access to edit and delete all CM cases
+  // - Head: full access to edit and delete CM cases belonging to their department
+  // - User & Operator: can edit and delete only CM cases they created
+  const canEditRepair = (repair: RepairCase): boolean => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin' || currentUser.role === 'manager') return true;
+    if (currentUser.role === 'head') {
+      const asset = assets.find(a => a.id === repair.assetId);
+      const isSameDept = (repair.department && repair.department === currentUser.department) || 
+                         (asset?.department === currentUser.department);
+      return Boolean(isSameDept || repair.createdBy === currentUser.username || repair.createdBy === currentUser.name || repair.operator === currentUser.name);
+    }
+    if (currentUser.role === 'operator' || currentUser.role === 'user') {
+      return Boolean(
+        (repair.createdBy && (repair.createdBy === currentUser.username || repair.createdBy === currentUser.name)) ||
+        (repair.operator && (repair.operator === currentUser.name || repair.operator === currentUser.username))
+      );
+    }
+    return false;
+  };
+
+  const canDeleteRepair = (repair: RepairCase): boolean => {
+    return canEditRepair(repair);
+  };
+
+  const handleDeleteRepairClick = async (repair: RepairCase) => {
+    if (!canDeleteRepair(repair)) {
+      alert('ท่านไม่มีสิทธิ์ในการลบรายการแจ้งซ่อมนี้ (แก้ไข/ลบได้เฉพาะรายการที่ท่านสร้าง หรือเฉพาะฝ่ายตนสำหรับหัวหน้าฝ่าย)');
+      return;
+    }
+    const confirmMessage = `⚠️ ยืนยันการลบรายการแจ้งซ่อม CM?\n\n• รหัสเคส: ${repair.id}\n• ครุภัณฑ์: ${repair.assetName} (${repair.assetId})\n• อาการเสีย: ${repair.symptom}\n\nคุณต้องการลบข้อมูลรายการนี้ออกจากระบบอย่างถาวรใช่หรือไม่?`;
+    if (window.confirm(confirmMessage)) {
+      try {
+        if (onDeleteRepair) {
+          await onDeleteRepair(repair.id);
+        }
+        const operatorName = currentUser?.name || localStorage.getItem('assetwatch_operator') || 'ผู้ใช้งาน';
+        await onLogAudit({
+          assetId: repair.assetId,
+          assetName: repair.assetName,
+          action: 'delete',
+          operator: operatorName,
+          details: `ลบรายการแจ้งซ่อมฉุกเฉิน (CM) รหัสเคส: ${repair.id} อาการเสีย: "${repair.symptom}" ออกจากระบบ`
+        });
+        alert('ลบรายการแจ้งซ่อมเรียบร้อยแล้ว');
+        if (isCMDetailOpen && selectedCMDetailCase?.id === repair.id) {
+          setIsCMDetailOpen(false);
+          setSelectedCMDetailCase(null);
+        }
+        await onRefreshData();
+      } catch (err) {
+        console.error('Failed to delete repair:', err);
+        alert('เกิดข้อผิดพลาดในการลบรายการแจ้งซ่อม: ' + (err instanceof Error ? err.message : String(err)));
       }
     }
   };
@@ -959,6 +1031,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         dateOpened: new Date().toISOString().split('T')[0],
         status: 'open',
         operator: operatorName,
+        createdBy: currentUser?.username || currentUser?.name || operatorName,
+        department: asset.department || currentUser?.department || '',
         updatedAt: new Date().toISOString()
       });
 
@@ -1250,11 +1324,14 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       const existingReceived = workflowCase.receivedProofImages || (workflowCase.receivedProofUrl ? [workflowCase.receivedProofUrl] : []);
       const combinedReceived = [...existingReceived, ...receivedUrls];
-      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินรับคืน';
+      const operatorName = currentUser?.name || localStorage.getItem('assetwatch_operator') || 'แอดมินรับคืน';
 
       await onUpdateRepair(workflowCase.id, {
         status: 'completed',
         dateReceived: receiveDate,
+        notes: receiveNotes.trim() || workflowCase.notes || undefined,
+        additionalNotes: receiveNotes.trim() || workflowCase.additionalNotes || undefined,
+        repairCost: receiveCost.trim() || workflowCase.repairCost || undefined,
         receivedProofImages: combinedReceived,
         receivedProofUrl: combinedReceived[0] || undefined,
         updatedAt: new Date().toISOString()
@@ -1267,7 +1344,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         assetName: workflowCase.assetName,
         action: 'repair_receive',
         operator: operatorName,
-        details: `ตรวจรับครุภัณฑ์พัสดุส่งซ่อมคืนคลังสำเร็จ ตรวจเช็คเครื่องแล้วสามารถนำกลับมา "ใช้งานได้" ตามปกติ${receivedUrls.length > 0 ? ` (แนบหลักฐานตรวจรับ ${receivedUrls.length} ไฟล์)` : ''}`
+        details: `ตรวจรับครุภัณฑ์พัสดุส่งซ่อมคืนคลังสำเร็จ ตรวจเช็คเครื่องแล้วสามารถนำกลับมา "ใช้งานได้" ตามปกติ${receiveNotes.trim() ? ` (รายละเอียดผลการตรวจรับ/การซ่อม: "${receiveNotes.trim()}")` : ''}${receiveCost.trim() ? ` (ค่าใช้จ่าย: ${receiveCost.trim()} บาท)` : ''}${receivedUrls.length > 0 ? ` (แนบหลักฐานตรวจรับ ${receivedUrls.length} ไฟล์)` : ''}`
       });
 
       confetti({
@@ -1279,6 +1356,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       setWorkflowAction(null);
       setReceiveProofFiles([]);
       setReceiveProofPreviews([]);
+      setReceiveNotes('');
+      setReceiveCost('');
       await onRefreshData();
     } catch (err) {
       console.error(err);
@@ -1310,19 +1389,30 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   // Open CM Details & Edit modal
   const handleOpenCMDetails = (r: RepairCase) => {
     setSelectedCMDetailCase(r);
+    setCmEditSymptom(r.symptom || '');
+    setCmEditDateOpened(r.dateOpened || '');
+    setCmEditDateSent(r.dateSent || '');
+    setCmEditStatus(r.status || 'open');
     setCmEditNotes(r.notes || r.additionalNotes || '');
     setCmEditCost(r.repairCost ? String(r.repairCost) : '');
     setCmEditRepairCompany(r.repairCompany || '');
     setCmEditContactPerson(r.contactPerson || '');
     setCmEditDateReceived(r.dateReceived || '');
+    setCmEditSymptomImages(r.symptomImages && r.symptomImages.length > 0 ? [...r.symptomImages] : (r.symptomImageUrl ? [r.symptomImageUrl] : []));
+    setCmEditSentImages(r.sentProofImages && r.sentProofImages.length > 0 ? [...r.sentProofImages] : (r.sentProofUrl ? [r.sentProofUrl] : []));
+    setCmEditReceivedImages(r.receivedProofImages && r.receivedProofImages.length > 0 ? [...r.receivedProofImages] : (r.receivedProofUrl ? [r.receivedProofUrl] : []));
     setCmEditProofFiles([]);
     setCmEditProofPreviews([]);
     setIsCMDetailOpen(true);
   };
 
-  // Save additional notes / edit data in CM Case
+  // Save edited CM Case
   const handleSaveCMDetails = async () => {
     if (!selectedCMDetailCase) return;
+    if (!canEditRepair(selectedCMDetailCase)) {
+      alert('ท่านไม่มีสิทธิ์ในการแก้ไขรายการนี้');
+      return;
+    }
     setCmSavingDetail(true);
     try {
       const extraUrls: string[] = [];
@@ -1331,37 +1421,51 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         if (url) extraUrls.push(url);
       }
 
-      const existingReceived = selectedCMDetailCase.receivedProofImages || (selectedCMDetailCase.receivedProofUrl ? [selectedCMDetailCase.receivedProofUrl] : []);
-      const updatedReceived = [...existingReceived, ...extraUrls];
+      const updatedReceived = [...cmEditReceivedImages, ...extraUrls];
 
       const updates: Partial<RepairCase> = {
-        notes: cmEditNotes,
-        additionalNotes: cmEditNotes,
-        repairCost: cmEditCost,
-        repairCompany: cmEditRepairCompany,
-        contactPerson: cmEditContactPerson,
-        dateReceived: cmEditDateReceived || selectedCMDetailCase.dateReceived,
+        symptom: cmEditSymptom.trim() || selectedCMDetailCase.symptom,
+        dateOpened: cmEditDateOpened || selectedCMDetailCase.dateOpened,
+        status: cmEditStatus,
+        notes: cmEditNotes.trim() || undefined,
+        additionalNotes: cmEditNotes.trim() || undefined,
+        repairCost: cmEditCost.trim() || undefined,
+        repairCompany: cmEditRepairCompany.trim() || undefined,
+        contactPerson: cmEditContactPerson.trim() || undefined,
+        dateSent: cmEditDateSent || undefined,
+        dateReceived: cmEditDateReceived || undefined,
+        symptomImages: cmEditSymptomImages,
+        symptomImageUrl: cmEditSymptomImages[0] || undefined,
+        sentProofImages: cmEditSentImages,
+        sentProofUrl: cmEditSentImages[0] || undefined,
         receivedProofImages: updatedReceived,
-        receivedProofUrl: updatedReceived[0] || selectedCMDetailCase.receivedProofUrl,
+        receivedProofUrl: updatedReceived[0] || undefined,
         updatedAt: new Date().toISOString()
       };
 
       await onUpdateRepair(selectedCMDetailCase.id, updates);
 
-      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินส่งซ่อม';
+      // Handle asset status sync if status was changed
+      if (cmEditStatus === 'completed' && selectedCMDetailCase.status !== 'completed') {
+        await onUpdateAssetStatus(selectedCMDetailCase.assetId, 'ใช้งานได้');
+      } else if (cmEditStatus !== 'completed' && selectedCMDetailCase.status === 'completed') {
+        await onUpdateAssetStatus(selectedCMDetailCase.assetId, 'ชำรุด');
+      }
+
+      const operatorName = currentUser?.name || localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
       await onLogAudit({
         assetId: selectedCMDetailCase.assetId,
         assetName: selectedCMDetailCase.assetName,
-        action: 'repair_send',
+        action: 'edit',
         operator: operatorName,
-        details: `อัปเดตบันทึกข้อมูลเพิ่มเติมในเคส CM รหัสครุภัณฑ์ ${selectedCMDetailCase.assetId}: ${cmEditNotes ? `ข้อสังเกต: ${cmEditNotes}` : ''} ${cmEditCost ? `ค่าซ่อม: ${cmEditCost} บาท` : ''}${extraUrls.length > 0 ? ` (แนบเอกสารเพิ่ม ${extraUrls.length} ไฟล์)` : ''}`
+        details: `บันทึกแก้ไขข้อมูลรายการแจ้งซ่อม CM รหัสเคส ${selectedCMDetailCase.id}: อาการ="${cmEditSymptom}" สถานะ=${cmEditStatus}${cmEditRepairCompany ? ` ร้าน="${cmEditRepairCompany}"` : ''}${cmEditCost ? ` ค่าซ่อม=${cmEditCost}` : ''}${extraUrls.length > 0 ? ` (แนบเอกสารเพิ่ม ${extraUrls.length} ไฟล์)` : ''}`
       });
 
       setSelectedCMDetailCase({ ...selectedCMDetailCase, ...updates });
       setCmEditProofFiles([]);
       setCmEditProofPreviews([]);
       await onRefreshData();
-      alert('บันทึกข้อมูลเพิ่มเติมเรียบร้อยแล้ว');
+      alert('บันทึกการแก้ไขข้อมูลเรียบร้อยแล้ว');
     } catch (err) {
       console.error(err);
       alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล CM: ' + (err instanceof Error ? err.message : String(err)));
@@ -2662,18 +2766,19 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                          {/* Always Available: View & Edit Details / Add Notes */}
+                          {/* View / Edit Details Modal */}
                           <button 
                             type="button"
                             className="btn btn-ghost btn-xs"
                             onClick={() => handleOpenCMDetails(r)}
                             style={{ padding: '0.2rem 0.45rem', height: 'auto', fontSize: '0.725rem', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
-                            title="ดูรายละเอียดเคส / บันทึกข้อมูลและข้อสังเกตเพิ่มเติม"
+                            title={canEditRepair(r) ? "ดูรายละเอียดเคส / แก้ไขข้อมูล" : "ดูรายละเอียดเคส (อ่านอย่างเดียว)"}
                           >
-                            👁️ ดู / ✏️ บันทึกเพิ่ม
+                            {canEditRepair(r) ? '👁️ ดู / ✏️ แก้ไข' : '👁️ ดูรายละเอียด'}
                           </button>
 
-                          {currentUser?.role !== 'manager' && (
+                          {/* Workflow buttons (Send / Receive) */}
+                          {canEditRepair(r) && (
                             <>
                               {r.status === 'open' && (
                                 <button 
@@ -2681,12 +2786,13 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                   onClick={() => {
                                     setWorkflowCase(r);
                                     setWorkflowAction('send');
-                                    setRepairVendorName('');
-                                    setRepairContactPhone('');
+                                    setRepairVendorName(r.repairCompany || '');
+                                    setRepairContactPhone(r.contactPerson || '');
                                     setSendProofFiles([]);
                                     setSendProofPreviews([]);
                                   }}
                                   style={{ padding: '0.2rem 0.45rem', height: 'auto', fontSize: '0.725rem' }}
+                                  title="บันทึกข้อมูลนำส่งช่าง/ร้านซ่อม"
                                 >
                                   🚚 นำส่งช่าง
                                 </button>
@@ -2697,20 +2803,38 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                   onClick={() => {
                                     setWorkflowCase(r);
                                     setWorkflowAction('receive');
+                                    setReceiveDate(new Date().toISOString().split('T')[0]);
+                                    setReceiveNotes(r.notes || r.additionalNotes || '');
+                                    setReceiveCost(r.repairCost ? String(r.repairCost) : '');
                                     setReceiveProofFiles([]);
                                     setReceiveProofPreviews([]);
                                   }}
                                   style={{ padding: '0.2rem 0.45rem', height: 'auto', fontSize: '0.725rem' }}
+                                  title="ตรวจรับของคืนและบันทึกผลการซ่อม"
                                 >
                                   ✅ รับของคืน
                                 </button>
                               )}
-                              {r.status === 'completed' && (
-                                <span className="badge badge-muted" style={{ fontSize: '0.675rem' }}>
-                                  🔒 ปิดเคสแล้ว
-                                </span>
-                              )}
                             </>
+                          )}
+
+                          {r.status === 'completed' && (
+                            <span className="badge badge-muted" style={{ fontSize: '0.675rem' }}>
+                              🔒 ปิดเคสแล้ว
+                            </span>
+                          )}
+
+                          {/* Delete CM Case */}
+                          {canDeleteRepair(r) && (
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs text-danger"
+                              onClick={() => handleDeleteRepairClick(r)}
+                              style={{ padding: '0.2rem 0.4rem', height: 'auto', fontSize: '0.725rem', border: '1px solid rgba(239, 68, 68, 0.4)', color: 'var(--danger)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                              title="ลบรายการแจ้งซ่อม CM นี้"
+                            >
+                              <Trash2 size={12} /> ลบ
+                            </button>
                           )}
                         </div>
                       </td>
@@ -4247,6 +4371,30 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </div>
             </div>
 
+            <div className="form-group">
+              <label className="form-label">📝 รายละเอียดผลการซ่อม / ข้อสังเกตการตรวจรับ (Repair Details & Notes)</label>
+              <textarea 
+                className="form-input" 
+                rows={3}
+                placeholder="ระบุรายละเอียดผลการซ่อม เช่น ช่างได้เปลี่ยนอะไหล่แผงวงจรและมอเตอร์ใหม่ ทดสอบการทำงาน 1 ชั่วโมงแล้ว ทำงานได้ตามปกติ..."
+                value={receiveNotes}
+                onChange={(e) => setReceiveNotes(e.target.value)}
+                style={{ fontSize: '0.85rem', resize: 'vertical' }}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">💰 ค่าใช้จ่ายในการซ่อม (บาท) <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(ถ้ามี หรือระบุ 0 หากอยู่ในสัญญา/ประกัน)</span></label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="เช่น 0 (อยู่ในประกัน) หรือ 2,500"
+                value={receiveCost}
+                onChange={(e) => setReceiveCost(e.target.value)}
+                style={{ fontSize: '0.85rem' }}
+              />
+            </div>
+
             <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1.25rem' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setWorkflowAction(null)}>ยกเลิก</button>
               <button type="submit" className="btn btn-success" disabled={submittingReceive}>
@@ -4547,7 +4695,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
       {/* --- MODAL: CM CASE FULL DETAILS & EDIT ADDITIONAL LOG --- */}
       {isCMDetailOpen && selectedCMDetailCase && (
         <div className="print-preview-overlay animate-fade-in" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', zIndex: 10050, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem' }}>
-          <div className="glass-panel animate-scale-up" style={{ maxWidth: '680px', width: '100%', padding: '1.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="glass-panel animate-scale-up" style={{ maxWidth: '720px', width: '100%', padding: '1.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '90vh', overflowY: 'auto' }}>
             
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
@@ -4561,7 +4709,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                   </span>
                 </div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
-                  🔧 รายละเอียดและบันทึกข้อมูล CM: {selectedCMDetailCase.assetName}
+                  🔧 รายละเอียดและจัดการเคสแจ้งซ่อม CM: {selectedCMDetailCase.assetName}
                 </h3>
               </div>
               <button 
@@ -4574,248 +4722,361 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </button>
             </div>
 
+            {/* Permission Notice */}
+            {!canEditRepair(selectedCMDetailCase) && (
+              <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-sm)', fontSize: '0.775rem', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                ℹ️ คุณกำลังดูข้อมูลในโหมดอ่านอย่างเดียว (ผู้ใช้งานแก้ไข/ลบได้เฉพาะรายการที่ตนสร้าง และหัวหน้าฝ่ายจัดการได้เฉพาะในฝ่ายตน)
+              </div>
+            )}
+
             {/* Asset Summary Info */}
-            <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem', fontSize: '0.8rem' }}>
+            <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem', fontSize: '0.8rem' }}>
               <div>
                 <span style={{ color: 'var(--text-muted)' }}>รหัสครุภัณฑ์:</span> <code style={{ fontWeight: 700 }}>{selectedCMDetailCase.assetId}</code>
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>วันที่แจ้งชำรุด:</span> <strong>{getThaiDateFormatted(selectedCMDetailCase.dateOpened)}</strong>
+                <span style={{ color: 'var(--text-muted)' }}>ผู้ทำเรื่องแจ้งซ่อม:</span> <strong>{selectedCMDetailCase.operator}</strong>
               </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>ผู้แจ้งส่งซ่อม:</span> <strong>{selectedCMDetailCase.operator}</strong>
-              </div>
+              {selectedCMDetailCase.department && (
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>หน่วยงาน:</span> <strong>{selectedCMDetailCase.department}</strong>
+                </div>
+              )}
               <div>
                 <span style={{ color: 'var(--text-muted)' }}>อัปเดตล่าสุด:</span> {new Date(selectedCMDetailCase.updatedAt).toLocaleString('th-TH')}
               </div>
             </div>
 
-            {/* Timeline Progress Cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {/* Timeline Progress & Editing Sections */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               
-              {/* Step 1: Symptom */}
-              {(() => {
-                const symptomList = selectedCMDetailCase.symptomImages && selectedCMDetailCase.symptomImages.length > 0 ? selectedCMDetailCase.symptomImages : (selectedCMDetailCase.symptomImageUrl ? [selectedCMDetailCase.symptomImageUrl] : []);
-                return (
-                  <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--danger)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      🚨 1. อาการชำรุด/ปัญหาที่พบ (Symptom){symptomList.length > 0 ? ` [${symptomList.length} รูป/ไฟล์]` : ''}
-                    </h4>
-                    <p style={{ margin: 0, fontSize: '0.825rem', lineHeight: '1.45' }}>{selectedCMDetailCase.symptom}</p>
-                    {symptomList.length > 0 && (
-                      <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                        {symptomList.map((url, idx) => (
-                          <div 
-                            key={`sym-dtl-${idx}`}
-                            onClick={() => handleOpenLightbox(url, `รูปถ่ายอาการชำรุด #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
-                            style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
-                            title={`คลิกเพื่อขยายดูรูปภาพขนาดเต็ม #${idx + 1} (HD Lightbox)`}
-                          >
-                            <img src={url} alt={`Symptom ${idx + 1}`} style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
-                              🔍 ซูมรูป #{idx + 1}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+              {/* Step 1: Symptom & Case Status */}
+              <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--danger)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 800, margin: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    🚨 1. อาการชำรุด/ปัญหาที่พบ (Symptom) {cmEditSymptomImages.length > 0 ? `[${cmEditSymptomImages.length} รูป/ไฟล์]` : ''}
+                  </h4>
+                  {canEditRepair(selectedCMDetailCase) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>สถานะเคส:</label>
+                      <select 
+                        className="form-select"
+                        value={cmEditStatus}
+                        onChange={(e) => setCmEditStatus(e.target.value as any)}
+                        style={{ height: '28px', fontSize: '0.725rem', padding: '0.1rem 0.5rem' }}
+                      >
+                        <option value="open">🔴 รอช่างตรวจ (Open)</option>
+                        <option value="sent">🟡 นำส่งช่าง (Sent)</option>
+                        <option value="completed">🟢 ซ่อมสำเร็จ (Completed)</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {canEditRepair(selectedCMDetailCase) ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.72rem', fontWeight: 650 }}>อาการชำรุด:</label>
+                      <textarea 
+                        className="form-input"
+                        rows={2}
+                        value={cmEditSymptom}
+                        onChange={(e) => setCmEditSymptom(e.target.value)}
+                        placeholder="ระบุอาการชำรุด..."
+                        style={{ fontSize: '0.8rem', resize: 'vertical' }}
+                      />
+                    </div>
+                    <div style={{ width: '180px' }}>
+                      <label className="form-label" style={{ fontSize: '0.72rem', fontWeight: 650 }}>วันที่แจ้งชำรุด:</label>
+                      <input 
+                        type="date"
+                        className="form-input"
+                        value={cmEditDateOpened}
+                        onChange={(e) => setCmEditDateOpened(e.target.value)}
+                        style={{ fontSize: '0.8rem', height: '32px' }}
+                      />
+                    </div>
                   </div>
-                );
-              })()}
+                ) : (
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.825rem', lineHeight: '1.45' }}>{selectedCMDetailCase.symptom}</p>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                      วันที่แจ้ง: {getThaiDateFormatted(selectedCMDetailCase.dateOpened)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Symptom Images with Preview and Remove */}
+                {cmEditSymptomImages.length > 0 && (
+                  <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    {cmEditSymptomImages.map((url, idx) => (
+                      <div 
+                        key={`sym-dtl-${idx}`}
+                        style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000', height: '70px', width: '100px' }}
+                      >
+                        <img 
+                          src={url} 
+                          alt={`Symptom ${idx + 1}`} 
+                          style={{ height: '100%', width: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                          onClick={() => handleOpenLightbox(url, `รูปถ่ายอาการชำรุด #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
+                          title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD"
+                        />
+                        {canEditRepair(selectedCMDetailCase) && (
+                          <button
+                            type="button"
+                            onClick={() => setCmEditSymptomImages(prev => prev.filter((_, i) => i !== idx))}
+                            style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.8)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            title="ลบรูปนี้"
+                          >
+                            ✕
+                          </button>
+                        )}
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.6rem', textAlign: 'center', padding: '1px 0', pointerEvents: 'none' }}>
+                          รูป #{idx + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Step 2: Vendor / Dispatch */}
-              {(selectedCMDetailCase.status === 'sent' || selectedCMDetailCase.status === 'completed' || selectedCMDetailCase.repairCompany) && (() => {
-                const sentList = selectedCMDetailCase.sentProofImages && selectedCMDetailCase.sentProofImages.length > 0 ? selectedCMDetailCase.sentProofImages : (selectedCMDetailCase.sentProofUrl ? [selectedCMDetailCase.sentProofUrl] : []);
-                return (
-                  <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--warning)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      🚚 2. ข้อมูลการส่งซ่อม / ช่างผู้รับผิดชอบ{sentList.length > 0 ? ` [${sentList.length} รูป/ไฟล์]` : ''}
-                    </h4>
-                    <div style={{ fontSize: '0.8rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
-                      <div>ร้าน/บริษัทซ่อม: <strong>{selectedCMDetailCase.repairCompany || '-'}</strong></div>
-                      <div>เบอร์ติดต่อช่าง: <strong>{selectedCMDetailCase.contactPerson || '-'}</strong></div>
-                      <div>วันที่ส่งซ่อม: <strong>{selectedCMDetailCase.dateSent ? getThaiDateFormatted(selectedCMDetailCase.dateSent) : '-'}</strong></div>
+              <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--warning)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  🚚 2. ข้อมูลการส่งซ่อม / ช่างผู้รับผิดชอบ {cmEditSentImages.length > 0 ? `[${cmEditSentImages.length} รูป/ไฟล์]` : ''}
+                </h4>
+
+                {canEditRepair(selectedCMDetailCase) ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.72rem', fontWeight: 650 }}>ร้านซ่อม / บริษัท:</label>
+                      <input 
+                        type="text"
+                        className="form-input"
+                        value={cmEditRepairCompany}
+                        onChange={(e) => setCmEditRepairCompany(e.target.value)}
+                        placeholder="เช่น บริษัท โอซาร่า วิศวกรรม จำกัด"
+                        style={{ fontSize: '0.8rem', height: '32px' }}
+                      />
                     </div>
-                    {sentList.length > 0 && (
-                      <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                        {sentList.map((url, idx) => (
-                          <div 
-                            key={`sent-dtl-${idx}`}
-                            onClick={() => handleOpenLightbox(url, `หลักฐานการนำส่งช่าง #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
-                            style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
-                            title={`คลิกเพื่อขยายดูรูปภาพขนาดเต็ม #${idx + 1} (HD Lightbox)`}
-                          >
-                            <img src={url} alt={`Sent Proof ${idx + 1}`} style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
-                              🔍 ซูมรูป #{idx + 1}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.72rem', fontWeight: 650 }}>เบอร์ติดต่อช่าง / ผู้ประสานงาน:</label>
+                      <input 
+                        type="text"
+                        className="form-input"
+                        value={cmEditContactPerson}
+                        onChange={(e) => setCmEditContactPerson(e.target.value)}
+                        placeholder="เช่น 081-XXX-XXXX"
+                        style={{ fontSize: '0.8rem', height: '32px' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.72rem', fontWeight: 650 }}>วันที่นำส่งช่าง:</label>
+                      <input 
+                        type="date"
+                        className="form-input"
+                        value={cmEditDateSent}
+                        onChange={(e) => setCmEditDateSent(e.target.value)}
+                        style={{ fontSize: '0.8rem', height: '32px' }}
+                      />
+                    </div>
                   </div>
-                );
-              })()}
+                ) : (
+                  <div style={{ fontSize: '0.8rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
+                    <div>ร้าน/บริษัทซ่อม: <strong>{selectedCMDetailCase.repairCompany || '-'}</strong></div>
+                    <div>เบอร์ติดต่อช่าง: <strong>{selectedCMDetailCase.contactPerson || '-'}</strong></div>
+                    <div>วันที่ส่งซ่อม: <strong>{selectedCMDetailCase.dateSent ? getThaiDateFormatted(selectedCMDetailCase.dateSent) : '-'}</strong></div>
+                  </div>
+                )}
+
+                {/* Sent Images with Preview and Remove */}
+                {cmEditSentImages.length > 0 && (
+                  <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    {cmEditSentImages.map((url, idx) => (
+                      <div 
+                        key={`sent-dtl-${idx}`}
+                        style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000', height: '70px', width: '100px' }}
+                      >
+                        <img 
+                          src={url} 
+                          alt={`Sent Proof ${idx + 1}`} 
+                          style={{ height: '100%', width: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                          onClick={() => handleOpenLightbox(url, `หลักฐานการนำส่งช่าง #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
+                          title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD"
+                        />
+                        {canEditRepair(selectedCMDetailCase) && (
+                          <button
+                            type="button"
+                            onClick={() => setCmEditSentImages(prev => prev.filter((_, i) => i !== idx))}
+                            style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.8)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            title="ลบรูปนี้"
+                          >
+                            ✕
+                          </button>
+                        )}
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.6rem', textAlign: 'center', padding: '1px 0', pointerEvents: 'none' }}>
+                          ส่งช่าง #{idx + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Step 3: Completed / Return */}
-              {selectedCMDetailCase.status === 'completed' && (() => {
-                const receivedList = selectedCMDetailCase.receivedProofImages && selectedCMDetailCase.receivedProofImages.length > 0 ? selectedCMDetailCase.receivedProofImages : (selectedCMDetailCase.receivedProofUrl ? [selectedCMDetailCase.receivedProofUrl] : []);
-                return (
-                  <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--success)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      ✅ 3. ตรวจรับของคืนคลังและปิดเคสเรียบร้อย{receivedList.length > 0 ? ` [${receivedList.length} รูป/ไฟล์]` : ''}
-                    </h4>
-                    <div style={{ fontSize: '0.8rem' }}>
-                      วันที่รับของคืน: <strong>{selectedCMDetailCase.dateReceived ? getThaiDateFormatted(selectedCMDetailCase.dateReceived) : '-'}</strong>
+              <div style={{ background: 'var(--bg-primary)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--success)', borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  ✅ 3. ข้อมูลการตรวจรับของคืน / ปิดงานซ่อม {cmEditReceivedImages.length > 0 ? `[${cmEditReceivedImages.length} รูป/ไฟล์]` : ''}
+                </h4>
+
+                {canEditRepair(selectedCMDetailCase) ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.72rem', fontWeight: 650 }}>วันที่ตรวจรับคืน:</label>
+                      <input 
+                        type="date"
+                        className="form-input"
+                        value={cmEditDateReceived}
+                        onChange={(e) => setCmEditDateReceived(e.target.value)}
+                        style={{ fontSize: '0.8rem', height: '32px' }}
+                      />
                     </div>
-                    {receivedList.length > 0 && (
-                      <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                        {receivedList.map((url, idx) => (
-                          <div 
-                            key={`rec-dtl-${idx}`}
-                            onClick={() => handleOpenLightbox(url, `หลักฐานการตรวจรับของคืน #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
-                            style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000' }}
-                            title={`คลิกเพื่อขยายดูรูปภาพขนาดเต็ม #${idx + 1} (HD Lightbox)`}
-                          >
-                            <img src={url} alt={`Return Proof ${idx + 1}`} style={{ height: '70px', maxWidth: '120px', objectFit: 'cover', display: 'block' }} />
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.65rem', textAlign: 'center', padding: '1px 0' }}>
-                              🔍 ซูมรูป #{idx + 1}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.72rem', fontWeight: 650 }}>💰 ค่าใช้จ่ายในการซ่อม (บาท):</label>
+                      <input 
+                        type="text"
+                        className="form-input"
+                        value={cmEditCost}
+                        onChange={(e) => setCmEditCost(e.target.value)}
+                        placeholder="เช่น 0 (ในประกัน) หรือ 2,500"
+                        style={{ fontSize: '0.8rem', height: '32px' }}
+                      />
+                    </div>
                   </div>
-                );
-              })()}
+                ) : (
+                  <div style={{ fontSize: '0.8rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
+                    <div>วันที่รับของคืน: <strong>{selectedCMDetailCase.dateReceived ? getThaiDateFormatted(selectedCMDetailCase.dateReceived) : '-'}</strong></div>
+                    <div>ค่าใช้จ่าย: <strong>{selectedCMDetailCase.repairCost ? `${selectedCMDetailCase.repairCost} บาท` : '-'}</strong></div>
+                  </div>
+                )}
+
+                {/* Received Images with Preview and Remove */}
+                {cmEditReceivedImages.length > 0 && (
+                  <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    {cmEditReceivedImages.map((url, idx) => (
+                      <div 
+                        key={`rec-dtl-${idx}`}
+                        style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', background: '#000', height: '70px', width: '100px' }}
+                      >
+                        <img 
+                          src={url} 
+                          alt={`Return Proof ${idx + 1}`} 
+                          style={{ height: '100%', width: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                          onClick={() => handleOpenLightbox(url, `หลักฐานการตรวจรับของคืน #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
+                          title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD"
+                        />
+                        {canEditRepair(selectedCMDetailCase) && (
+                          <button
+                            type="button"
+                            onClick={() => setCmEditReceivedImages(prev => prev.filter((_, i) => i !== idx))}
+                            style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.8)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            title="ลบรูปนี้"
+                          >
+                            ✕
+                          </button>
+                        )}
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.6rem', textAlign: 'center', padding: '1px 0', pointerEvents: 'none' }}>
+                          ตรวจรับ #{idx + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Editable Additional Information & Notes Section */}
             <div style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: 'var(--radius-sm)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                ✏️ บันทึกข้อมูลและข้อสังเกตเพิ่มเติม (Edit Logbook / Additional Notes)
+                ✏️ บันทึกรายละเอียด/ผลการตรวจรับและข้อสังเกตเพิ่มเติม (Notes & Remarks)
               </h4>
               <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-                ท่านสามารถบันทึกข้อสังเกต ผลการทดสอบหลังรับเครื่อง คำแนะนำการใช้งาน หรือค่าใช้จ่ายจริงได้ตลอดเวลาแม้ปิดเคสไปแล้ว
+                ท่านสามารถบันทึกรายละเอียดงานซ่อม ผลการทดสอบ ข้อสังเกต หรือคำแนะนำการใช้งานได้อย่างครบถ้วน
               </span>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.75rem' }}>📝 รายละเอียด/ข้อสังเกตเพิ่มเติม (Notes & Remarks)</label>
                 <textarea 
                   className="form-input"
                   rows={3}
                   value={cmEditNotes}
                   onChange={(e) => setCmEditNotes(e.target.value)}
+                  disabled={!canEditRepair(selectedCMDetailCase)}
                   placeholder="เช่น ตรวจสอบความเรียบร้อยแล้ว ช่างได้เปลี่ยนใบพัดลมใหม่ พร้อมล้างแผงวงจร ใช้งานได้ตามปกติ รับประกันงานซ่อม 3 เดือน..."
                   style={{ fontSize: '0.8rem', resize: 'vertical' }}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
-                <div>
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>💰 ค่าใช้จ่ายในการซ่อม (บาท)</label>
-                  <input 
-                    type="text"
-                    className="form-input"
-                    value={cmEditCost}
-                    onChange={(e) => setCmEditCost(e.target.value)}
-                    placeholder="เช่น 0 (อยู่ในประกัน) หรือ 2,500"
-                    style={{ fontSize: '0.8rem', height: '34px' }}
-                  />
-                </div>
-                <div>
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>🏢 ร้านซ่อม / บริษัท</label>
-                  <input 
-                    type="text"
-                    className="form-input"
-                    value={cmEditRepairCompany}
-                    onChange={(e) => setCmEditRepairCompany(e.target.value)}
-                    placeholder="เช่น บริษัท โอซาร่า วิศวกรรม จำกัด"
-                    style={{ fontSize: '0.8rem', height: '34px' }}
-                  />
-                </div>
-                <div>
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>📞 เบอร์โทรช่าง</label>
-                  <input 
-                    type="text"
-                    className="form-input"
-                    value={cmEditContactPerson}
-                    onChange={(e) => setCmEditContactPerson(e.target.value)}
-                    placeholder="เช่น 081-XXX-XXXX"
-                    style={{ fontSize: '0.8rem', height: '34px' }}
-                  />
-                </div>
-                <div>
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>📅 วันที่ตรวจรับคืน</label>
-                  <input 
-                    type="date"
-                    className="form-input"
-                    value={cmEditDateReceived}
-                    onChange={(e) => setCmEditDateReceived(e.target.value)}
-                    style={{ fontSize: '0.8rem', height: '34px' }}
-                  />
-                </div>
-              </div>
-
               {/* Extra File Attachment with HD Compression & Interactive Preview */}
-              <div style={{ marginTop: '0.25rem' }}>
-                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>
-                  📎 แนบเอกสาร/ใบเสร็จ/รูปภาพผลงานซ่อมเพิ่มเติม (เพิ่มได้หลายรูป/ไฟล์ PDF คมชัดระดับ HD บีบอัดอัตโนมัติ):
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input 
-                    type="file" 
-                    multiple
-                    accept="image/*,application/pdf"
-                    onChange={handleCMEditProofImagesChange}
-                    className="form-input"
-                    style={{ fontSize: '0.75rem', padding: '0.35rem' }}
-                  />
-                  {compressingCMEditProof && (
-                    <span style={{ fontSize: '0.72rem', color: 'var(--primary)', whiteSpace: 'nowrap' }}>⚡ กำลังบีบอัด HD...</span>
+              {canEditRepair(selectedCMDetailCase) && (
+                <div style={{ marginTop: '0.25rem' }}>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.72rem' }}>
+                    📎 แนบเอกสาร/ใบเสร็จ/รูปภาพผลงานซ่อมเพิ่มเติม (เพิ่มได้หลายรูป/ไฟล์ PDF คมชัดระดับ HD บีบอัดอัตโนมัติ):
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input 
+                      type="file" 
+                      multiple
+                      accept="image/*,application/pdf"
+                      onChange={handleCMEditProofImagesChange}
+                      className="form-input"
+                      style={{ fontSize: '0.75rem', padding: '0.35rem' }}
+                    />
+                    {compressingCMEditProof && (
+                      <span style={{ fontSize: '0.72rem', color: 'var(--primary)', whiteSpace: 'nowrap' }}>⚡ กำลังบีบอัด HD...</span>
+                    )}
+                  </div>
+
+                  {cmEditProofPreviews.length > 0 && (
+                    <div style={{ marginTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))', gap: '0.5rem' }}>
+                        {cmEditProofPreviews.map((p, idx) => (
+                          <div 
+                            key={idx} 
+                            style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--primary)', background: '#000', height: '85px' }}
+                          >
+                            <img 
+                              src={p.url} 
+                              alt={`Preview ${idx + 1}`} 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                              onClick={() => handleOpenLightbox(p.url, `รูปภาพ/เอกสารแนบ #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
+                              title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
+                            />
+                            {p.isPdf && (
+                              <span style={{ position: 'absolute', top: '2px', left: '2px', background: '#ef4444', color: '#fff', fontSize: '0.55rem', fontWeight: 700, padding: '0.1rem 0.25rem', borderRadius: '2px', pointerEvents: 'none' }}>
+                                PDF
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCMEditFile(idx)}
+                              style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.75)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                              title="ลบไฟล์นี้"
+                            >
+                              ✕
+                            </button>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '0.55rem', textAlign: 'center', padding: '1px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                              {p.size}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <span style={{ fontSize: '0.725rem', color: 'var(--success)', fontWeight: 600 }}>
+                        ✓ เลือกแนบเพิ่ม {cmEditProofPreviews.length} ไฟล์
+                      </span>
+                    </div>
                   )}
                 </div>
-
-                {cmEditProofPreviews.length > 0 && (
-                  <div style={{ marginTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))', gap: '0.5rem' }}>
-                      {cmEditProofPreviews.map((p, idx) => (
-                        <div 
-                          key={idx} 
-                          style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '2px solid var(--primary)', background: '#000', height: '85px' }}
-                        >
-                          <img 
-                            src={p.url} 
-                            alt={`Preview ${idx + 1}`} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
-                            onClick={() => handleOpenLightbox(p.url, `รูปภาพ/เอกสารแนบ #${idx + 1} - ${selectedCMDetailCase.assetName}`)}
-                            title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม (HD Lightbox)"
-                          />
-                          {p.isPdf && (
-                            <span style={{ position: 'absolute', top: '2px', left: '2px', background: '#ef4444', color: '#fff', fontSize: '0.55rem', fontWeight: 700, padding: '0.1rem 0.25rem', borderRadius: '2px', pointerEvents: 'none' }}>
-                              PDF
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCMEditFile(idx)}
-                            style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.75)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                            title="ลบไฟล์นี้"
-                          >
-                            ✕
-                          </button>
-                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '0.55rem', textAlign: 'center', padding: '1px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
-                            {p.size}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <span style={{ fontSize: '0.725rem', color: 'var(--success)', fontWeight: 600 }}>
-                      ✓ เลือกแนบเพิ่ม {cmEditProofPreviews.length} ไฟล์
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
             {/* Modal Actions Footer */}
@@ -4829,6 +5090,18 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                 >
                   🖨️ พิมพ์ใบรายงาน CM
                 </button>
+
+                {canDeleteRepair(selectedCMDetailCase) && (
+                  <button 
+                    type="button" 
+                    className="btn btn-ghost btn-sm text-danger"
+                    onClick={() => handleDeleteRepairClick(selectedCMDetailCase)}
+                    style={{ border: '1px solid rgba(239, 68, 68, 0.4)', fontSize: '0.8rem', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                    title="ลบรายการแจ้งซ่อม CM นี้ออกจากระบบ"
+                  >
+                    <Trash2 size={14} /> ลบรายการนี้
+                  </button>
+                )}
 
                 {selectedCMDetailCase.status === 'completed' && currentUser?.role !== 'user' && (
                   <button 
@@ -4850,16 +5123,18 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                   onClick={() => { setIsCMDetailOpen(false); setSelectedCMDetailCase(null); }}
                   style={{ border: '1px solid var(--border)' }}
                 >
-                  ปิด
+                  {canEditRepair(selectedCMDetailCase) ? 'ยกเลิก' : 'ปิด'}
                 </button>
-                <button 
-                  type="button" 
-                  className="btn btn-primary"
-                  onClick={handleSaveCMDetails}
-                  disabled={cmSavingDetail}
-                >
-                  {cmSavingDetail ? 'กำลังบันทึก...' : '💾 บันทึกข้อมูลเพิ่มเติม'}
-                </button>
+                {canEditRepair(selectedCMDetailCase) && (
+                  <button 
+                    type="button" 
+                    className="btn btn-primary"
+                    onClick={handleSaveCMDetails}
+                    disabled={cmSavingDetail}
+                  >
+                    {cmSavingDetail ? 'กำลังบันทึก...' : '💾 บันทึกการแก้ไข'}
+                  </button>
+                )}
               </div>
             </div>
 

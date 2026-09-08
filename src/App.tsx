@@ -17,6 +17,7 @@ import {
   addSurvey,
   addRepair,
   updateRepair,
+  deleteRepair,
   getSurveyRounds,
   addSurveyRound,
   updateSurveyRound,
@@ -708,6 +709,11 @@ function App() {
     await fetchAllData();
   };
 
+  const handleDeleteRepair = async (id: string) => {
+    await deleteRepair(id);
+    await fetchAllData();
+  };
+
   // --- MODULE 6: EDIT ASSET LIFECYCLE ---
   const handleStartEditAsset = (asset: Asset) => {
     setEditingAsset(asset);
@@ -1265,6 +1271,7 @@ function App() {
                 onDeletePMSchedule={handleDeletePMSchedule}
                 onAddRepair={handleAddRepair}
                 onUpdateRepair={handleUpdateRepair}
+                onDeleteRepair={handleDeleteRepair}
                 onUpdateAssetStatus={handleUpdateAssetStatus}
                 onLogAudit={handleLogAudit}
                 currentUser={currentUser}

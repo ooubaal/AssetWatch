@@ -799,6 +799,25 @@ export const updateRepair = async (id: string, updates: Partial<RepairCase>): Pr
   }
 };
 
+export const deleteRepair = async (id: string): Promise<void> => {
+  // 1. Remove from LocalStorage
+  initLocalStorageIfNeeded();
+  const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
+  const filtered = repairs.filter(r => r.id !== id);
+  localStorage.setItem('assetwatch_repairs', JSON.stringify(filtered));
+
+  // 2. Remove from Firebase
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      await deleteDoc(doc(db, 'repairs', id));
+    } catch (e) {
+      console.error('Firebase deleteRepair failed:', e);
+      throw e;
+    }
+  }
+};
+
 // --- SURVEY ROUND SERVICES ---
 export const getSurveyRounds = async (): Promise<SurveyRound[]> => {
   // Local-first: always read local cache first
