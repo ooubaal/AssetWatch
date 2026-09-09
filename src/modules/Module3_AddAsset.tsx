@@ -48,7 +48,8 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Sub-tab selection state
+  // Permissions & Sub-tab selection state
+  const canMassImport = currentUser?.role === 'admin' || currentUser?.role === 'manager' || currentUser?.role === 'head' || currentUser?.role === 'operator';
   const isAdmin = currentUser?.role === 'admin';
   const [activeSubTab, setActiveSubTab] = useState<'single' | 'mass' | 'report'>('single');
 
@@ -97,6 +98,65 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     warnings: string[];
     isValid: boolean;
   }
+
+  interface ColumnMapping {
+    id: number;
+    name: number;
+    receivedDate: number;
+    source: number;
+    location: number;
+    department: number;
+    responsiblePerson: number;
+    note: number;
+    status: number;
+    imageUrl: number;
+  }
+
+  const defaultMapping: ColumnMapping = {
+    id: 0,
+    name: 1,
+    receivedDate: 2,
+    source: 3,
+    location: 4,
+    department: 5,
+    responsiblePerson: 6,
+    note: 7,
+    status: 8,
+    imageUrl: 9
+  };
+
+  const detectColumnMapping = (headerCells: string[]): ColumnMapping => {
+    const mapping: ColumnMapping = { ...defaultMapping };
+
+    headerCells.forEach((cell, idx) => {
+      const lower = cell.trim().toLowerCase();
+      if (!lower) return;
+
+      if (/รหัส|id|code|asset_id|assetid|หมายเลขครุภัณฑ์/i.test(lower)) {
+        mapping.id = idx;
+      } else if (/ชื่อ|name|asset_name|assetname|รายการครุภัณฑ์|รายการ/i.test(lower)) {
+        mapping.name = idx;
+      } else if (/วันที่|date|receive|ตรวจรับ|รับเข้า/i.test(lower)) {
+        mapping.receivedDate = idx;
+      } else if (/ผู้จำหน่าย|ที่มา|source|vendor|supplier|ผู้ขาย|บริจาค/i.test(lower)) {
+        mapping.source = idx;
+      } else if (/สถานที่|ห้อง|location|room|place|อาคาร/i.test(lower)) {
+        mapping.location = idx;
+      } else if (/ฝ่าย|หน่วยงาน|department|dept|แผนก/i.test(lower)) {
+        mapping.department = idx;
+      } else if (/ผู้รับผิดชอบ|ผู้ดูแล|responsible|owner|officer|ผู้ครอบครอง/i.test(lower)) {
+        mapping.responsiblePerson = idx;
+      } else if (/หมายเหตุ|รายละเอียด|note|remark|description|detail|spec|สเปค/i.test(lower)) {
+        mapping.note = idx;
+      } else if (/สถานะ|status|state/i.test(lower)) {
+        mapping.status = idx;
+      } else if (/รูป|image|photo|pic|url|ภาพถ่าย/i.test(lower)) {
+        mapping.imageUrl = idx;
+      }
+    });
+
+    return mapping;
+  };
   
   const [parsedRows, setParsedRows] = useState<ParsedAssetRow[]>([]);
   const [filterType, setFilterType] = useState<'all' | 'valid' | 'invalid'>('all');
@@ -160,11 +220,41 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
   // Download template CSV file
   const handleDownloadTemplate = () => {
-    const headers = ['id', 'name', 'receivedDate', 'source', 'location', 'department', 'responsiblePerson', 'note', 'status', 'imageUrl'];
-    const exampleRow = ['6901-001-0001', 'คอมพิวเตอร์ All-in-One Dell', '2026-06-03', 'บริษัท เอ บี ซี จำกัด', 'ห้อง IT', 'ฝ่ายไอที', 'นายสมจิต รอดพ้น', 'สเปค Core i7 RAM 16GB', 'ใช้งานได้', ''];
+    const headers = [
+      'รหัสครุภัณฑ์ (id)',
+      'ชื่อครุภัณฑ์ (name)',
+      'วันที่ตรวจรับ (receivedDate YYYY-MM-DD)',
+      'ผู้จำหน่าย/ที่มา (source)',
+      'สถานที่จัดเก็บ (location)',
+      'ฝ่าย/หน่วยงาน (department)',
+      'ผู้รับผิดชอบ (responsiblePerson)',
+      'หมายเหตุ/สเปค (note)',
+      'สถานะ (status)',
+      'URLรูปภาพ (imageUrl)'
+    ];
+
+    const defaultDeptName = currentUser?.department || 'ฝ่ายไอที';
+    const sampleRows = [
+      ['6901-001-0001', 'คอมพิวเตอร์ All-in-One Dell OptiPlex', '2026-06-03', 'บริษัท เอ บี ซี คอมพิวเตอร์ จำกัด', 'ห้องสำนักงาน 201', defaultDeptName, 'นายสมจิต รอดพ้น', 'Intel Core i7 RAM 16GB SSD 512GB', 'ใช้งานได้', ''],
+      ['6901-001-0002', 'เครื่องพิมพ์ Laser Multifunction HP', '2026-06-05', 'หจก. พีเจ เซอร์วิส แอนด์ ซัพพลาย', 'ห้องธุรการ', defaultDeptName, 'นางสาวสุนิสา ใจดี', 'รองรับ Wi-Fi และพิมพ์สองหน้าอัตโนมัติ', 'ใช้งานได้', ''],
+      ['6901-002-0001', 'เก้าอี้สำนักงานเพื่อสุขภาพ Ergonomic', '2026-06-10', 'บริษัท ออฟฟิศ ดีไซน์ จำกัด', 'ห้องทำงานหลัก', defaultDeptName, 'นายประดิษฐ์ มั่นคง', 'พนักพิงตาข่าย ปรับระดับได้ สีดำ', 'ใช้งานได้', '']
+    ];
     
-    // Add UTF-8 BOM so Excel opens Thai characters correctly
-    const csvContent = "\uFEFF" + [headers.join(','), exampleRow.join(',')].join('\n');
+    // Helper to escape CSV cell value with double quotes if it contains commas or quotes
+    const escapeCsv = (val: string) => {
+      if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+
+    const csvRows = [
+      headers.map(escapeCsv).join(','),
+      ...sampleRows.map(row => row.map(escapeCsv).join(','))
+    ];
+    
+    // Add UTF-8 BOM (\uFEFF) so Excel on Windows/Mac opens Thai characters correctly without garbled text
+    const csvContent = "\uFEFF" + csvRows.join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -174,6 +264,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Auto-detect delimiter and split CSV line handling quoted values
@@ -208,26 +299,42 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     delimiter = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
     
     let startIndex = 0;
-    const firstLine = lines[0].toLowerCase();
+    const firstLineCells = parseCSVLine(lines[0], delimiter);
+    const firstLineText = lines[0].toLowerCase();
     
     // Skip headers if the first line looks like a header line
-    const hasHeaders = firstLine.includes('id') || firstLine.includes('name') || 
-                       firstLine.includes('รหัส') || firstLine.includes('ชื่อ') ||
-                       firstLine.includes('received') || firstLine.includes('date');
+    const hasHeaders = firstLineText.includes('id') || firstLineText.includes('name') || 
+                       firstLineText.includes('รหัส') || firstLineText.includes('ชื่อ') ||
+                       firstLineText.includes('received') || firstLineText.includes('date') ||
+                       firstLineText.includes('ฝ่าย') || firstLineText.includes('สถานที่');
                        
+    let mapping = defaultMapping;
     if (hasHeaders) {
       startIndex = 1;
+      mapping = detectColumnMapping(firstLineCells);
     }
     
     const parsedRows = [];
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i];
-      const values = parseCSVLine(line, delimiter);
+      const rawValues = parseCSVLine(line, delimiter);
       // Only process lines that have at least some data
-      if (values.length > 0 && values.some(v => v.trim() !== '')) {
+      if (rawValues.length > 0 && rawValues.some(v => v.trim() !== '')) {
+        const standardizedValues = [
+          rawValues[mapping.id] || '',
+          rawValues[mapping.name] || '',
+          rawValues[mapping.receivedDate] || '',
+          rawValues[mapping.source] || '',
+          rawValues[mapping.location] || '',
+          rawValues[mapping.department] || '',
+          rawValues[mapping.responsiblePerson] || '',
+          rawValues[mapping.note] || '',
+          rawValues[mapping.status] || '',
+          rawValues[mapping.imageUrl] || ''
+        ];
         parsedRows.push({
           index: i + 1,
-          values
+          values: standardizedValues
         });
       }
     }
@@ -297,15 +404,28 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
       warnings.push("ไม่ได้ระบุผู้จำหน่าย (ตั้งค่าเป็น: 'ไม่ระบุ/บริจาค')");
     }
     
-    // 5. Department Validation/Fallback
+    // 5. Department Validation/Fallback with role scoping
     let department = rawDepartment;
-    if (!department) {
-      department = 'ฝ่ายพัสดุหลัก';
-      warnings.push("ไม่ได้ระบุฝ่ายที่ดูแล (ตั้งค่าเป็น: 'ฝ่ายพัสดุหลัก')");
+    const isDeptRestricted = currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user';
+    const userDept = currentUser?.department;
+
+    if (isDeptRestricted && userDept) {
+      if (!department) {
+        department = userDept;
+        warnings.push(`กำหนดฝ่ายเป็น '${userDept}' อัตโนมัติตามสิทธิ์ของท่าน`);
+      } else if (department.toLowerCase() !== userDept.toLowerCase()) {
+        department = userDept;
+        warnings.push(`ปรับฝ่ายเป็น '${userDept}' อัตโนมัติ (ท่านมีสิทธิ์ขึ้นทะเบียนเฉพาะฝ่ายตนเอง)`);
+      }
     } else {
-      const deptExists = systemDepts.some(d => d.name.toLowerCase() === department.toLowerCase());
-      if (!deptExists && systemDepts.length > 0) {
-        warnings.push(`ฝ่าย '${department}' ไม่พบในระบบ (จะสร้างเป็นแผนกใหม่)`);
+      if (!department) {
+        department = 'ฝ่ายพัสดุหลัก';
+        warnings.push("ไม่ได้ระบุฝ่ายที่ดูแล (ตั้งค่าเป็น: 'ฝ่ายพัสดุหลัก')");
+      } else {
+        const deptExists = systemDepts.some(d => d.name.toLowerCase() === department.toLowerCase());
+        if (!deptExists && systemDepts.length > 0) {
+          warnings.push(`ฝ่าย '${department}' ไม่พบในระบบ (จะสร้างเป็นแผนกใหม่)`);
+        }
       }
     }
     
@@ -415,7 +535,9 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     setSavingProgress({ current: 0, total: validRows.length });
 
     try {
-      const operatorName = localStorage.getItem('assetwatch_operator') || 'แอดมินพัสดุ';
+      const operatorName = currentUser 
+        ? `${currentUser.name} (${currentUser.role === 'admin' ? 'แอดมิน' : currentUser.role === 'head' ? 'หัวหน้าฝ่าย' : currentUser.role === 'manager' ? 'ผู้บริหาร' : 'เจ้าหน้าที่'})` 
+        : (localStorage.getItem('assetwatch_operator') || 'เจ้าหน้าที่');
       const assetsToAdd: Asset[] = [];
       
       for (let i = 0; i < validRows.length; i++) {
@@ -459,7 +581,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         assetName: `นำเข้าแบบกลุ่ม: ${assetsToAdd.length} รายการ`,
         action: 'create',
         operator: operatorName,
-        details: `แอดมินทำการนำเข้าข้อมูลครุภัณฑ์แบบกลุ่มสำเร็จ จำนวน ${assetsToAdd.length} รายการ (พร้อมประมวลผลและบีบอัดรูปภาพพัสดุ)`
+        details: `${operatorName} ทำการนำเข้าข้อมูลครุภัณฑ์แบบกลุ่มสำเร็จ จำนวน ${assetsToAdd.length} รายการ (พร้อมประมวลผลและบีบอัดรูปภาพพัสดุ)`
       });
       
       // Confetti!
@@ -701,7 +823,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         >
           ✍️ ลงทะเบียนทีละชิ้น (Single Registration)
         </button>
-        {isAdmin && (
+        {canMassImport && (
           <button 
             type="button" 
             className={`sub-tab ${activeSubTab === 'mass' ? 'active' : ''}`}
@@ -711,7 +833,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
               handleResetImport();
             }}
           >
-            📋 นำเข้าข้อมูลแบบกลุ่ม (Admin Mass Import)
+            📥 ขึ้นทะเบียนแบบกลุ่ม (Mass / Batch Import)
           </button>
         )}
         <button 
@@ -965,7 +1087,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
           </div>
 
         </form>
-      ) : activeSubTab === 'mass' && isAdmin ? (
+      ) : activeSubTab === 'mass' && canMassImport ? (
         <div className="intake-form glass-panel">
           <div className="mass-import-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             
