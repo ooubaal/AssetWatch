@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet, QrCode, Camera } from 'lucide-react';
+import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet, QrCode, Camera, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule, SparePart } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+
+const FALLBACK_ASSET_IMG = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
 
 interface Module1DatabaseProps {
   assets: Asset[];
@@ -38,6 +40,10 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   const [statusFilter, setStatusFilter] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
+  // Pagination states for high performance on mobile & desktop
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number | 'all'>(24);
   
   // Selected asset for viewing details in modal
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -56,6 +62,57 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
       setDeptFilter(userDept);
     }
   }, [currentUser, isOrgWide, userDept]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, deptFilter, pageSize]);
+
+  // Extract unique departments & locations for filter dropdowns safely
+  const uniqueDepts = useMemo(() => {
+    return Array.from(new Set(assets.map(a => a.department).filter((d): d is string => Boolean(d))));
+  }, [assets]);
+
+  // Filter and search computation (safely guarded against null/undefined)
+  const filteredAssets = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    return assets.filter((asset) => {
+      if (!asset) return false;
+      // Role-based department restriction: Head and Operator see ONLY their department
+      if (!isOrgWide && userDept && asset.department !== userDept) {
+        return false;
+      }
+
+      const assetId = (asset.id || '').toLowerCase();
+      const assetName = (asset.name || '').toLowerCase();
+      const assetNote = (asset.note || '').toLowerCase();
+      const assetLoc = (asset.location || '').toLowerCase();
+      const assetDept = (asset.department || '').toLowerCase();
+
+      const matchesSearch = !term || 
+        assetId.includes(term) ||
+        assetName.includes(term) ||
+        assetNote.includes(term) ||
+        assetLoc.includes(term) ||
+        assetDept.includes(term);
+        
+      const matchesStatus = statusFilter ? asset.status === statusFilter : true;
+      const matchesDept = deptFilter ? asset.department === deptFilter : true;
+
+      return matchesSearch && matchesStatus && matchesDept;
+    });
+  }, [assets, searchTerm, statusFilter, deptFilter, isOrgWide, userDept]);
+
+  // Pagination calculation
+  const totalItems = filteredAssets.length;
+  const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalItems / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedAssets = useMemo(() => {
+    if (pageSize === 'all') return filteredAssets;
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return filteredAssets.slice(startIndex, startIndex + pageSize);
+  }, [filteredAssets, safeCurrentPage, pageSize]);
 
   // Export to Excel / CSV (supports UTF-8 with BOM for Excel & Google Sheets)
   const handleExportExcel = () => {
@@ -80,7 +137,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
 
     const rows = filteredAssets.map((asset, idx) => [
       idx + 1,
-      `"${asset.id.replace(/"/g, '""')}"`,
+      `"${(asset.id || '').replace(/"/g, '""')}"`,
       `"${(asset.name || '').replace(/"/g, '""')}"`,
       `"${(asset.status || '').replace(/"/g, '""')}"`,
       `"${(asset.department || '').replace(/"/g, '""')}"`,
@@ -112,27 +169,6 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  // Extract unique departments & locations for filter dropdowns
-  const uniqueDepts = Array.from(new Set(assets.map(a => a.department).filter(Boolean)));
-
-  // Filter and search computation
-  const filteredAssets = assets.filter((asset) => {
-    // Role-based department restriction: Head and Operator see ONLY their department
-    if (!isOrgWide && userDept && asset.department !== userDept) {
-      return false;
-    }
-
-    const matchesSearch = 
-      asset.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (asset.note && asset.note.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-    const matchesStatus = statusFilter ? asset.status === statusFilter : true;
-    const matchesDept = deptFilter ? asset.department === deptFilter : true;
-
-    return matchesSearch && matchesStatus && matchesDept;
-  });
-
   const statusColors: Record<string, string> = {
     'ใช้งานได้': 'badge-success',
     'ชำรุด': 'badge-danger',
@@ -149,16 +185,6 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     if (currentUser.role === 'head') return asset.department === currentUser.department; // Head can edit all in department
     // Operator can edit items in department created by themselves
     return asset.department === currentUser.department && (asset.createdBy === currentUser.id || asset.createdBy === currentUser.username || !asset.createdBy);
-  };
-
-  const isAllowedToDelete = (asset: Asset) => {
-    if (!currentUser) return false;
-    if (currentUser.role === 'admin') return true;
-    if (currentUser.role === 'head') return asset.department === currentUser.department;
-    if (currentUser.role === 'operator' || currentUser.role === 'user') {
-      return asset.department === currentUser.department && (asset.createdBy === currentUser.id || asset.createdBy === currentUser.username);
-    }
-    return false;
   };
 
   return (
@@ -282,6 +308,32 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         </div>
       </div>
 
+      {/* Item count & Pagination Header */}
+      {filteredAssets.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          <div>
+            พบข้อมูลทั้งหมด <strong>{totalItems}</strong> รายการ 
+            {pageSize !== 'all' && totalItems > pageSize && (
+              <span> (แสดงหน้า {safeCurrentPage} / {totalPages})</span>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>แสดง:</span>
+            <select
+              className="form-select"
+              value={pageSize}
+              onChange={(e) => setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              style={{ fontSize: '0.8rem', padding: '0.2rem 1.8rem 0.2rem 0.5rem', height: '30px' }}
+            >
+              <option value={24}>24 รายการ</option>
+              <option value={48}>48 รายการ</option>
+              <option value={96}>96 รายการ</option>
+              <option value="all">แสดงทั้งหมด</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Catalog Display */}
       {filteredAssets.length === 0 ? (
         <div className="empty-results glass-panel">
@@ -291,18 +343,22 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         </div>
       ) : viewMode === 'grid' ? (
         <div className="asset-grid">
-          {filteredAssets.map((asset) => (
+          {paginatedAssets.map((asset) => (
             <div key={asset.id} className="asset-card glass-panel" onClick={() => setSelectedAsset(asset)}>
               <div className="asset-card-image-box">
                 <img 
-                  src={asset.imageUrl || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60'} 
-                  alt={asset.name}
+                  src={asset.imageUrl || FALLBACK_ASSET_IMG} 
+                  alt={asset.name || 'ครุภัณฑ์'}
+                  loading="lazy"
+                  decoding="async"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+                    const target = e.currentTarget as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = FALLBACK_ASSET_IMG;
                   }}
                 />
                 <span className={`badge ${statusColors[asset.status] || 'badge-muted'} asset-status-badge`}>
-                  {asset.status}
+                  {asset.status || 'ใช้งานได้'}
                 </span>
               </div>
               <div className="asset-card-body">
@@ -315,8 +371,8 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                   </div>
                 )}
                 <div className="asset-card-meta">
-                  <span className="meta-loc">📍 {asset.location}</span>
-                  <span className="meta-dept">🏢 {asset.department}</span>
+                  <span className="meta-loc">📍 {asset.location || '-'}</span>
+                  <span className="meta-dept">🏢 {asset.department || '-'}</span>
                 </div>
               </div>
               <div className="asset-card-actions">
@@ -358,7 +414,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
               </tr>
             </thead>
             <tbody>
-              {filteredAssets.map((asset) => (
+              {paginatedAssets.map((asset) => (
                 <tr key={asset.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedAsset(asset)}>
                   <td><code>{asset.id}</code></td>
                   <td>
@@ -369,11 +425,11 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                       </div>
                     )}
                   </td>
-                  <td>{asset.location}</td>
-                  <td>{asset.department}</td>
+                  <td>{asset.location || '-'}</td>
+                  <td>{asset.department || '-'}</td>
                   <td>
                     <span className={`badge ${statusColors[asset.status] || 'badge-muted'}`}>
-                      {asset.status}
+                      {asset.status || 'ใช้งานได้'}
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
@@ -400,6 +456,104 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination Controls Footer */}
+      {pageSize !== 'all' && totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.35rem', marginTop: '1.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setCurrentPage(1);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            disabled={safeCurrentPage <= 1}
+            title="หน้าแรกสุด"
+            style={{ padding: '0.35rem 0.55rem' }}
+          >
+            <ChevronsLeft size={16} />
+          </button>
+          
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setCurrentPage(prev => Math.max(1, prev - 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            disabled={safeCurrentPage <= 1}
+            title="หน้าก่อนหน้า"
+            style={{ padding: '0.35rem 0.55rem' }}
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          {/* Page numbers */}
+          {(() => {
+            const pages: (number | string)[] = [];
+            const delta = 2;
+            const left = safeCurrentPage - delta;
+            const right = safeCurrentPage + delta;
+
+            for (let i = 1; i <= totalPages; i++) {
+              if (i === 1 || i === totalPages || (i >= left && i <= right)) {
+                pages.push(i);
+              } else if (pages[pages.length - 1] !== '...') {
+                pages.push('...');
+              }
+            }
+
+            return pages.map((p, idx) => {
+              if (p === '...') {
+                return <span key={`ellipsis-${idx}`} style={{ padding: '0.2rem 0.4rem', color: 'var(--text-muted)' }}>...</span>;
+              }
+              const isCurrent = p === safeCurrentPage;
+              return (
+                <button
+                  key={`page-${p}`}
+                  type="button"
+                  className={isCurrent ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+                  onClick={() => {
+                    setCurrentPage(Number(p));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  style={{ minWidth: '34px', padding: '0.35rem 0.5rem', fontWeight: isCurrent ? 800 : 500 }}
+                >
+                  {p}
+                </button>
+              );
+            });
+          })()}
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setCurrentPage(prev => Math.min(totalPages, prev + 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            disabled={safeCurrentPage >= totalPages}
+            title="หน้าถัดไป"
+            style={{ padding: '0.35rem 0.55rem' }}
+          >
+            <ChevronRight size={16} />
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setCurrentPage(totalPages);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            disabled={safeCurrentPage >= totalPages}
+            title="หน้าท้ายสุด"
+            style={{ padding: '0.35rem 0.55rem' }}
+          >
+            <ChevronsRight size={16} />
+          </button>
         </div>
       )}
 
@@ -798,7 +952,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                   setIsScannerOpen(false);
 
                   // If exact asset match found, auto open asset detail modal
-                  const matchedAsset = assets.find(a => a.id.toLowerCase() === cleanedCode.toLowerCase());
+                  const matchedAsset = assets.find(a => (a.id || '').toLowerCase() === cleanedCode.toLowerCase());
                   if (matchedAsset) {
                     setSelectedAsset(matchedAsset);
                   }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { SetupWizard } from './components/SetupWizard';
 import { Dashboard } from './components/Dashboard';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Database Services
 import { getFirebaseServices } from './firebase';
@@ -1182,15 +1183,16 @@ function App() {
               </div>
             </div>
 
-            {currentTab === 'dashboard' && (
-              <Dashboard 
-                assets={assets} 
-                repairs={repairs} 
-                surveys={surveys}
-                setCurrentTab={setCurrentTab}
-                currentUser={currentUser}
-              />
-            )}
+            <ErrorBoundary fallbackTitle="เกิดข้อผิดพลาดในการแสดงผลหน้านี้">
+              {currentTab === 'dashboard' && (
+                <Dashboard 
+                  assets={assets} 
+                  repairs={repairs} 
+                  surveys={surveys}
+                  setCurrentTab={setCurrentTab}
+                  currentUser={currentUser}
+                />
+              )}
             {currentTab === 'module1' && (
               <Module1_Database 
                 assets={assets}
@@ -1331,6 +1333,7 @@ function App() {
                 currentUser={currentUser}
               />
             )}
+            </ErrorBoundary>
           </main>
         </>
       )}

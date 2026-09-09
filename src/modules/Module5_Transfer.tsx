@@ -333,7 +333,9 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
                       src={selectedAsset.imageUrl} 
                       alt={selectedAsset.name} 
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
                       }}
                     />
                     <div className="brief-details">
