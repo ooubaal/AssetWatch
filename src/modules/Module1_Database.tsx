@@ -9,6 +9,7 @@ import {
 import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule, SparePart } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { SearchableSelect } from '../components/SearchableSelect';
 
 const FALLBACK_ASSET_IMG = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
 
@@ -611,19 +612,21 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
             </select>
           </div>
 
-          {/* Location / Room Dropdown */}
-          <div className="filter-item">
-            <MapPin size={14} />
-            <select 
-              className="form-select filter-select"
+          {/* Location / Room Searchable Dropdown */}
+          <div className="filter-item" style={{ minWidth: '180px', maxWidth: '230px' }}>
+            <SearchableSelect
+              options={[
+                { value: '', label: 'ทุกสถานที่ / ห้อง' },
+                ...uniqueLocations.map(loc => ({ value: loc, label: loc }))
+              ]}
               value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-            >
-              <option value="">ทุกสถานที่ / ห้อง</option>
-              {uniqueLocations.map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
+              onChange={(val) => setLocationFilter(val)}
+              placeholder="ทุกสถานที่ / ห้อง"
+              compact={true}
+              clearable={true}
+              icon={<MapPin size={14} color="var(--text-muted)" />}
+              dropdownWidth="260px"
+            />
           </div>
 
           {/* Sort By Dropdown */}
