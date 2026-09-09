@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet, QrCode, Camera, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { 
+  Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet, 
+  QrCode, Camera, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  ArrowUpDown, ArrowUp, ArrowDown, SlidersHorizontal, RotateCcw, CheckCircle2,
+  AlertTriangle, Wrench, Calendar, MapPin, Building2, Layers, Sparkles
+} from 'lucide-react';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule, SparePart } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 
 const FALLBACK_ASSET_IMG = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+
+export type SortField = 'id' | 'name' | 'receivedDate' | 'location' | 'department' | 'status' | 'updatedAt';
+export type SortDirection = 'asc' | 'desc';
 
 interface Module1DatabaseProps {
   assets: Asset[];
@@ -36,12 +44,25 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   onUpdateSparePart,
   onDeleteSparePart
 }) => {
+  // Search and basic filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
-  // Pagination states for high performance on mobile & desktop
+  // Advanced filter states
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [surveyFilter, setSurveyFilter] = useState<'' | 'surveyed' | 'unsurveyed'>('');
+  const [repairFilter, setRepairFilter] = useState<'' | 'in_repair' | 'has_history'>('');
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
+
+  // Sorting states
+  const [sortBy, setSortBy] = useState<SortField>('id');
+  const [sortOrder, setSortOrder] = useState<SortDirection>('asc');
+
+  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number | 'all'>(24);
   
@@ -63,17 +84,62 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     }
   }, [currentUser, isOrgWide, userDept]);
 
-  // Reset to page 1 whenever filters change
+  // Reset to page 1 whenever filters or sorting change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, deptFilter, pageSize]);
+  }, [searchTerm, statusFilter, deptFilter, locationFilter, surveyFilter, repairFilter, dateStart, dateEnd, sortBy, sortOrder, pageSize]);
+
+  // Lookup Sets for quick O(1) survey and repair checking
+  const surveyedAssetIds = useMemo(() => {
+    return new Set(surveys.map(s => s.assetId));
+  }, [surveys]);
+
+  const repairAssetIds = useMemo(() => {
+    return new Set(repairs.map(r => r.assetId));
+  }, [repairs]);
+
+  const activeRepairAssetIds = useMemo(() => {
+    return new Set(repairs.filter(r => r.status !== 'completed').map(r => r.assetId));
+  }, [repairs]);
 
   // Extract unique departments & locations for filter dropdowns safely
   const uniqueDepts = useMemo(() => {
-    return Array.from(new Set(assets.map(a => a.department).filter((d): d is string => Boolean(d))));
+    return Array.from(new Set(assets.map(a => a.department).filter((d): d is string => Boolean(d)))).sort((a, b) => a.localeCompare(b, 'th'));
   }, [assets]);
 
-  // Filter and search computation (safely guarded against null/undefined)
+  const uniqueLocations = useMemo(() => {
+    const pool = deptFilter ? assets.filter(a => a.department === deptFilter) : assets;
+    return Array.from(new Set(pool.map(a => a.location).filter((l): l is string => Boolean(l)))).sort((a, b) => a.localeCompare(b, 'th'));
+  }, [assets, deptFilter]);
+
+  // Reset location filter if it's no longer present in selected dept
+  useEffect(() => {
+    if (locationFilter && !uniqueLocations.includes(locationFilter)) {
+      setLocationFilter('');
+    }
+  }, [deptFilter, uniqueLocations, locationFilter]);
+
+  // Scoped pool for analytics KPIs
+  const scopedAssetsPool = useMemo(() => {
+    return isOrgWide 
+      ? (deptFilter ? assets.filter(a => a.department === deptFilter) : assets)
+      : assets.filter(a => a.department === userDept);
+  }, [assets, isOrgWide, deptFilter, userDept]);
+
+  // Analytics Metrics Calculation
+  const analyticsStats = useMemo(() => {
+    const total = scopedAssetsPool.length;
+    const ready = scopedAssetsPool.filter(a => a.status === 'ใช้งานได้').length;
+    const broken = scopedAssetsPool.filter(a => a.status === 'ชำรุด').length;
+    const dispose = scopedAssetsPool.filter(a => a.status === 'รอจำหน่าย').length;
+    const surveyed = scopedAssetsPool.filter(a => surveyedAssetIds.has(a.id) || Boolean(a.note && a.note.includes('สำรวจ'))).length;
+    const inRepair = scopedAssetsPool.filter(a => activeRepairAssetIds.has(a.id) || a.status === 'ชำรุด').length;
+    const surveyPct = total > 0 ? Math.round((surveyed / total) * 100) : 0;
+
+    return { total, ready, broken, dispose, surveyed, inRepair, surveyPct };
+  }, [scopedAssetsPool, surveyedAssetIds, activeRepairAssetIds]);
+
+  // Filter computation (safely guarded against null/undefined)
   const filteredAssets = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
     return assets.filter((asset) => {
@@ -88,35 +154,146 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
       const assetNote = (asset.note || '').toLowerCase();
       const assetLoc = (asset.location || '').toLowerCase();
       const assetDept = (asset.department || '').toLowerCase();
+      const assetResp = (asset.responsiblePerson || '').toLowerCase();
+      const assetSrc = (asset.source || '').toLowerCase();
 
       const matchesSearch = !term || 
         assetId.includes(term) ||
         assetName.includes(term) ||
         assetNote.includes(term) ||
         assetLoc.includes(term) ||
-        assetDept.includes(term);
+        assetDept.includes(term) ||
+        assetResp.includes(term) ||
+        assetSrc.includes(term);
         
       const matchesStatus = statusFilter ? asset.status === statusFilter : true;
       const matchesDept = deptFilter ? asset.department === deptFilter : true;
+      const matchesLocation = locationFilter ? asset.location === locationFilter : true;
 
-      return matchesSearch && matchesStatus && matchesDept;
+      // Survey filter
+      let matchesSurvey = true;
+      if (surveyFilter === 'surveyed') {
+        matchesSurvey = surveyedAssetIds.has(asset.id) || Boolean(asset.note && asset.note.includes('สำรวจ'));
+      } else if (surveyFilter === 'unsurveyed') {
+        matchesSurvey = !surveyedAssetIds.has(asset.id) && Boolean(!asset.note || !asset.note.includes('สำรวจ'));
+      }
+
+      // Repair filter
+      let matchesRepair = true;
+      if (repairFilter === 'in_repair') {
+        matchesRepair = activeRepairAssetIds.has(asset.id) || asset.status === 'ชำรุด';
+      } else if (repairFilter === 'has_history') {
+        matchesRepair = repairAssetIds.has(asset.id);
+      }
+
+      // Date range filter
+      let matchesDate = true;
+      if (dateStart && asset.receivedDate) {
+        matchesDate = matchesDate && (asset.receivedDate >= dateStart);
+      }
+      if (dateEnd && asset.receivedDate) {
+        matchesDate = matchesDate && (asset.receivedDate <= dateEnd);
+      }
+
+      return matchesSearch && matchesStatus && matchesDept && matchesLocation && matchesSurvey && matchesRepair && matchesDate;
     });
-  }, [assets, searchTerm, statusFilter, deptFilter, isOrgWide, userDept]);
+  }, [assets, searchTerm, statusFilter, deptFilter, locationFilter, surveyFilter, repairFilter, dateStart, dateEnd, isOrgWide, userDept, surveyedAssetIds, repairAssetIds, activeRepairAssetIds]);
+
+  // Natural Sorting Computation (Supports Thai & Numbers accurately)
+  const sortedAssets = useMemo(() => {
+    return [...filteredAssets].sort((a, b) => {
+      let valA = '';
+      let valB = '';
+
+      switch (sortBy) {
+        case 'id':
+          valA = a.id || '';
+          valB = b.id || '';
+          break;
+        case 'name':
+          valA = a.name || '';
+          valB = b.name || '';
+          break;
+        case 'receivedDate':
+          valA = a.receivedDate || '';
+          valB = b.receivedDate || '';
+          break;
+        case 'location':
+          valA = a.location || '';
+          valB = b.location || '';
+          break;
+        case 'department':
+          valA = a.department || '';
+          valB = b.department || '';
+          break;
+        case 'status':
+          valA = a.status || '';
+          valB = b.status || '';
+          break;
+        case 'updatedAt':
+          valA = a.updatedAt || a.createdAt || '';
+          valB = b.updatedAt || b.createdAt || '';
+          break;
+        default:
+          valA = a.id || '';
+          valB = b.id || '';
+      }
+
+      const comparison = valA.localeCompare(valB, 'th', { numeric: true, sensitivity: 'base' });
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredAssets, sortBy, sortOrder]);
+
+  // Sorting toggle helper for table headers
+  const handleToggleSort = (field: SortField) => {
+    if (sortBy === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  // Active filters check & reset helper
+  const hasActiveFilters = Boolean(
+    searchTerm || statusFilter || (isOrgWide && deptFilter) || locationFilter || surveyFilter || repairFilter || dateStart || dateEnd
+  );
+
+  const activeFilterCount = [
+    Boolean(searchTerm),
+    Boolean(statusFilter),
+    Boolean(isOrgWide && deptFilter),
+    Boolean(locationFilter),
+    Boolean(surveyFilter),
+    Boolean(repairFilter),
+    Boolean(dateStart || dateEnd)
+  ].filter(Boolean).length;
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    if (isOrgWide) setDeptFilter('');
+    setLocationFilter('');
+    setSurveyFilter('');
+    setRepairFilter('');
+    setDateStart('');
+    setDateEnd('');
+  };
 
   // Pagination calculation
-  const totalItems = filteredAssets.length;
+  const totalItems = sortedAssets.length;
   const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalItems / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
 
   const paginatedAssets = useMemo(() => {
-    if (pageSize === 'all') return filteredAssets;
+    if (pageSize === 'all') return sortedAssets;
     const startIndex = (safeCurrentPage - 1) * pageSize;
-    return filteredAssets.slice(startIndex, startIndex + pageSize);
-  }, [filteredAssets, safeCurrentPage, pageSize]);
+    return sortedAssets.slice(startIndex, startIndex + pageSize);
+  }, [sortedAssets, safeCurrentPage, pageSize]);
 
   // Export to Excel / CSV (supports UTF-8 with BOM for Excel & Google Sheets)
   const handleExportExcel = () => {
-    if (filteredAssets.length === 0) {
+    if (sortedAssets.length === 0) {
       alert('ไม่พบข้อมูลครุภัณฑ์สำหรับส่งออกรายงาน');
       return;
     }
@@ -135,7 +312,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
       'ผู้ลงทะเบียน'
     ];
 
-    const rows = filteredAssets.map((asset, idx) => [
+    const rows = sortedAssets.map((asset, idx) => [
       idx + 1,
       `"${(asset.id || '').replace(/"/g, '""')}"`,
       `"${(asset.name || '').replace(/"/g, '""')}"`,
@@ -194,13 +371,174 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         <p>บัญชีควบคุมทรัพย์สินหลักของทางราชการ ค้นหาสืบค้นข้อมูล พร้อมประวัติย้อนหลังเชิงลึก</p>
       </div>
 
-      {/* Filter and search panel */}
+      {/* Interactive Analytics KPI Summary Chips */}
+      <div className="analytics-chips-bar glass-panel animate-fade-in" style={{ padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginRight: '0.25rem' }}>
+          <Sparkles size={16} color="var(--primary)" /> สรุปข้อมูล:
+        </div>
+
+        {/* All Assets Chip */}
+        <button
+          type="button"
+          className={`analytics-chip ${!statusFilter && !surveyFilter && !repairFilter ? 'active' : ''}`}
+          onClick={() => {
+            setStatusFilter('');
+            setSurveyFilter('');
+            setRepairFilter('');
+          }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.3rem 0.65rem',
+            borderRadius: '20px',
+            fontSize: '0.775rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: '1px solid var(--border)',
+            background: !statusFilter && !surveyFilter && !repairFilter ? 'var(--primary)' : 'var(--bg-secondary)',
+            color: !statusFilter && !surveyFilter && !repairFilter ? '#fff' : 'var(--text-primary)',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          📦 ทั้งหมด: <span style={{ opacity: 0.9 }}>{analyticsStats.total}</span>
+        </button>
+
+        {/* Ready Chip */}
+        <button
+          type="button"
+          className={`analytics-chip ${statusFilter === 'ใช้งานได้' ? 'active' : ''}`}
+          onClick={() => setStatusFilter(prev => prev === 'ใช้งานได้' ? '' : 'ใช้งานได้')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.3rem 0.65rem',
+            borderRadius: '20px',
+            fontSize: '0.775rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            background: statusFilter === 'ใช้งานได้' ? '#10b981' : 'rgba(16, 185, 129, 0.12)',
+            color: statusFilter === 'ใช้งานได้' ? '#fff' : '#10b981',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          🟢 พร้อมใช้งาน: <span>{analyticsStats.ready}</span>
+        </button>
+
+        {/* Broken Chip */}
+        <button
+          type="button"
+          className={`analytics-chip ${statusFilter === 'ชำรุด' ? 'active' : ''}`}
+          onClick={() => setStatusFilter(prev => prev === 'ชำรุด' ? '' : 'ชำรุด')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.3rem 0.65rem',
+            borderRadius: '20px',
+            fontSize: '0.775rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            background: statusFilter === 'ชำรุด' ? '#ef4444' : 'rgba(239, 68, 68, 0.12)',
+            color: statusFilter === 'ชำรุด' ? '#fff' : '#ef4444',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          🔴 ชำรุด: <span>{analyticsStats.broken}</span>
+        </button>
+
+        {/* Dispose Chip */}
+        <button
+          type="button"
+          className={`analytics-chip ${statusFilter === 'รอจำหน่าย' ? 'active' : ''}`}
+          onClick={() => setStatusFilter(prev => prev === 'รอจำหน่าย' ? '' : 'รอจำหน่าย')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.3rem 0.65rem',
+            borderRadius: '20px',
+            fontSize: '0.775rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            background: statusFilter === 'รอจำหน่าย' ? '#f59e0b' : 'rgba(245, 158, 11, 0.12)',
+            color: statusFilter === 'รอจำหน่าย' ? '#fff' : '#f59e0b',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          🟡 รอจำหน่าย: <span>{analyticsStats.dispose}</span>
+        </button>
+
+        {/* Surveyed Chip */}
+        <button
+          type="button"
+          className={`analytics-chip ${surveyFilter === 'surveyed' ? 'active' : ''}`}
+          onClick={() => setSurveyFilter(prev => prev === 'surveyed' ? '' : 'surveyed')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.3rem 0.65rem',
+            borderRadius: '20px',
+            fontSize: '0.775rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: '1px solid rgba(139, 92, 246, 0.4)',
+            background: surveyFilter === 'surveyed' ? '#8b5cf6' : 'rgba(139, 92, 246, 0.12)',
+            color: surveyFilter === 'surveyed' ? '#fff' : '#8b5cf6',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          🔍 สำรวจแล้ว: <span>{analyticsStats.surveyed} ({analyticsStats.surveyPct}%)</span>
+        </button>
+
+        {/* In Repair / Broken Chip */}
+        <button
+          type="button"
+          className={`analytics-chip ${repairFilter === 'in_repair' ? 'active' : ''}`}
+          onClick={() => setRepairFilter(prev => prev === 'in_repair' ? '' : 'in_repair')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.3rem 0.65rem',
+            borderRadius: '20px',
+            fontSize: '0.775rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: '1px solid rgba(234, 88, 12, 0.4)',
+            background: repairFilter === 'in_repair' ? '#ea580c' : 'rgba(234, 88, 12, 0.12)',
+            color: repairFilter === 'in_repair' ? '#fff' : '#ea580c',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          🛠️ อยู่ระหว่างซ่อม: <span>{analyticsStats.inRepair}</span>
+        </button>
+
+        {/* Clear Filters button if any active */}
+        {hasActiveFilters && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs"
+            onClick={handleResetFilters}
+            style={{ marginLeft: 'auto', color: 'var(--danger)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+          >
+            <RotateCcw size={13} /> ล้างตัวกรอง ({activeFilterCount})
+          </button>
+        )}
+      </div>
+
+      {/* Main Filter, Search and Sorting Toolbar */}
       <div className="filter-panel glass-panel">
         <div className="search-box" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <Search size={18} className="search-icon" />
           <input 
             type="text" 
-            placeholder="ค้นหาด้วยรหัสครุภัณฑ์ หรือ ชื่อเครื่องมือ..." 
+            placeholder="ค้นหารหัส, ชื่อ, หมายเหตุ, สถานที่, ผู้รับผิดชอบ..." 
             className="form-input search-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -233,6 +571,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         </div>
 
         <div className="filter-dropdowns">
+          {/* Status Dropdown */}
           <div className="filter-item">
             <Filter size={14} />
             <select 
@@ -250,7 +589,9 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
             </select>
           </div>
 
+          {/* Department Dropdown */}
           <div className="filter-item">
+            <Building2 size={14} />
             <select 
               className="form-select filter-select"
               value={deptFilter}
@@ -270,6 +611,71 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
             </select>
           </div>
 
+          {/* Location / Room Dropdown */}
+          <div className="filter-item">
+            <MapPin size={14} />
+            <select 
+              className="form-select filter-select"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+            >
+              <option value="">ทุกสถานที่ / ห้อง</option>
+              {uniqueLocations.map(loc => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sort By Dropdown */}
+          <div className="filter-item">
+            <ArrowUpDown size={14} />
+            <select
+              className="form-select filter-select"
+              value={`${sortBy}_${sortOrder}`}
+              onChange={(e) => {
+                const [field, order] = e.target.value.split('_');
+                setSortBy(field as SortField);
+                setSortOrder(order as SortDirection);
+              }}
+              title="เลือกการเรียงลำดับข้อมูล"
+            >
+              <option value="id_asc">🏷️ รหัสครุภัณฑ์ (A ➔ Z / น้อย ➔ มาก)</option>
+              <option value="id_desc">🏷️ รหัสครุภัณฑ์ (Z ➔ A / มาก ➔ น้อย)</option>
+              <option value="name_asc">📝 ชื่อครุภัณฑ์ (ก ➔ ฮ / A ➔ Z)</option>
+              <option value="name_desc">📝 ชื่อครุภัณฑ์ (ฮ ➔ ก / Z ➔ A)</option>
+              <option value="receivedDate_desc">📅 วันที่ตรวจรับ (ล่าสุดก่อน ➔ เก่า)</option>
+              <option value="receivedDate_asc">📅 วันที่ตรวจรับ (เก่าก่อน ➔ ล่าสุด)</option>
+              <option value="location_asc">📍 สถานที่จัดเก็บ (ก ➔ ฮ)</option>
+              <option value="department_asc">🏢 ฝ่าย/หน่วยงาน (ก ➔ ฮ)</option>
+              <option value="status_asc">🚦 สถานะ (ก ➔ ฮ)</option>
+              <option value="updatedAt_desc">⏱️ บันทึกล่าสุด (ใหม่ ➔ เก่า)</option>
+            </select>
+          </div>
+
+          {/* Advanced Filters Toggle Button */}
+          <button
+            type="button"
+            className={`btn ${showAdvancedFilters ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setShowAdvancedFilters(prev => !prev)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.75rem', position: 'relative' }}
+            title="เปิด/ปิด แผงตัวกรองเชิงลึก"
+          >
+            <SlidersHorizontal size={14} />
+            <span>ตัวกรองละเอียด</span>
+            {(surveyFilter || repairFilter || dateStart || dateEnd) && (
+              <span style={{ 
+                width: '8px', 
+                height: '8px', 
+                borderRadius: '50%', 
+                backgroundColor: '#ef4444', 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px' 
+              }} />
+            )}
+          </button>
+
+          {/* Export to Excel */}
           <button 
             type="button" 
             className="btn btn-secondary"
@@ -280,6 +686,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
             <FileSpreadsheet size={15} /> Export Excel / Sheet
           </button>
 
+          {/* Print Report */}
           <button 
             type="button" 
             className="btn btn-primary"
@@ -289,18 +696,19 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
             <Printer size={15} /> พิมพ์รายงาน / ออกรายการ
           </button>
 
+          {/* View Mode Toggle (Grid / Table) */}
           <div className="view-toggle">
             <button 
               className={`toggle-btn ${viewMode === 'grid' ? 'active-toggle' : ''}`}
               onClick={() => setViewMode('grid')}
-              title="แสดงแบบการ์ด"
+              title="แสดงแบบการ์ด (Card View)"
             >
               <Grid size={16} />
             </button>
             <button 
               className={`toggle-btn ${viewMode === 'table' ? 'active-toggle' : ''}`}
               onClick={() => setViewMode('table')}
-              title="แสดงแบบตาราง"
+              title="แสดงแบบตาราง (Table View)"
             >
               <List size={16} />
             </button>
@@ -308,38 +716,139 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         </div>
       </div>
 
+      {/* Expandable Advanced Filters Drawer */}
+      {showAdvancedFilters && (
+        <div className="advanced-filters-panel glass-panel animate-fade-in" style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem', border: '1px solid var(--primary-light)', borderRadius: 'var(--radius-md)', background: 'rgba(59, 130, 246, 0.03)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <SlidersHorizontal size={16} /> ตัวกรองละเอียดเพื่อการวิเคราะห์ข้อมูล (Advanced Analysis Filters)
+            </h4>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={handleResetFilters}
+                style={{ color: 'var(--danger)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              >
+                <RotateCcw size={12} /> รีเซ็ตตัวกรองทั้งหมด
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            {/* Survey Status Filter */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700 }}>🔍 สถานะการสำรวจตรวจนับ</label>
+              <select
+                className="form-select"
+                value={surveyFilter}
+                onChange={(e) => setSurveyFilter(e.target.value as any)}
+                style={{ fontSize: '0.85rem' }}
+              >
+                <option value="">ทุกสถานะการสำรวจ (ทั้งหมด)</option>
+                <option value="surveyed">🟢 เคยสำรวจตรวจนับแล้ว</option>
+                <option value="unsurveyed">⚪ ยังไม่เคยสำรวจตรวจนับ</option>
+              </select>
+            </div>
+
+            {/* Repair / Maintenance Status Filter */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700 }}>🛠️ ประวัติการส่งซ่อมบำรุง</label>
+              <select
+                className="form-select"
+                value={repairFilter}
+                onChange={(e) => setRepairFilter(e.target.value as any)}
+                style={{ fontSize: '0.85rem' }}
+              >
+                <option value="">ทั้งหมด (ทุกประวัติ)</option>
+                <option value="in_repair">⚠️ อยู่ระหว่างส่งซ่อม / ชำรุด</option>
+                <option value="has_history">📋 มีประวัติส่งซ่อมในระบบ</option>
+              </select>
+            </div>
+
+            {/* Date Start Filter */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700 }}>📅 ตรวจรับเข้าตั้งแต่วันที่</label>
+              <input
+                type="date"
+                className="form-input"
+                value={dateStart}
+                onChange={(e) => setDateStart(e.target.value)}
+                style={{ fontSize: '0.85rem' }}
+              />
+            </div>
+
+            {/* Date End Filter */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700 }}>📅 จนถึงวันที่</label>
+              <input
+                type="date"
+                className="form-input"
+                value={dateEnd}
+                onChange={(e) => setDateEnd(e.target.value)}
+                style={{ fontSize: '0.85rem' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Item count & Pagination Header */}
-      {filteredAssets.length > 0 && (
+      {sortedAssets.length > 0 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
           <div>
             พบข้อมูลทั้งหมด <strong>{totalItems}</strong> รายการ 
+            {hasActiveFilters && (
+              <span style={{ color: 'var(--primary)', marginLeft: '0.5rem', fontWeight: 600 }}>
+                (กรองจากทั้งหมด {scopedAssetsPool.length} รายการ)
+              </span>
+            )}
             {pageSize !== 'all' && totalItems > pageSize && (
               <span> (แสดงหน้า {safeCurrentPage} / {totalPages})</span>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span>แสดง:</span>
-            <select
-              className="form-select"
-              value={pageSize}
-              onChange={(e) => setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-              style={{ fontSize: '0.8rem', padding: '0.2rem 1.8rem 0.2rem 0.5rem', height: '30px' }}
-            >
-              <option value={24}>24 รายการ</option>
-              <option value={48}>48 รายการ</option>
-              <option value={96}>96 รายการ</option>
-              <option value="all">แสดงทั้งหมด</option>
-            </select>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              เรียงโดย: <strong>
+                {sortBy === 'id' ? 'รหัสครุภัณฑ์' : sortBy === 'name' ? 'ชื่อ' : sortBy === 'receivedDate' ? 'วันที่รับเข้า' : sortBy === 'location' ? 'สถานที่' : sortBy === 'department' ? 'หน่วยงาน' : sortBy === 'status' ? 'สถานะ' : 'บันทึกล่าสุด'}
+              </strong> ({sortOrder === 'asc' ? 'น้อย➔มาก' : 'มาก➔น้อย'})
+            </span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span>แสดง:</span>
+              <select
+                className="form-select"
+                value={pageSize}
+                onChange={(e) => setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                style={{ fontSize: '0.8rem', padding: '0.2rem 1.8rem 0.2rem 0.5rem', height: '30px' }}
+              >
+                <option value={24}>24 รายการ</option>
+                <option value={48}>48 รายการ</option>
+                <option value={96}>96 รายการ</option>
+                <option value="all">แสดงทั้งหมด</option>
+              </select>
+            </div>
           </div>
         </div>
       )}
 
       {/* Catalog Display */}
-      {filteredAssets.length === 0 ? (
+      {sortedAssets.length === 0 ? (
         <div className="empty-results glass-panel">
           <ShieldAlert size={40} color="var(--text-muted)" />
           <h3>ไม่พบข้อมูลครุภัณฑ์ที่ค้นหา</h3>
           <p>ลองปรับคำค้นหา หรือเอาฟิลเตอร์ตัวกรองออกเพื่อแสดงผลใหม่อีกครั้ง</p>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleResetFilters}
+              style={{ marginTop: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <RotateCcw size={14} /> ล้างตัวกรองทั้งหมด
+            </button>
+          )}
         </div>
       ) : viewMode === 'grid' ? (
         <div className="asset-grid">
@@ -405,11 +914,42 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           <table className="custom-table">
             <thead>
               <tr>
-                <th>รหัสครุภัณฑ์</th>
-                <th>ชื่อครุภัณฑ์</th>
-                <th>สถานที่</th>
-                <th>หน่วยงานรับผิดชอบ</th>
-                <th>สถานะ</th>
+                <th onClick={() => handleToggleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }} title="คลิกเพื่อเรียงตามรหัส">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    รหัสครุภัณฑ์
+                    {sortBy === 'id' ? (sortOrder === 'asc' ? <ArrowUp size={14} color="var(--primary)" /> : <ArrowDown size={14} color="var(--primary)" />) : <ArrowUpDown size={12} color="var(--text-muted)" />}
+                  </div>
+                </th>
+                <th onClick={() => handleToggleSort('name')} style={{ cursor: 'pointer', userSelect: 'none' }} title="คลิกเพื่อเรียงตามชื่อ">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    ชื่อครุภัณฑ์
+                    {sortBy === 'name' ? (sortOrder === 'asc' ? <ArrowUp size={14} color="var(--primary)" /> : <ArrowDown size={14} color="var(--primary)" />) : <ArrowUpDown size={12} color="var(--text-muted)" />}
+                  </div>
+                </th>
+                <th onClick={() => handleToggleSort('location')} style={{ cursor: 'pointer', userSelect: 'none' }} title="คลิกเพื่อเรียงตามสถานที่">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    สถานที่
+                    {sortBy === 'location' ? (sortOrder === 'asc' ? <ArrowUp size={14} color="var(--primary)" /> : <ArrowDown size={14} color="var(--primary)" />) : <ArrowUpDown size={12} color="var(--text-muted)" />}
+                  </div>
+                </th>
+                <th onClick={() => handleToggleSort('department')} style={{ cursor: 'pointer', userSelect: 'none' }} title="คลิกเพื่อเรียงตามหน่วยงาน">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    หน่วยงานรับผิดชอบ
+                    {sortBy === 'department' ? (sortOrder === 'asc' ? <ArrowUp size={14} color="var(--primary)" /> : <ArrowDown size={14} color="var(--primary)" />) : <ArrowUpDown size={12} color="var(--text-muted)" />}
+                  </div>
+                </th>
+                <th onClick={() => handleToggleSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }} title="คลิกเพื่อเรียงตามสถานะ">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    สถานะ
+                    {sortBy === 'status' ? (sortOrder === 'asc' ? <ArrowUp size={14} color="var(--primary)" /> : <ArrowDown size={14} color="var(--primary)" />) : <ArrowUpDown size={12} color="var(--text-muted)" />}
+                  </div>
+                </th>
+                <th onClick={() => handleToggleSort('receivedDate')} style={{ cursor: 'pointer', userSelect: 'none' }} title="คลิกเพื่อเรียงตามวันที่รับเข้า">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    วันที่รับเข้า
+                    {sortBy === 'receivedDate' ? (sortOrder === 'asc' ? <ArrowUp size={14} color="var(--primary)" /> : <ArrowDown size={14} color="var(--primary)" />) : <ArrowUpDown size={12} color="var(--text-muted)" />}
+                  </div>
+                </th>
                 <th style={{ textAlign: 'right' }}>เครื่องมือ</th>
               </tr>
             </thead>
@@ -430,6 +970,11 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                   <td>
                     <span className={`badge ${statusColors[asset.status] || 'badge-muted'}`}>
                       {asset.status || 'ใช้งานได้'}
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      {asset.receivedDate || '-'}
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
