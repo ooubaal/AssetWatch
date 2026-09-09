@@ -612,9 +612,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               </div>
 
               {/* Checklist Search, Filter, Sort Controls */}
-              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="checklist-controls-row">
                 {/* Search Bar */}
-                <div style={{ position: 'relative', flex: 1.2, minWidth: '130px' }}>
+                <div className="checklist-search-box">
                   <Search size={13} color="var(--text-muted)" style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type="text"
@@ -633,49 +633,51 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                   />
                 </div>
 
-                {/* Filter by Room / Location */}
-                <div style={{ minWidth: '105px', flex: '0.8' }}>
-                  <select
-                    className="form-select"
-                    style={{
-                      width: '100%',
-                      padding: '0.35rem 0.5rem',
-                      fontSize: '0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--bg-secondary)',
-                      height: '32px',
-                      cursor: 'pointer'
-                    }}
-                    value={checklistLocationFilter}
-                    onChange={(e) => setChecklistLocationFilter(e.target.value)}
-                  >
-                    <option value="all">ทุกห้อง/สถานที่</option>
-                    {uniqueLocationsInList.map((loc: string) => (
-                      <option key={loc} value={loc}>📍 {loc}</option>
-                    ))}
-                  </select>
-                </div>
+                <div className="checklist-filter-group">
+                  {/* Filter by Room / Location */}
+                  <div className="checklist-filter-item">
+                    <select
+                      className="form-select"
+                      style={{
+                        width: '100%',
+                        padding: '0.35rem 0.5rem',
+                        fontSize: '0.75rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-secondary)',
+                        height: '32px',
+                        cursor: 'pointer'
+                      }}
+                      value={checklistLocationFilter}
+                      onChange={(e) => setChecklistLocationFilter(e.target.value)}
+                    >
+                      <option value="all">ทุกห้อง/สถานที่</option>
+                      {uniqueLocationsInList.map((loc: string) => (
+                        <option key={loc} value={loc}>📍 {loc}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                {/* Sorting Select */}
-                <div style={{ minWidth: '90px', flex: '0.6' }}>
-                  <select
-                    className="form-select"
-                    style={{
-                      width: '100%',
-                      padding: '0.35rem 0.5rem',
-                      fontSize: '0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--bg-secondary)',
-                      height: '32px',
-                      cursor: 'pointer'
-                    }}
-                    value={checklistSortBy}
-                    onChange={(e) => setChecklistSortBy(e.target.value as any)}
-                  >
-                    <option value="location">เรียง: ห้อง 📍</option>
-                    <option value="id">เรียง: รหัส 🔢</option>
-                    <option value="name">เรียง: ชื่อ 🔤</option>
-                  </select>
+                  {/* Sorting Select */}
+                  <div className="checklist-filter-item">
+                    <select
+                      className="form-select"
+                      style={{
+                        width: '100%',
+                        padding: '0.35rem 0.5rem',
+                        fontSize: '0.75rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-secondary)',
+                        height: '32px',
+                        cursor: 'pointer'
+                      }}
+                      value={checklistSortBy}
+                      onChange={(e) => setChecklistSortBy(e.target.value as any)}
+                    >
+                      <option value="location">เรียง: ห้อง 📍</option>
+                      <option value="id">เรียง: รหัส 🔢</option>
+                      <option value="name">เรียง: ชื่อ 🔤</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -995,8 +997,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               const rate = totalCount > 0 ? Math.round((surveyedCount / totalCount) * 100) : 0;
               
               return (
-                <div className="active-round-dashboard" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: '300px' }}>
+                <div className="active-round-dashboard">
+                  <div className="active-round-main-col">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <span className="badge badge-success" style={{ animation: 'pulse 1.5s infinite alternate' }}>✓ กำลังดำเนินการ (Active)</span>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>เริ่มรอบเมื่อ: {new Date(activeRound.dateCreated).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} น.</span>
@@ -1142,7 +1144,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                     )}
                   </div>
 
-                  <div className="active-round-status-box" style={{ flex: 0.8, minWidth: '250px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+                  <div className="active-round-status-box" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
                     <h4 style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
                       <TrendingUp size={16} color="var(--primary)" /> สถิติสถานะเรียลไทม์ (Active Breakdown)
                     </h4>
@@ -1165,7 +1167,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
                   {/* If selectedRoundDept is 'all' and user is admin/manager, show side-by-side department breakdown */}
                   {selectedRoundDept === 'all' && (currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
-                    <div style={{ flex: 1.2, minWidth: '320px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '1.25rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column' }}>
+                    <div className="active-round-dept-box" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '1.25rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column' }}>
                       <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <ClipboardList size={16} color="var(--primary)" />
                         📊 ความก้าวหน้าแยกรายฝ่าย/หน่วยงาน
@@ -1609,6 +1611,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       </div>
 
       <style>{`
+        .module-container {
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          overflow-x: hidden;
+        }
+
         .survey-setup-bar {
           padding: 1.25rem;
           margin-bottom: 1.25rem;
@@ -1616,6 +1625,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           align-items: center;
           gap: 1.5rem;
           flex-wrap: wrap;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .select-survey-target {
@@ -1629,24 +1640,29 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         .checklist-progress-panel {
           padding: 1.25rem 1.5rem;
           margin-bottom: 1.5rem;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .progress-meta-info {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          gap: 0.75rem;
         }
 
         .progress-label-group {
           display: flex;
           align-items: center;
           gap: 0.85rem;
+          min-width: 0;
         }
 
         .progress-label-group h3 {
           font-size: 1.05rem;
           font-weight: 750;
           line-height: 1.2;
+          word-break: break-word;
         }
 
         .progress-sub {
@@ -1660,6 +1676,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           font-weight: 900;
           color: var(--primary);
           line-height: 1;
+          flex-shrink: 0;
         }
 
         /* Checklist board styles */
@@ -1668,7 +1685,35 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           display: flex;
           flex-direction: column;
           height: 500px; /* Expanded height for visual balance and larger viewport */
+          width: 100%;
           box-sizing: border-box;
+          min-width: 0;
+        }
+
+        .checklist-controls-row {
+          display: flex;
+          gap: 0.4rem;
+          margin-bottom: 0.75rem;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .checklist-search-box {
+          position: relative;
+          flex: 1.2;
+          min-width: 0;
+        }
+
+        .checklist-filter-group {
+          display: flex;
+          gap: 0.4rem;
+          flex: 1.4;
+          min-width: 0;
+        }
+
+        .checklist-filter-item {
+          flex: 1;
+          min-width: 0;
         }
 
         .scan-frame {
@@ -1676,7 +1721,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           display: flex;
           flex-direction: column;
           overflow: hidden;
+          width: 100%;
           box-sizing: border-box;
+          min-width: 0;
         }
 
         .scan-frame .scanner-wrapper {
@@ -1697,6 +1744,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           margin-bottom: 0.75rem;
           gap: 0.5rem;
           padding-bottom: 0.25rem;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .checklist-tab-btn {
@@ -1712,6 +1761,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           border-bottom: 2.5px solid transparent;
           transition: all var(--transition-fast);
           text-align: center;
+          min-width: 0;
         }
 
         .checklist-tab-btn:hover {
@@ -1731,6 +1781,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           gap: 0.65rem;
           padding-bottom: 1.5rem;
           padding-right: 0.25rem;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .checklist-item-row {
@@ -1742,6 +1794,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           border: 1px solid var(--border);
           border-radius: var(--radius-sm);
           transition: all var(--transition-fast);
+          width: 100%;
+          box-sizing: border-box;
+          gap: 0.5rem;
         }
 
         .checklist-item-row:hover {
@@ -1758,7 +1813,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           display: flex;
           flex-direction: column;
           gap: 0.1rem;
-          max-width: 65%;
+          flex: 1;
+          min-width: 0;
         }
 
         .item-code {
@@ -1766,6 +1822,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           font-family: monospace;
           color: var(--text-muted);
           font-weight: 550;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .item-title {
@@ -1780,6 +1839,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         .item-loc {
           font-size: 0.725rem;
           color: var(--text-secondary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .btn-quick-survey {
@@ -1804,6 +1866,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           padding: 3rem 1.5rem;
           gap: 0.75rem;
           color: var(--text-muted);
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .empty-checklist-state h4 {
@@ -1825,6 +1889,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           justify-content: space-between;
           gap: 2rem;
           flex-wrap: wrap;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .operator-survey-tip {
@@ -1842,6 +1908,14 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           grid-template-columns: 1fr 1fr;
           gap: 1.5rem;
           align-items: start;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .scanner-column, .form-column {
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
         }
 
         .scan-placeholder {
@@ -1853,7 +1927,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           justify-content: center;
           gap: 1rem;
           text-align: center;
+          width: 100%;
           box-sizing: border-box;
+          min-width: 0;
         }
 
         .scanned-code-pill {
@@ -1863,6 +1939,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           border: 1px solid var(--success);
           color: var(--success);
           font-weight: 600;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .pill-warning {
@@ -1888,6 +1967,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           align-items: center;
           gap: 1.25rem;
           text-align: center;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .pulse-scanning {
@@ -1906,6 +1987,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           align-items: center;
           gap: 1.25rem;
           text-align: center;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .warning-shake {
@@ -1928,10 +2011,12 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           display: flex;
           gap: 1rem;
           width: 100%;
+          flex-wrap: wrap;
         }
 
         .warning-actions button {
           flex: 1;
+          min-width: 120px;
         }
 
         .survey-form-panel {
@@ -1939,6 +2024,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           display: flex;
           flex-direction: column;
           gap: 1.25rem;
+          width: 100%;
+          box-sizing: border-box;
+          min-width: 0;
         }
 
         .survey-asset-brief {
@@ -1947,6 +2035,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           border-bottom: 1px solid var(--border);
           padding-bottom: 1rem;
           align-items: center;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .survey-asset-brief img {
@@ -1955,12 +2045,15 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           object-fit: cover;
           border-radius: var(--radius-sm);
           border: 1px solid var(--border);
+          flex-shrink: 0;
         }
 
         .brief-details {
           display: flex;
           flex-direction: column;
           gap: 0.15rem;
+          flex: 1;
+          min-width: 0;
         }
 
         .brief-id {
@@ -1974,6 +2067,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           font-size: 0.95rem;
           font-weight: 750;
           color: var(--text-primary);
+          word-break: break-word;
         }
 
         .brief-details span {
@@ -2010,6 +2104,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           cursor: pointer;
           transition: all var(--transition-fast);
           background-color: var(--bg-primary);
+          box-sizing: border-box;
         }
 
         .upload-box-dashed:hover {
@@ -2058,6 +2153,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           align-items: center;
           gap: 1.25rem;
           text-align: center;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .success-sparkle-halo {
@@ -2080,6 +2177,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           gap: 0.5rem;
           font-size: 0.85rem;
           margin-bottom: 0.5rem;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .survey-summary-success-pill span {
@@ -2091,7 +2191,51 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           color: var(--text-primary);
         }
 
+        /* Rounds Manager & Active Dashboard */
+        .rounds-manager-card {
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .active-round-dashboard {
+          display: flex;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .active-round-main-col {
+          flex: 1 1 300px;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+
+        .active-round-status-box {
+          flex: 0.8 1 240px;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+
+        .active-round-dept-box {
+          flex: 1.2 1 280px;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+
         @media (max-width: 768px) {
+          .survey-setup-bar {
+            padding: 1rem;
+            gap: 0.75rem;
+          }
+          .survey-setup-bar .form-group {
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+            width: 100% !important;
+          }
+          .checklist-progress-panel {
+            padding: 1rem;
+          }
           .survey-layout-grid {
             grid-template-columns: 1fr;
             gap: 1rem;
@@ -2101,20 +2245,83 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           }
           .scan-placeholder {
             height: auto;
-            min-height: 280px;
+            min-height: 260px;
             padding: 1.5rem 1rem;
           }
           .checklist-board-card {
-            height: 420px;
+            height: 440px;
             padding: 1rem;
+          }
+          .checklist-controls-row {
+            flex-direction: column;
+            gap: 0.45rem;
+          }
+          .checklist-search-box {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+          }
+          .checklist-filter-group {
+            width: 100% !important;
+            flex: 1 1 100% !important;
           }
           .operator-card {
             flex-direction: column;
             align-items: stretch;
             gap: 1rem;
+            padding: 1rem;
           }
           .operator-survey-tip {
             max-width: 100%;
+          }
+          .rounds-manager-card {
+            padding: 1rem !important;
+            margin-top: 1.25rem !important;
+          }
+          .rounds-manager-header {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 0.75rem !important;
+          }
+          .rounds-manager-header > div:last-child {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+          }
+          .active-round-dashboard {
+            flex-direction: column;
+            gap: 1rem;
+          }
+          .active-round-main-col,
+          .active-round-status-box,
+          .active-round-dept-box {
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+            width: 100% !important;
+          }
+          .survey-form-panel {
+            padding: 1rem;
+          }
+          .survey-success-card {
+            padding: 2rem 1rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .progress-meta-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.4rem;
+          }
+          .progress-percent-large {
+            align-self: flex-end;
+          }
+          .checklist-filter-group {
+            flex-direction: column;
+            gap: 0.35rem;
+          }
+          .checklist-filter-item {
+            width: 100%;
           }
         }
 
