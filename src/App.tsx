@@ -676,21 +676,28 @@ function App() {
   };
 
   // --- MODULE 8: DEPARTMENT CONFIG HANDLERS ---
-  const handleCreateDepartment = async (name: string, locations: string[]) => {
+  const handleCreateDepartment = async (name: string, locations: string[], createdBy?: string) => {
     const newDept: DepartmentLocationConfig = {
       id: `dept-${Date.now()}`,
       name: name.trim(),
-      locations: locations.map(l => l.trim()).filter(Boolean)
+      locations: locations.map(l => l.trim()).filter(Boolean),
+      createdBy: createdBy || currentUser?.username || currentUser?.name || 'admin',
+      createdAt: new Date().toISOString(),
+      locationCreators: {}
     };
     await addDepartment(newDept);
     await fetchAllData();
   };
 
-  const handleUpdateDepartment = async (id: string, name: string, locations: string[]) => {
-    await updateDepartment(id, {
+  const handleUpdateDepartment = async (id: string, name: string, locations: string[], locationCreators?: Record<string, string>) => {
+    const updates: Partial<DepartmentLocationConfig> = {
       name: name.trim(),
       locations: locations.map(l => l.trim()).filter(Boolean)
-    });
+    };
+    if (locationCreators !== undefined) {
+      updates.locationCreators = locationCreators;
+    }
+    await updateDepartment(id, updates);
     await fetchAllData();
   };
 
@@ -1315,12 +1322,13 @@ function App() {
                 currentUser={currentUser}
               />
             )}
-            {currentTab === 'module8' && currentUser?.role === 'admin' && (
+            {currentTab === 'module8' && (
               <Module8_Departments 
                 departments={departments}
                 onAddDept={handleCreateDepartment}
                 onUpdateDept={handleUpdateDepartment}
                 onDeleteDept={handleDeleteDepartment}
+                currentUser={currentUser}
               />
             )}
             {currentTab === 'module9' && currentUser?.role === 'admin' && (

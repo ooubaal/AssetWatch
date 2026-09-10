@@ -71,12 +71,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'module10_pm', label: 'บำรุงรักษา (PM/CM)', icon: Calendar },
     { id: 'module11_quality', label: 'เอกสารคุณภาพ', icon: FileText },
     { id: 'module12_spareparts', label: 'คลังอะไหล่', icon: Package },
-    { id: 'module6', label: 'ประวัติกิจกรรม (Audit)', icon: History }
+    { id: 'module6', label: 'ประวัติกิจกรรม (Audit)', icon: History },
+    { id: 'module8', label: 'ตั้งค่าหน่วยงาน & ห้อง', icon: Building }
   );
 
   if (currentUser?.role === 'admin') {
     menuItems.push(
-      { id: 'module8', label: 'ตั้งค่าหน่วยงาน & ห้อง', icon: Building },
       { id: 'module9', label: 'สิทธิ์การเข้าถึง (RBAC)', icon: Lock }
     );
   }

@@ -79,6 +79,9 @@ export interface DepartmentLocationConfig {
   id: string;
   name: string;
   locations: string[];
+  createdBy?: string;
+  createdAt?: string;
+  locationCreators?: Record<string, string>; // roomName -> creator username or name
 }
 
 export interface SparePartTransaction {
