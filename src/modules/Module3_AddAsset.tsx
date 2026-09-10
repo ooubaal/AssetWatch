@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Download, UploadCloud, Clipboard, Trash2, HelpCircle, Printer, Image as ImageIcon, Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
+import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Download, UploadCloud, Clipboard, Trash2, HelpCircle, Printer, Image as ImageIcon, Sparkles, CheckCircle2, RefreshCw, FileSpreadsheet } from 'lucide-react';
 import { Asset, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 import { uploadImage, compressFileOrPdf } from '../services/dbService';
 import confetti from 'canvas-confetti';
 import { SearchableSelect } from '../components/SearchableSelect';
+import ExcelJS from 'exceljs';
 
 interface Module3AddAssetProps {
   assets: Asset[];
@@ -218,12 +219,278 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     return null;
   };
 
+  // Helper to convert DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, Thai Buddhist year, or Excel dates to standard ISO YYYY-MM-DD
+  const normalizeDateToISO = (raw: any): string => {
+    if (!raw) return new Date().toISOString().split('T')[0];
+    if (raw instanceof Date && !isNaN(raw.getTime())) {
+      const y = raw.getFullYear();
+      const m = String(raw.getMonth() + 1).padStart(2, '0');
+      const d = String(raw.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    const str = String(raw).trim();
+    if (!str) return new Date().toISOString().split('T')[0];
+
+    // Check DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY
+    const dmyMatch = str.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+    if (dmyMatch) {
+      let day = parseInt(dmyMatch[1], 10);
+      let month = parseInt(dmyMatch[2], 10);
+      let year = parseInt(dmyMatch[3], 10);
+      if (year > 2400) {
+        year -= 543; // Convert Thai Buddhist year (BE) to CE
+      }
+      const dStr = String(day).padStart(2, '0');
+      const mStr = String(month).padStart(2, '0');
+      return `${year}-${mStr}-${dStr}`;
+    }
+
+    // Check YYYY-MM-DD or YYYY/MM/DD
+    const ymdMatch = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+    if (ymdMatch) {
+      let year = parseInt(ymdMatch[1], 10);
+      let month = parseInt(ymdMatch[2], 10);
+      let day = parseInt(ymdMatch[3], 10);
+      if (year > 2400) {
+        year -= 543;
+      }
+      const dStr = String(day).padStart(2, '0');
+      const mStr = String(month).padStart(2, '0');
+      return `${year}-${mStr}-${dStr}`;
+    }
+
+    // Check Excel numeric serial date (e.g. 45000)
+    if (!isNaN(Number(str)) && Number(str) > 30000 && Number(str) < 60000) {
+      const excelEpoch = new Date(1899, 11, 30);
+      const date = new Date(excelEpoch.getTime() + Number(str) * 86400000);
+      if (!isNaN(date.getTime())) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+    }
+
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+      const y = parsed.getFullYear();
+      const m = String(parsed.getMonth() + 1).padStart(2, '0');
+      const d = String(parsed.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    return new Date().toISOString().split('T')[0];
+  };
+
+  // Download interactive Excel (.xlsx) Template with Dropdowns & Date Formatting
+  const handleDownloadExcelTemplate = async () => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'AssetWatch';
+      workbook.created = new Date();
+
+      const worksheet = workbook.addWorksheet('Asset_Template', {
+        views: [{ state: 'frozen', ySplit: 1 }]
+      });
+
+      // Hidden lookup worksheet for Excel Data Validation Dropdowns
+      const lookupSheet = workbook.addWorksheet('Lists');
+      lookupSheet.state = 'hidden';
+
+      // 1. Department List from Module 8 (departments prop)
+      const deptList = departments && departments.length > 0 
+        ? departments.map(d => d.name) 
+        : ['ฝ่ายบริหารทั่วไป', 'ฝ่ายไอที', 'ฝ่ายพัสดุและคลัง'];
+
+      // 2. Location / Room List from Module 8
+      const locSet = new Set<string>();
+      (departments || []).forEach(d => {
+        (d.locations || []).forEach(loc => {
+          if (loc && loc.trim()) locSet.add(loc.trim());
+        });
+      });
+      // Fallback if no locations set up yet
+      const locList = locSet.size > 0 
+        ? Array.from(locSet) 
+        : ['ห้องสำนักงาน 101', 'ห้องธุรการ', 'ห้องเซิร์ฟเวอร์', 'ห้องประชุมใหญ่'];
+
+      // 3. Status List
+      const statusList = ['ใช้งานได้', 'ชำรุด', 'รอจำหน่าย', 'ขอป้ายรหัสใหม่', 'รอโอน', 'อื่นๆ'];
+
+      // Populate lookup sheet
+      deptList.forEach((dept, i) => {
+        lookupSheet.getCell(`A${i + 1}`).value = dept;
+      });
+      locList.forEach((loc, i) => {
+        lookupSheet.getCell(`B${i + 1}`).value = loc;
+      });
+      statusList.forEach((st, i) => {
+        lookupSheet.getCell(`C${i + 1}`).value = st;
+      });
+
+      // Define worksheet columns
+      worksheet.columns = [
+        { header: 'รหัสครุภัณฑ์ (id)', key: 'id', width: 22 },
+        { header: 'ชื่อครุภัณฑ์ (name)', key: 'name', width: 40 },
+        { header: 'วันที่ตรวจรับ (receivedDate DD-MM-YYYY)', key: 'receivedDate', width: 34 },
+        { header: 'ผู้จำหน่าย/ที่มา (source)', key: 'source', width: 32 },
+        { header: 'สถานที่จัดเก็บ (location)', key: 'location', width: 28 },
+        { header: 'ฝ่าย/หน่วยงาน (department)', key: 'department', width: 28 },
+        { header: 'ผู้รับผิดชอบ (responsiblePerson)', key: 'responsiblePerson', width: 24 },
+        { header: 'หมายเหตุ/สเปค (note)', key: 'note', width: 35 },
+        { header: 'สถานะ (status)', key: 'status', width: 18 },
+        { header: 'URLรูปภาพ (imageUrl)', key: 'imageUrl', width: 30 }
+      ];
+
+      // Format Header Row
+      const headerRow = worksheet.getRow(1);
+      headerRow.height = 28;
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E40AF' } // Deep Royal Blue
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          bottom: { style: 'medium', color: { argb: 'FF1E3A8A' } },
+          right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+        };
+      });
+
+      // Sample rows
+      const defaultDept = currentUser?.department || deptList[0] || 'ฝ่ายบริหารทั่วไป';
+      const defaultLoc = locList[0] || 'ห้องสำนักงาน 101';
+      
+      const sampleRows = [
+        {
+          id: '6901-001-0001',
+          name: 'คอมพิวเตอร์ All-in-One Dell OptiPlex',
+          receivedDate: '03-06-2026',
+          source: 'บริษัท เอ บี ซี คอมพิวเตอร์ จำกัด',
+          location: defaultLoc,
+          department: defaultDept,
+          responsiblePerson: 'นายสมจิต รอดพ้น',
+          note: 'Intel Core i7 RAM 16GB SSD 512GB',
+          status: 'ใช้งานได้',
+          imageUrl: ''
+        },
+        {
+          id: '6901-001-0002',
+          name: 'เครื่องพิมพ์ Laser Multifunction HP',
+          receivedDate: '05-06-2026',
+          source: 'หจก. พีเจ เซอร์วิส แอนด์ ซัพพลาย',
+          location: locList[1] || defaultLoc,
+          department: defaultDept,
+          responsiblePerson: 'นางสาวสุนิสา ใจดี',
+          note: 'รองรับ Wi-Fi และพิมพ์สองหน้าอัตโนมัติ',
+          status: 'ใช้งานได้',
+          imageUrl: ''
+        },
+        {
+          id: '6901-002-0001',
+          name: 'เก้าอี้สำนักงานเพื่อสุขภาพ Ergonomic',
+          receivedDate: '10-06-2026',
+          source: 'บริษัท ออฟฟิศ ดีไซน์ จำกัด',
+          location: locList[2] || defaultLoc,
+          department: defaultDept,
+          responsiblePerson: 'นายประดิษฐ์ มั่นคง',
+          note: 'พนักพิงตาข่าย ปรับระดับได้ สีดำ',
+          status: 'ใช้งานได้',
+          imageUrl: ''
+        }
+      ];
+
+      sampleRows.forEach(item => worksheet.addRow(item));
+
+      // Apply Data Validation Dropdowns & Formats to rows 2 through 500
+      for (let r = 2; r <= 500; r++) {
+        const row = worksheet.getRow(r);
+        
+        // Column 3: receivedDate (DD-MM-YYYY format + prompt guidance)
+        const dateCell = row.getCell(3);
+        dateCell.numFmt = '@'; // Treat as text to preserve exact DD-MM-YYYY formatting
+        dateCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        dateCell.dataValidation = {
+          type: 'custom',
+          allowBlank: true,
+          formulae: ['ISNUMBER(VALUE(SUBSTITUTE(C' + r + ',"-","/")))'],
+          showErrorMessage: false,
+          showInputMessage: true,
+          promptTitle: '📅 วันที่ตรวจรับ (DD-MM-YYYY)',
+          prompt: 'ป้อนวันที่ในรูปแบบ วัน-เดือน-ปี ค.ศ. เช่น 03-06-2026 หรือ 25-12-2025'
+        };
+
+        // Column 5: Location Dropdown (from Module 8 Lists sheet)
+        const locCell = row.getCell(5);
+        locCell.dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          formulae: [`Lists!$B$1:$B$${locList.length}`],
+          showErrorMessage: true,
+          errorTitle: 'สถานที่จัดเก็บไม่ถูกต้อง',
+          error: 'กรุณาเลือกสถานที่จัดเก็บจากรายการ Dropdown หรือระบุชื่อห้องให้ถูกต้อง',
+          showInputMessage: true,
+          promptTitle: '📍 เลือกสถานที่จัดเก็บ (Location)',
+          prompt: 'คลิกลูกศร Dropdown เพื่อเลือกห้อง/สถานที่ตั้งจากโมดูลจัดการหน่วยงาน (Module 8)'
+        };
+
+        // Column 6: Department Dropdown (from Module 8 Lists sheet)
+        const deptCell = row.getCell(6);
+        deptCell.dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          formulae: [`Lists!$A$1:$A$${deptList.length}`],
+          showErrorMessage: true,
+          errorTitle: 'ฝ่าย/หน่วยงานไม่ถูกต้อง',
+          error: 'กรุณาเลือกฝ่าย/หน่วยงานจากรายการ Dropdown หรือระบุชื่อฝ่ายให้ถูกต้อง',
+          showInputMessage: true,
+          promptTitle: '🏢 เลือกฝ่าย/หน่วยงาน (Department)',
+          prompt: 'คลิกลูกศร Dropdown เพื่อเลือกฝ่าย/หน่วยงานจากโมดูลจัดการหน่วยงาน (Module 8)'
+        };
+
+        // Column 9: Status Dropdown
+        const statusCell = row.getCell(9);
+        statusCell.dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          formulae: [`Lists!$C$1:$C$${statusList.length}`],
+          showErrorMessage: true,
+          errorTitle: 'สถานะไม่ถูกต้อง',
+          error: 'กรุณาเลือกสถานะจากรายการ Dropdown เช่น ใช้งานได้, ชำรุด, รอจำหน่าย',
+          showInputMessage: true,
+          promptTitle: '🏷️ สถานะครุภัณฑ์ (Status)',
+          prompt: 'คลิกลูกศร Dropdown เพื่อเลือกสถานะ'
+        };
+      }
+
+      // Download file to client
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'AssetWatch_Import_Template.xlsx');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error generating Excel template:', err);
+      alert('เกิดข้อผิดพลาดในการสร้างไฟล์ Excel เทมเพลต');
+    }
+  };
+
   // Download template CSV file
   const handleDownloadTemplate = () => {
     const headers = [
       'รหัสครุภัณฑ์ (id)',
       'ชื่อครุภัณฑ์ (name)',
-      'วันที่ตรวจรับ (receivedDate YYYY-MM-DD)',
+      'วันที่ตรวจรับ (receivedDate DD-MM-YYYY)',
       'ผู้จำหน่าย/ที่มา (source)',
       'สถานที่จัดเก็บ (location)',
       'ฝ่าย/หน่วยงาน (department)',
@@ -233,11 +500,13 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
       'URLรูปภาพ (imageUrl)'
     ];
 
-    const defaultDeptName = currentUser?.department || 'ฝ่ายไอที';
+    const defaultDeptName = currentUser?.department || departments[0]?.name || 'ฝ่ายไอที';
+    const defaultLocName = departments[0]?.locations[0] || 'ห้องสำนักงาน 201';
+    
     const sampleRows = [
-      ['6901-001-0001', 'คอมพิวเตอร์ All-in-One Dell OptiPlex', '2026-06-03', 'บริษัท เอ บี ซี คอมพิวเตอร์ จำกัด', 'ห้องสำนักงาน 201', defaultDeptName, 'นายสมจิต รอดพ้น', 'Intel Core i7 RAM 16GB SSD 512GB', 'ใช้งานได้', ''],
-      ['6901-001-0002', 'เครื่องพิมพ์ Laser Multifunction HP', '2026-06-05', 'หจก. พีเจ เซอร์วิส แอนด์ ซัพพลาย', 'ห้องธุรการ', defaultDeptName, 'นางสาวสุนิสา ใจดี', 'รองรับ Wi-Fi และพิมพ์สองหน้าอัตโนมัติ', 'ใช้งานได้', ''],
-      ['6901-002-0001', 'เก้าอี้สำนักงานเพื่อสุขภาพ Ergonomic', '2026-06-10', 'บริษัท ออฟฟิศ ดีไซน์ จำกัด', 'ห้องทำงานหลัก', defaultDeptName, 'นายประดิษฐ์ มั่นคง', 'พนักพิงตาข่าย ปรับระดับได้ สีดำ', 'ใช้งานได้', '']
+      ['6901-001-0001', 'คอมพิวเตอร์ All-in-One Dell OptiPlex', '03-06-2026', 'บริษัท เอ บี ซี คอมพิวเตอร์ จำกัด', defaultLocName, defaultDeptName, 'นายสมจิต รอดพ้น', 'Intel Core i7 RAM 16GB SSD 512GB', 'ใช้งานได้', ''],
+      ['6901-001-0002', 'เครื่องพิมพ์ Laser Multifunction HP', '05-06-2026', 'หจก. พีเจ เซอร์วิส แอนด์ ซัพพลาย', defaultLocName, defaultDeptName, 'นางสาวสุนิสา ใจดี', 'รองรับ Wi-Fi และพิมพ์สองหน้าอัตโนมัติ', 'ใช้งานได้', ''],
+      ['6901-002-0001', 'เก้าอี้สำนักงานเพื่อสุขภาพ Ergonomic', '10-06-2026', 'บริษัท ออฟฟิศ ดีไซน์ จำกัด', defaultLocName, defaultDeptName, 'นายประดิษฐ์ มั่นคง', 'พนักพิงตาข่าย ปรับระดับได้ สีดำ', 'ใช้งานได้', '']
     ];
     
     // Helper to escape CSV cell value with double quotes if it contains commas or quotes
@@ -385,12 +654,13 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
       errors.push('ชื่อครุภัณฑ์ต้องไม่ว่าง');
     }
     
-    // 3. Date Validation/Fallback
-    let receivedDate = rawReceivedDate;
-    if (!receivedDate) {
+    // 3. Date Validation/Fallback with DD-MM-YYYY and YYYY-MM-DD support
+    let receivedDate = '';
+    if (!rawReceivedDate) {
       receivedDate = new Date().toISOString().split('T')[0];
       warnings.push(`ไม่ได้ระบุวันที่ตรวจรับ (ระบบจะใช้วันนี้: ${receivedDate})`);
     } else {
+      receivedDate = normalizeDateToISO(rawReceivedDate);
       const testDate = new Date(receivedDate);
       if (isNaN(testDate.getTime())) {
         receivedDate = new Date().toISOString().split('T')[0];
@@ -404,7 +674,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
       warnings.push("ไม่ได้ระบุผู้จำหน่าย (ตั้งค่าเป็น: 'ไม่ระบุ/บริจาค')");
     }
     
-    // 5. Department Validation/Fallback with role scoping
+    // 5. Department Validation/Fallback with role scoping & Module 8 check
     let department = rawDepartment;
     const isDeptRestricted = currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user';
     const userDept = currentUser?.department;
@@ -419,12 +689,12 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
       }
     } else {
       if (!department) {
-        department = 'ฝ่ายพัสดุหลัก';
-        warnings.push("ไม่ได้ระบุฝ่ายที่ดูแล (ตั้งค่าเป็น: 'ฝ่ายพัสดุหลัก')");
+        department = systemDepts[0]?.name || 'ฝ่ายบริหารทั่วไป';
+        warnings.push(`ไม่ได้ระบุฝ่ายที่ดูแล (ตั้งค่าเป็น: '${department}')`);
       } else {
         const deptExists = systemDepts.some(d => d.name.toLowerCase() === department.toLowerCase());
         if (!deptExists && systemDepts.length > 0) {
-          warnings.push(`ฝ่าย '${department}' ไม่พบในระบบ (จะสร้างเป็นแผนกใหม่)`);
+          warnings.push(`ฝ่าย '${department}' ไม่พบในโมดูลจัดการหน่วยงาน (จะบันทึกเป็นฝ่ายใหม่)`);
         }
       }
     }
@@ -494,13 +764,98 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
     }
   }, [pasteData, assets, departments]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
     setFileName(file.name);
     setPasteData(''); // Clear paste data
     
+    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+    if (isExcel) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        const worksheet = workbook.worksheets[0]; // Read first sheet
+
+        const rowsData: string[][] = [];
+        worksheet.eachRow({ includeEmpty: false }, (row) => {
+          const rowValues: string[] = [];
+          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            let val = '';
+            if (cell.value !== null && cell.value !== undefined) {
+              if (cell.value instanceof Date) {
+                val = normalizeDateToISO(cell.value);
+              } else if (typeof cell.value === 'object' && 'result' in cell.value) {
+                val = String((cell.value as any).result || '');
+              } else if (typeof cell.value === 'object' && 'text' in cell.value) {
+                val = String((cell.value as any).text || '');
+              } else {
+                val = String(cell.value);
+              }
+            }
+            rowValues[colNumber - 1] = val.trim();
+          });
+          rowsData.push(rowValues);
+        });
+
+        if (rowsData.length === 0) {
+          setParsedRows([]);
+          return;
+        }
+
+        let startIndex = 0;
+        const firstLineCells = rowsData[0];
+        const firstLineText = firstLineCells.join(' ').toLowerCase();
+
+        const hasHeaders = firstLineText.includes('id') || firstLineText.includes('name') || 
+                           firstLineText.includes('รหัส') || firstLineText.includes('ชื่อ') ||
+                           firstLineText.includes('received') || firstLineText.includes('date') ||
+                           firstLineText.includes('ฝ่าย') || firstLineText.includes('สถานที่');
+
+        let mapping = defaultMapping;
+        if (hasHeaders) {
+          startIndex = 1;
+          mapping = detectColumnMapping(firstLineCells);
+        }
+
+        const parsedRowsList = [];
+        for (let i = startIndex; i < rowsData.length; i++) {
+          const rawValues = rowsData[i];
+          if (rawValues.length > 0 && rawValues.some(v => v && v.trim() !== '')) {
+            const standardizedValues = [
+              rawValues[mapping.id] || '',
+              rawValues[mapping.name] || '',
+              rawValues[mapping.receivedDate] || '',
+              rawValues[mapping.source] || '',
+              rawValues[mapping.location] || '',
+              rawValues[mapping.department] || '',
+              rawValues[mapping.responsiblePerson] || '',
+              rawValues[mapping.note] || '',
+              rawValues[mapping.status] || '',
+              rawValues[mapping.imageUrl] || ''
+            ];
+            parsedRowsList.push({
+              index: i + 1,
+              values: standardizedValues
+            });
+          }
+        }
+
+        const seenIds = new Set<string>();
+        const validated = parsedRowsList.map(r => validateRow(r.index, r.values, assets, departments, seenIds));
+        setParsedRows(validated);
+        setFileData(`[นำเข้าจากไฟล์ Excel: ${file.name} จำนวน ${validated.length} รายการ]`);
+      } catch (err) {
+        console.error('Error reading Excel file:', err);
+        alert('เกิดข้อผิดพลาดในการอ่านไฟล์ Excel กรุณาตรวจสอบไฟล์');
+      }
+      return;
+    }
+
+    // Default: CSV File Reader
     const reader = new FileReader();
     reader.onload = (evt) => {
       const text = evt.target?.result as string;
@@ -1116,20 +1471,32 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
             {/* Template Download Section */}
             <div className="template-card">
               <div className="template-info">
-                <h4>📥 เทมเพลตสำหรับกรอกข้อมูลนำเข้า (CSV Template File)</h4>
-                <p>ดาวน์โหลดไฟล์ตัวอย่างและนำไปเปิดกรอกใน Excel / Google Sheets เพื่อป้อนข้อมูลให้ถูกช่องความกว้างและฟิลด์ที่กำหนด</p>
+                <h4>📥 เทมเพลตสำหรับกรอกข้อมูลนำเข้า (Excel & CSV Template)</h4>
+                <p>ดาวน์โหลดไฟล์ตัวอย่างนำไปกรอกข้อมูล — ไฟล์ <strong>Excel (.xlsx)</strong> จะมี Dropdown ให้คลิกเลือกฝ่ายและสถานที่ตั้งจากโมดูล 8 พร้อมรูปแบบวันที่ <strong>DD-MM-YYYY</strong></p>
               </div>
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
-                onClick={handleDownloadTemplate}
-                style={{ gap: '0.35rem', height: '40px' }}
-              >
-                <FileText size={16} /> ดาวน์โหลดไฟล์ตัวอย่าง .csv
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-primary" 
+                  onClick={handleDownloadExcelTemplate}
+                  style={{ gap: '0.4rem', height: '40px', fontWeight: 650 }}
+                  title="ดาวน์โหลดไฟล์ Excel พร้อม Dropdown เลือกฝ่าย/สถานที่จากระบบ และฟอร์แมตวันที่ DD-MM-YYYY"
+                >
+                  <FileSpreadsheet size={16} /> 📊 ดาวน์โหลดไฟล์ตัวอย่าง .xlsx (แนะนำ)
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={handleDownloadTemplate}
+                  style={{ gap: '0.35rem', height: '40px' }}
+                  title="ดาวน์โหลดไฟล์เทมเพลต CSV แบบข้อความ UTF-8"
+                >
+                  <FileText size={16} /> ดาวน์โหลดไฟล์ .csv
+                </button>
+              </div>
             </div>
 
-            {/* Input Options (Paste, CSV Upload, or Batch Photos) */}
+            {/* Input Options (Paste, File Upload, or Batch Photos) */}
             <div className="import-grids">
               
               {/* Paste Box */}
@@ -1155,12 +1522,12 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
               {/* File Upload Box */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="import-box-header">
-                  <UploadCloud size={16} /> 📂 เลือกอัปโหลดไฟล์ (.csv)
+                  <UploadCloud size={16} /> 📂 เลือกอัปโหลดไฟล์ (.xlsx, .csv)
                 </label>
                 <input
                   type="file"
                   id="csv-file-picker"
-                  accept=".csv"
+                  accept=".xlsx,.xls,.csv"
                   className="file-hidden-input"
                   onChange={handleFileChange}
                   style={{ display: 'none' }}
@@ -1170,12 +1537,12 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
                   {fileName ? (
                     <>
                       <span className="selected-file-badge">{fileName}</span>
-                      <span className="subtitle-help">คลิกเพื่อเปลี่ยนไฟล์ CSV ใหม่</span>
+                      <span className="subtitle-help">คลิกเพื่อเปลี่ยนไฟล์ใหม่</span>
                     </>
                   ) : (
                     <>
-                      <span>คลิกเพื่อค้นหาไฟล์ .csv ในเครื่อง</span>
-                      <span className="subtitle-help">รองรับไฟล์รูปแบบ Comma-Separated (.csv) เข้ารหัส UTF-8</span>
+                      <span>คลิกเพื่อค้นหาไฟล์ .xlsx หรือ .csv ในเครื่อง</span>
+                      <span className="subtitle-help">รองรับไฟล์ Excel (.xlsx) และ CSV UTF-8</span>
                     </>
                   )}
                 </label>
