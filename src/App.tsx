@@ -14,6 +14,7 @@ import {
   addAsset,
   addAssetsBulk,
   updateAsset,
+  deleteAsset,
   addAuditTrail,
   addSurvey,
   addRepair,
@@ -807,6 +808,44 @@ function App() {
     }
   };
 
+  const handleDeleteAsset = async (assetId: string) => {
+    const asset = assets.find(a => a.id === assetId);
+    if (!asset) return;
+
+    // RBAC Permission Validation:
+    // 1. Admin or Manager: Full Org-wide
+    // 2. Head: Own Department only
+    // 3. User / Operator: Own created only
+    const isAdminOrManager = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+    const isHead = currentUser?.role === 'head' && asset.department?.trim().toLowerCase() === currentUser?.department?.trim().toLowerCase();
+    const isUserOwner = (currentUser?.role === 'user' || currentUser?.role === 'operator') && 
+      Boolean(asset.createdBy && (
+        asset.createdBy === currentUser.username || 
+        asset.createdBy === currentUser.name || 
+        asset.createdBy === currentUser.id
+      ));
+
+    if (!isAdminOrManager && !isHead && !isUserOwner) {
+      alert('คุณไม่มีสิทธิ์ในการลบครุภัณฑ์ชิ้นนี้');
+      return;
+    }
+
+    try {
+      await deleteAsset(assetId);
+      await handleLogAudit({
+        assetId: asset.id,
+        assetName: asset.name,
+        action: 'dispose',
+        operator: currentUser?.name || 'ผู้ดูแลระบบ',
+        details: `ลบข้อมูลครุภัณฑ์ถาวรออกจากระบบ (รหัส: ${asset.id}) โดย ${currentUser?.name || 'ผู้ใช้งาน'}`
+      });
+      await fetchAllData();
+    } catch (err) {
+      console.error('Failed to delete asset:', err);
+      alert('ไม่สามารถลบข้อมูลครุภัณฑ์ได้');
+    }
+  };
+
   const handleRedirectToRegister = (prefilledId: string) => {
     setPrefilledAssetId(prefilledId);
     setCurrentTab('module3'); // Redirect to Register module
@@ -1208,6 +1247,7 @@ function App() {
                 surveys={surveys}
                 schedules={schedules}
                 onAssetEdit={handleStartEditAsset}
+                onAssetDelete={handleDeleteAsset}
                 currentUser={currentUser}
                 onRefreshData={fetchAllData}
                 spareParts={spareParts}

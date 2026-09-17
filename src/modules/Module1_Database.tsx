@@ -4,12 +4,13 @@ import {
   Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet, 
   QrCode, Camera, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ArrowUpDown, ArrowUp, ArrowDown, SlidersHorizontal, RotateCcw, CheckCircle2,
-  AlertTriangle, Wrench, Calendar, MapPin, Building2, Layers, Sparkles
+  AlertTriangle, Wrench, Calendar, MapPin, Building2, Layers, Sparkles, Trash2
 } from 'lucide-react';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule, SparePart } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
+import { deleteAsset } from '../services/dbService';
 
 const FALLBACK_ASSET_IMG = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
 
@@ -23,6 +24,7 @@ interface Module1DatabaseProps {
   surveys: SurveyRecord[];
   schedules: PMSchedule[];
   onAssetEdit: (asset: Asset) => void;
+  onAssetDelete?: (assetId: string) => Promise<void>;
   currentUser: UserAccount | null;
   onRefreshData?: () => void;
   spareParts?: SparePart[];
@@ -38,6 +40,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   surveys,
   schedules,
   onAssetEdit,
+  onAssetDelete,
   currentUser,
   onRefreshData,
   spareParts = [],
@@ -364,6 +367,68 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     // Operator can edit items in department created by themselves
     return asset.department === currentUser.department && (asset.createdBy === currentUser.id || asset.createdBy === currentUser.username || !asset.createdBy);
   };
+
+  // RBAC Permission Rules for Deleting Assets:
+  // 1. Admin or Manager: Delete across the entire organization
+  // 2. Head: Delete only assets in their own department
+  // 3. User / Operator: Delete only assets created by themselves
+  const isAllowedToDelete = (asset: Asset): boolean => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+      return true;
+    }
+    if (currentUser.role === 'head') {
+      return Boolean(
+        asset.department && 
+        currentUser.department && 
+        asset.department.trim().toLowerCase() === currentUser.department.trim().toLowerCase()
+      );
+    }
+    if (currentUser.role === 'user' || currentUser.role === 'operator') {
+      return Boolean(
+        asset.createdBy && (
+          asset.createdBy === currentUser.username ||
+          asset.createdBy === currentUser.name ||
+          asset.createdBy === currentUser.id
+        )
+      );
+    }
+    return false;
+  };
+
+  const handleDeleteAssetClick = async (asset: Asset) => {
+    if (!isAllowedToDelete(asset)) {
+      if (currentUser?.role === 'head') {
+        alert(`คุณไม่มีสิทธิ์ลบครุภัณฑ์นี้ เนื่องจากไม่ได้อยู่ในฝ่าย "${currentUser.department}"`);
+      } else if (currentUser?.role === 'user' || currentUser?.role === 'operator') {
+        alert(`คุณไม่มีสิทธิ์ลบครุภัณฑ์นี้ (สงวนสิทธิ์เฉพาะผู้สร้างรายการ: ${asset.createdBy || 'ระบบ/ผู้ดูแล'})`);
+      } else {
+        alert('คุณไม่มีสิทธิ์ในการลบครุภัณฑ์ชิ้นนี้');
+      }
+      return;
+    }
+
+    const confirmMsg = `⚠️ ยืนยันการลบครุภัณฑ์:\n\n• รหัส: ${asset.id}\n• ชื่อ: ${asset.name}\n• สังกัด: ${asset.department || '-'}\n• สถานที่: ${asset.location || '-'}\n\nคุณแน่ใจหรือไม่ที่จะลบรายการนี้ออกจากฐานข้อมูลอย่างถาวร?`;
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+
+    try {
+      if (onAssetDelete) {
+        await onAssetDelete(asset.id);
+      } else {
+        await deleteAsset(asset.id);
+        if (onRefreshData) onRefreshData();
+      }
+      if (selectedAsset?.id === asset.id) {
+        setSelectedAsset(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete asset:', err);
+      alert('ไม่สามารถลบข้อมูลครุภัณฑ์ได้');
+    }
+  };
+
 
   return (
     <div className="module-container animate-fade-in">
@@ -887,8 +952,8 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                   <span className="meta-dept">🏢 {asset.department || '-'}</span>
                 </div>
               </div>
-              <div className="asset-card-actions">
-                <button className="btn btn-secondary btn-xs" onClick={(e) => {
+              <div className="asset-card-actions" style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.5rem' }}>
+                <button className="btn btn-secondary btn-xs flex-1" onClick={(e) => {
                   e.stopPropagation();
                   setSelectedAsset(asset);
                 }}>
@@ -908,6 +973,20 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                 >
                   <Edit3 size={12} /> แก้ไข
                 </button>
+                {isAllowedToDelete(asset) && (
+                  <button 
+                    type="button" 
+                    className="btn btn-danger btn-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteAssetClick(asset);
+                    }}
+                    title="ลบครุภัณฑ์นี้ออกจากระบบ"
+                    style={{ padding: '0.25rem 0.45rem' }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -981,8 +1060,8 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                    <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                      <button className="btn btn-secondary btn-xs" onClick={() => setSelectedAsset(asset)}>
+                    <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                      <button className="btn btn-secondary btn-xs" onClick={() => setSelectedAsset(asset)} title="ดูรายละเอียด">
                         <Eye size={12} />
                       </button>
                       <button 
@@ -998,6 +1077,16 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                       >
                         <Edit3 size={12} />
                       </button>
+                      {isAllowedToDelete(asset) && (
+                        <button 
+                          type="button" 
+                          className="btn btn-danger btn-xs"
+                          onClick={() => handleDeleteAssetClick(asset)}
+                          title="ลบครุภัณฑ์นี้ออกจากระบบ"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1117,6 +1206,9 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
             } else {
               alert('สงวนสิทธิ์การแก้ไขเฉพาะผู้ดูแลระบบ หรือฝ่ายที่ดูแลครุภัณฑ์ชิ้นนี้เท่านั้น');
             }
+          }}
+          onDeleteClick={(asset) => {
+            handleDeleteAssetClick(asset);
           }}
           audits={audits}
           repairs={repairs}

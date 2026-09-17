@@ -922,6 +922,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
           responsiblePerson: r.responsiblePerson,
           note: r.note,
           status: r.status,
+          createdBy: currentUser?.username || currentUser?.name || operatorName,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });
@@ -1056,6 +1057,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         responsiblePerson: responsiblePerson.trim() || 'ไม่มี',
         note: note.trim(),
         status,
+        createdBy: currentUser?.username || currentUser?.name || operatorName,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };

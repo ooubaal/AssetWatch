@@ -47,6 +47,7 @@ interface AssetModalProps {
   asset: Asset;
   onClose: () => void;
   onEditClick: (asset: Asset) => void;
+  onDeleteClick?: (asset: Asset) => void;
   audits: AuditTrail[];
   repairs: RepairCase[];
   surveys: SurveyRecord[];
@@ -63,6 +64,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   asset,
   onClose,
   onEditClick,
+  onDeleteClick,
   audits,
   repairs,
   surveys,
@@ -77,6 +79,33 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'repairs' | 'surveys' | 'barcode' | 'spare_parts'>('info');
   const [noteText, setNoteText] = useState(asset.note || '');
   const [isSavingNote, setIsSavingNote] = useState(false);
+
+  const isAllowedToDelete = (targetAsset: Asset): boolean => {
+    if (!currentUser) return false;
+    // 1. Admin or Manager: Full organization-wide
+    if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+      return true;
+    }
+    // 2. Head: Own department only
+    if (currentUser.role === 'head') {
+      return Boolean(
+        targetAsset.department && 
+        currentUser.department && 
+        targetAsset.department.trim().toLowerCase() === currentUser.department.trim().toLowerCase()
+      );
+    }
+    // 3. User / Operator: Only assets created by themselves
+    if (currentUser.role === 'user' || currentUser.role === 'operator') {
+      return Boolean(
+        targetAsset.createdBy && (
+          targetAsset.createdBy === currentUser.username ||
+          targetAsset.createdBy === currentUser.name ||
+          targetAsset.createdBy === currentUser.id
+        )
+      );
+    }
+    return false;
+  };
 
   // Spare Parts & Stock Card State
   const [allSpareParts, setAllSpareParts] = useState<SparePart[]>(() => spareParts || loadSpareParts());
@@ -794,10 +823,21 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                   </div>
                 )}
 
-                <div className="modal-actions-footer">
-                  <button className="btn btn-secondary w-full" onClick={() => onEditClick(asset)}>
-                    แก้ไขฐานข้อมูลครุภัณฑ์นี้ (Module 6)
+                <div className="modal-actions-footer" style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                  <button className="btn btn-secondary flex-1" onClick={() => onEditClick(asset)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+                    <Edit3 size={15} /> แก้ไขข้อมูลครุภัณฑ์นี้ (Module 6)
                   </button>
+                  {onDeleteClick && isAllowedToDelete(asset) && (
+                    <button 
+                      type="button" 
+                      className="btn btn-danger"
+                      onClick={() => onDeleteClick(asset)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }}
+                      title="ลบครุภัณฑ์นี้ออกจากระบบ"
+                    >
+                      <Trash2 size={15} /> ลบครุภัณฑ์
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
