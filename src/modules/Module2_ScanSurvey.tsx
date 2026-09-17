@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   QrCode, 
   CheckCircle2, 
@@ -24,7 +24,8 @@ import {
   FileText,
   CheckSquare,
   RotateCcw,
-  Search
+  Search,
+  Trash2
 } from 'lucide-react';
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -295,6 +296,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     setSurveySuccess(false);
   };
 
+  const surveyFileInputRef = useRef<HTMLInputElement>(null);
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -306,7 +309,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           setAttachImagePreview(reader.result as string);
         };
         reader.readAsDataURL(compressed);
-      } catch {
+      } catch (err) {
+        console.warn('Compression failed, using raw file:', err);
         setAttachImageFile(file);
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -314,6 +318,17 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         };
         reader.readAsDataURL(file);
       }
+      // Reset input value so re-selecting or taking another photo works seamlessly
+      e.target.value = '';
+    }
+  };
+
+  const handleClearAttachedImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAttachImageFile(null);
+    setAttachImagePreview('');
+    if (surveyFileInputRef.current) {
+      surveyFileInputRef.current.value = '';
     }
   };
 
@@ -853,27 +868,46 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 <label className="form-label">📷 แนบรูปภาพ หรือ เอกสาร PDF ถ่ายตรวจสอบสภาพ (ตัวเลือกกรณีมีปัญหา)</label>
                 <div className="survey-upload-trigger">
                   <input 
+                    ref={surveyFileInputRef}
                     type="file" 
                     id="survey-photo-capture" 
                     accept="image/*,application/pdf,.pdf" 
                     className="file-hidden-input"
                     onChange={handleImageChange}
                   />
-                  <label htmlFor="survey-photo-capture" className="upload-box-dashed">
+                  <div 
+                    className="upload-box-dashed"
+                    onClick={() => surveyFileInputRef.current?.click()}
+                    role="button"
+                    tabIndex={0}
+                    style={{ cursor: 'pointer' }}
+                  >
                     {attachImagePreview ? (
                       <div className="preview-image-box">
                         <img src={attachImagePreview} alt="damage report preview" />
-                        <span className="preview-indicator">
-                          <RefreshCw size={12} /> กดเพื่อเปลี่ยนไฟล์ (PDF หรือ รูปภาพ)
-                        </span>
+                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', marginTop: '0.4rem' }}>
+                          <span className="preview-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <RefreshCw size={12} /> กดเพื่อเปลี่ยนไฟล์
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-xs"
+                            onClick={handleClearAttachedImage}
+                            title="ลบรูปภาพที่แนบ"
+                            style={{ padding: '2px 6px', fontSize: '0.7rem' }}
+                          >
+                            <Trash2 size={11} /> ลบไฟล์
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <>
-                        <Camera size={24} color="var(--text-muted)" />
-                        <span>กดเพื่อแนบเอกสาร PDF หรือ ถ่ายภาพหลักฐาน (บีบอัด HD อัตโนมัติ)</span>
+                        <Camera size={26} color="var(--primary)" />
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>กดเพื่อถ่ายภาพ หรือ เลือกเอกสาร PDF / รูปภาพ</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>รองรับ JPG, PNG, WEBP, PDF (แปลงและบีบอัด HD คมชัดอัตโนมัติ)</span>
                       </>
                     )}
-                  </label>
+                  </div>
                 </div>
               </div>
 
@@ -2088,7 +2122,17 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         }
 
         .file-hidden-input {
-          display: none;
+          position: absolute !important;
+          width: 1px !important;
+          height: 1px !important;
+          padding: 0 !important;
+          margin: -1px !important;
+          overflow: hidden !important;
+          clip: rect(0, 0, 0, 0) !important;
+          white-space: nowrap !important;
+          border: 0 !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
         }
 
         .upload-box-dashed {
