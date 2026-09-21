@@ -102,6 +102,65 @@ const initLocalStorageIfNeeded = () => {
 };
 initLocalStorageIfNeeded();
 
+// --- LOCAL STORAGE QUOTA SAFE SETTER ---
+export const safeSetItem = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e: any) {
+    if (e?.name === 'QuotaExceededError' || e?.code === 22 || e?.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e?.number === -2147024882) {
+      console.warn(`LocalStorage quota exceeded while writing "${key}". Auto-cleaning older Base64 images to free cache...`);
+      try {
+        // 1. Purge old base64 images from survey records in localStorage (keep only last 10 images)
+        const rawSurveys = localStorage.getItem('assetwatch_surveys');
+        if (rawSurveys) {
+          const parsedSurveys: SurveyRecord[] = JSON.parse(rawSurveys);
+          const purgedSurveys = parsedSurveys.map((s, idx) => {
+            if (idx < parsedSurveys.length - 10 && s.imageUrl && s.imageUrl.startsWith('data:image/')) {
+              return { ...s, imageUrl: '' };
+            }
+            return s;
+          });
+          localStorage.setItem('assetwatch_surveys', JSON.stringify(purgedSurveys));
+        }
+
+        // 2. Purge old base64 images from repairs in localStorage
+        const rawRepairs = localStorage.getItem('assetwatch_repairs');
+        if (rawRepairs) {
+          const parsedRepairs: any[] = JSON.parse(rawRepairs);
+          const purgedRepairs = parsedRepairs.map((r, idx) => {
+            if (idx < parsedRepairs.length - 10) {
+              if (r.imageUrl && typeof r.imageUrl === 'string' && r.imageUrl.startsWith('data:image/')) {
+                return { ...r, imageUrl: '' };
+              }
+              if (r.photo && typeof r.photo === 'string' && r.photo.startsWith('data:image/')) {
+                return { ...r, photo: '' };
+              }
+            }
+            return r;
+          });
+          localStorage.setItem('assetwatch_repairs', JSON.stringify(purgedRepairs));
+        }
+
+        // 3. Purge old audits if too large (keep last 100)
+        const rawAudits = localStorage.getItem('assetwatch_audits');
+        if (rawAudits) {
+          const parsedAudits = JSON.parse(rawAudits);
+          if (Array.isArray(parsedAudits) && parsedAudits.length > 100) {
+            localStorage.setItem('assetwatch_audits', JSON.stringify(parsedAudits.slice(0, 100)));
+          }
+        }
+
+        // 4. Try setting the item again
+        localStorage.setItem(key, value);
+      } catch (retryErr) {
+        console.warn(`Could not set "${key}" in LocalStorage even after auto-cleanup:`, retryErr);
+      }
+    } else {
+      console.warn(`LocalStorage error for "${key}":`, e);
+    }
+  }
+};
+
 // --- DYNAMIC IMAGE & PDF COMPRESSION HELPER (HD CLARITY & MINIMAL STORAGE SIZE) ---
 
 // Helper to render PDF file to an HD compressed image
@@ -185,73 +244,124 @@ export const renderPdfToHdImage = async (file: File): Promise<File> => {
 };
 
 export const compressImage = (file: File, maxWidth = 1400, maxHeight = 1400, quality = 0.78): Promise<File> => {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     if (!file.type.startsWith('image/')) {
       resolve(file);
       return;
     }
 
-    const img = new Image();
-    // Memory Optimization: Using objectURL instead of FileReader Base64 string prevents RAM spikes
-    const url = URL.createObjectURL(file);
-    img.src = url;
+    try {
+      // Hardware-accelerated createImageBitmap for fast mobile image decoding
+      if (typeof createImageBitmap === 'function') {
+        try {
+          const bitmap = await createImageBitmap(file);
+          let width = bitmap.width;
+          let height = bitmap.height;
 
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-
-      // Fit dimensions within max limits while maintaining ratio
-      if (width > height) {
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(file);
-        return;
-      }
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const cleanName = file.name.replace(/\.[^/.]+$/, "");
-            const compressedFile = new File([blob], `${cleanName}_compressed.jpg`, {
-              type: 'image/jpeg',
-              lastModified: Date.now()
-            });
-            resolve(compressedFile);
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
           } else {
-            resolve(file);
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
           }
-        },
-        'image/jpeg',
-        quality
-      );
-    };
 
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(file); // Fallback: return original file
-    };
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(bitmap, 0, 0, width, height);
+            bitmap.close();
+
+            const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', quality));
+            if (blob) {
+              const cleanName = file.name.replace(/\.[^/.]+$/, "");
+              resolve(new File([blob], `${cleanName}_compressed.jpg`, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              }));
+              return;
+            }
+          }
+        } catch (bitmapErr) {
+          console.warn('createImageBitmap failed, falling back to standard Image loader:', bitmapErr);
+        }
+      }
+
+      const img = new Image();
+      // Memory Optimization: Using objectURL instead of FileReader Base64 string prevents RAM spikes
+      const url = URL.createObjectURL(file);
+      img.src = url;
+
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Fit dimensions within max limits while maintaining ratio
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const cleanName = file.name.replace(/\.[^/.]+$/, "");
+              const compressedFile = new File([blob], `${cleanName}_compressed.jpg`, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(file); // Fallback: return original file
+      };
+    } catch (err) {
+      console.warn('Image compression exception:', err);
+      resolve(file);
+    }
   });
 };
 
@@ -279,8 +389,8 @@ export const uploadImage = async (file: File, path: string = 'assets'): Promise<
   let processedFile = file;
   try {
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    const targetSize = isPdf ? 1400 : (path === 'pm_proofs' ? 1200 : 1400);
-    const targetQuality = isPdf ? 0.80 : 0.78;
+    const targetSize = isPdf ? 1400 : (path === 'surveys' ? 800 : (path === 'pm_proofs' ? 1200 : 1400));
+    const targetQuality = isPdf ? 0.80 : (path === 'surveys' ? 0.65 : 0.78);
     processedFile = await compressFileOrPdf(file, targetSize, targetSize, targetQuality);
   } catch (err) {
     console.error('File compression failed, using original file:', err);
@@ -603,9 +713,14 @@ export const addAuditTrail = async (trail: Omit<AuditTrail, 'id'>): Promise<void
   
   // 1. Update LocalStorage first
   initLocalStorageIfNeeded();
-  const audits: AuditTrail[] = JSON.parse(localStorage.getItem('assetwatch_audits') || '[]');
-  audits.unshift(fullTrail);
-  localStorage.setItem('assetwatch_audits', JSON.stringify(audits));
+  try {
+    const audits: AuditTrail[] = JSON.parse(localStorage.getItem('assetwatch_audits') || '[]');
+    audits.unshift(fullTrail);
+    // Keep max 200 audits in local cache to prevent quota bloating
+    safeSetItem('assetwatch_audits', JSON.stringify(audits.slice(0, 200)));
+  } catch (err) {
+    console.warn('LocalStorage audit cache update failed:', err);
+  }
 
   // 2. Sync to Firebase Firestore
   const { isFirebase, db } = getServices();
@@ -657,7 +772,7 @@ export const getSurveys = async (): Promise<SurveyRecord[]> => {
       
       // Deduplicate by (assetId + roundId) to prevent phantom count inflation
       const mergedList = deduplicateSurveys(Array.from(mergedMap.values()));
-      localStorage.setItem('assetwatch_surveys', JSON.stringify(mergedList));
+      safeSetItem('assetwatch_surveys', JSON.stringify(mergedList));
       return mergedList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     } catch (e) {
       console.error('Firebase getSurveys failed, returning local cache:', e);
@@ -666,7 +781,7 @@ export const getSurveys = async (): Promise<SurveyRecord[]> => {
 
   // Deduplicate local cache too
   const deduped = deduplicateSurveys(localSurveys);
-  localStorage.setItem('assetwatch_surveys', JSON.stringify(deduped));
+  safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
   return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
@@ -676,11 +791,15 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
   
   // 1. Always write to local storage first as a secure offline cache
   initLocalStorageIfNeeded();
-  const localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
-  localSurveys.push(fullSurvey);
-  // Deduplicate immediately to prevent phantom count growth
-  const deduped = deduplicateSurveys(localSurveys);
-  localStorage.setItem('assetwatch_surveys', JSON.stringify(deduped));
+  try {
+    const localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
+    localSurveys.push(fullSurvey);
+    // Deduplicate immediately to prevent phantom count growth
+    const deduped = deduplicateSurveys(localSurveys);
+    safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
+  } catch (err) {
+    console.warn('LocalStorage survey cache update failed:', err);
+  }
 
   // 2. Then try to sync to Firebase Firestore (sanitize to strip undefined values)
   const { isFirebase, db } = getServices();
@@ -732,7 +851,7 @@ export const getRepairs = async (): Promise<RepairCase[]> => {
       }
 
       const sortedList = list.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
-      localStorage.setItem('assetwatch_repairs', JSON.stringify(sortedList));
+      safeSetItem('assetwatch_repairs', JSON.stringify(sortedList));
       return sortedList;
     } catch (e) {
       console.error('Firebase getRepairs failed, falling back to localStorage:', e);
@@ -749,14 +868,18 @@ export const addRepair = async (repair: Omit<RepairCase, 'id'>): Promise<string>
   
   // 1. Update LocalStorage first
   initLocalStorageIfNeeded();
-  const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
-  const index = repairs.findIndex(r => r.id === id);
-  if (index !== -1) {
-    repairs[index] = fullRepair;
-  } else {
-    repairs.push(fullRepair);
+  try {
+    const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
+    const index = repairs.findIndex(r => r.id === id);
+    if (index !== -1) {
+      repairs[index] = fullRepair;
+    } else {
+      repairs.push(fullRepair);
+    }
+    safeSetItem('assetwatch_repairs', JSON.stringify(repairs));
+  } catch (err) {
+    console.warn('LocalStorage addRepair cache failed:', err);
   }
-  localStorage.setItem('assetwatch_repairs', JSON.stringify(repairs));
 
   // 2. Sync to Firebase Firestore
   const { isFirebase, db } = getServices();
@@ -776,15 +899,19 @@ export const addRepair = async (repair: Omit<RepairCase, 'id'>): Promise<string>
 export const updateRepair = async (id: string, updates: Partial<RepairCase>): Promise<void> => {
   // 1. Update LocalStorage first
   initLocalStorageIfNeeded();
-  const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
-  const index = repairs.findIndex(r => r.id === id);
-  if (index !== -1) {
-    repairs[index] = { ...repairs[index], ...updates, updatedAt: new Date().toISOString() };
-    localStorage.setItem('assetwatch_repairs', JSON.stringify(repairs));
-  } else {
-    const newRepair = { id, ...updates, updatedAt: new Date().toISOString() } as RepairCase;
-    repairs.push(newRepair);
-    localStorage.setItem('assetwatch_repairs', JSON.stringify(repairs));
+  try {
+    const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
+    const index = repairs.findIndex(r => r.id === id);
+    if (index !== -1) {
+      repairs[index] = { ...repairs[index], ...updates, updatedAt: new Date().toISOString() };
+      safeSetItem('assetwatch_repairs', JSON.stringify(repairs));
+    } else {
+      const newRepair = { id, ...updates, updatedAt: new Date().toISOString() } as RepairCase;
+      repairs.push(newRepair);
+      safeSetItem('assetwatch_repairs', JSON.stringify(repairs));
+    }
+  } catch (err) {
+    console.warn('LocalStorage updateRepair cache failed:', err);
   }
 
   // 2. Sync to Firestore using setDoc with merge
@@ -802,9 +929,13 @@ export const updateRepair = async (id: string, updates: Partial<RepairCase>): Pr
 export const deleteRepair = async (id: string): Promise<void> => {
   // 1. Remove from LocalStorage
   initLocalStorageIfNeeded();
-  const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
-  const filtered = repairs.filter(r => r.id !== id);
-  localStorage.setItem('assetwatch_repairs', JSON.stringify(filtered));
+  try {
+    const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
+    const filtered = repairs.filter(r => r.id !== id);
+    safeSetItem('assetwatch_repairs', JSON.stringify(filtered));
+  } catch (err) {
+    console.warn('LocalStorage deleteRepair cache failed:', err);
+  }
 
   // 2. Remove from Firebase
   const { isFirebase, db } = getServices();

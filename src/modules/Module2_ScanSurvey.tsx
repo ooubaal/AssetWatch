@@ -302,7 +302,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       try {
-        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
+        // High efficiency mobile compression: 800x800, quality 0.65 (~20-35KB per photo)
+        const compressed = await compressFileOrPdf(file, 800, 800, 0.65);
         setAttachImageFile(compressed);
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -340,7 +341,11 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     try {
       let uploadedUrl = '';
       if (attachImageFile) {
-        uploadedUrl = await uploadImage(attachImageFile, 'surveys');
+        try {
+          uploadedUrl = await uploadImage(attachImageFile, 'surveys');
+        } catch (imgErr) {
+          console.warn('Image upload/compression warning, continuing survey submission:', imgErr);
+        }
       }
 
       // Determine final location
@@ -410,9 +415,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       setSurveySuccess(true);
       setAttachImageFile(null);
       setAttachImagePreview(null);
-    } catch (e) {
-      console.error(e);
-      alert('เกิดข้อผิดพลาดในการบันทึกผลการสำรวจ');
+    } catch (e: any) {
+      console.error('Survey submit error:', e);
+      alert('เกิดข้อผิดพลาดในการบันทึกผลการสำรวจ: ' + (e?.message || 'กรุณาลองใหม่อีกครั้ง'));
     } finally {
       setSaving(false);
     }
