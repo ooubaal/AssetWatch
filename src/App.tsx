@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { SetupWizard } from './components/SetupWizard';
 import { Dashboard } from './components/Dashboard';
@@ -259,8 +259,11 @@ function App() {
     }
   };
 
+  // Automated PM/CM alert check (throttled to once every 10 minutes)
+  const lastPMCheckRef = useRef<number>(0);
+
   // Load all data from Firestore/LocalStorage
-  const fetchAllData = async () => {
+  const fetchAllData = async (forcePMCheck = false) => {
     try {
       const allAssets = await getAssets();
       const allAudits = await getAuditTrails();
@@ -286,10 +289,14 @@ function App() {
       setPmNotifications(allPMNotifs);
       setSpareParts(allSpareParts);
 
-      // Automated check and notification generation
-      await checkAndGeneratePMNotifications(allSchedules, allPMNotifs, allContracts);
-      const updatedPMNotifs = await getPMNotifications();
-      setPmNotifications(updatedPMNotifs);
+      // Automated check and notification generation (only on initial load or once every 10 mins)
+      const now = Date.now();
+      if (forcePMCheck || now - lastPMCheckRef.current > 10 * 60 * 1000) {
+        lastPMCheckRef.current = now;
+        await checkAndGeneratePMNotifications(allSchedules, allPMNotifs, allContracts);
+        const updatedPMNotifs = await getPMNotifications();
+        setPmNotifications(updatedPMNotifs);
+      }
 
       const active = allRounds.find(r => r.status === 'active');
       setActiveRound(active || null);
@@ -300,14 +307,30 @@ function App() {
 
   useEffect(() => {
     if (!isSetupWizardNeeded) {
-      fetchAllData();
+      fetchAllData(true);
 
-      // Real-time synchronization polling every 5 seconds
+      // Smart background polling: sync every 20s when tab is active
       const intervalId = setInterval(() => {
-        fetchAllData();
-      }, 5000);
+        if (!document.hidden) {
+          fetchAllData(false);
+        }
+      }, 20000);
 
-      return () => clearInterval(intervalId);
+      // Immediate sync when user focuses back to tab or unlocks phone
+      const handleVisibilityOrFocus = () => {
+        if (!document.hidden) {
+          fetchAllData(false);
+        }
+      };
+
+      window.addEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.addEventListener('focus', handleVisibilityOrFocus);
+
+      return () => {
+        clearInterval(intervalId);
+        window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+        window.removeEventListener('focus', handleVisibilityOrFocus);
+      };
     }
   }, [isSetupWizardNeeded]);
 
