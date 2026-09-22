@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { SetupWizard } from './components/SetupWizard';
 import { Dashboard } from './components/Dashboard';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { SearchableSelect } from './components/SearchableSelect';
 
 // Database Services
 import { getFirebaseServices } from './firebase';
@@ -62,7 +63,7 @@ import { Module11_QualityDocs } from './modules/Module11_QualityDocs';
 import { Module12_SpareParts } from './modules/Module12_SpareParts';
 
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS, PMContract, PMSchedule, PMNotification, SparePart } from './utils/mockData';
-import { X, Camera, AlertCircle, Lock, Bell } from 'lucide-react';
+import { X, Camera, AlertCircle, Lock, Bell, MapPin, Building } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
 function App() {
@@ -128,6 +129,68 @@ function App() {
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Locations pool for Edit Asset Modal
+  const editLocationOptions = useMemo(() => {
+    const locSet = new Set<string>();
+
+    // 1. Current edit location (if any)
+    if (editLocation && editLocation.trim()) {
+      locSet.add(editLocation.trim());
+    }
+
+    // 2. Locations belonging to selected editDepartment first
+    const currentDeptObj = departments.find(d => d.name.toLowerCase() === editDepartment.trim().toLowerCase());
+    if (currentDeptObj && Array.isArray(currentDeptObj.locations)) {
+      currentDeptObj.locations.forEach(loc => {
+        if (loc && loc.trim()) locSet.add(loc.trim());
+      });
+    }
+
+    // 3. Locations from other departments in Module 8
+    departments.forEach(d => {
+      if (Array.isArray(d.locations)) {
+        d.locations.forEach(loc => {
+          if (loc && loc.trim()) locSet.add(loc.trim());
+        });
+      }
+    });
+
+    // 4. Locations from existing assets in the same department
+    assets.forEach(a => {
+      if (a.department === editDepartment && a.location && a.location.trim()) {
+        locSet.add(a.location.trim());
+      }
+    });
+
+    // 5. All remaining locations from all assets
+    assets.forEach(a => {
+      if (a.location && a.location.trim()) {
+        locSet.add(a.location.trim());
+      }
+    });
+
+    return Array.from(locSet);
+  }, [editDepartment, editLocation, departments, assets]);
+
+  // Departments pool for Edit Asset Modal
+  const editDepartmentOptions = useMemo(() => {
+    const deptSet = new Set<string>();
+
+    if (editDepartment && editDepartment.trim()) {
+      deptSet.add(editDepartment.trim());
+    }
+
+    departments.forEach(d => {
+      if (d.name && d.name.trim()) deptSet.add(d.name.trim());
+    });
+
+    assets.forEach(a => {
+      if (a.department && a.department.trim()) deptSet.add(a.department.trim());
+    });
+
+    return Array.from(deptSet);
+  }, [editDepartment, departments, assets]);
 
   // Sync theme attribute to HTML tag
   useEffect(() => {
@@ -1415,22 +1478,26 @@ function App() {
               <div className="form-row-double">
                 <div className="form-group flex-1">
                   <label className="form-label">📍 สถานที่จัดเก็บ/ติดตั้งใหม่</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
+                  <SearchableSelect
+                    options={editLocationOptions}
                     value={editLocation}
-                    onChange={(e) => setEditLocation(e.target.value)}
+                    onChange={(val) => setEditLocation(val)}
+                    placeholder="พิมพ์ค้นหา หรือเลือกห้อง/ที่ตั้ง..."
+                    allowCustom={true}
+                    icon={<MapPin size={15} color="var(--primary)" />}
                     required
                   />
                 </div>
 
                 <div className="form-group flex-1">
                   <label className="form-label">🏢 ฝ่าย/หน่วยงานผู้ดูแลพัสดุ</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
+                  <SearchableSelect
+                    options={editDepartmentOptions}
                     value={editDepartment}
-                    onChange={(e) => setEditDepartment(e.target.value)}
+                    onChange={(val) => setEditDepartment(val)}
+                    placeholder="พิมพ์ค้นหา หรือเลือกฝ่าย..."
+                    allowCustom={true}
+                    icon={<Building size={15} color="var(--primary)" />}
                     required
                   />
                 </div>

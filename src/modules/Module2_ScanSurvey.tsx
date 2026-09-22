@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { SearchableSelect } from '../components/SearchableSelect';
 import { uploadImage, compressFileOrPdf } from '../services/dbService';
 import confetti from 'canvas-confetti';
 
@@ -844,37 +845,19 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
               <div className="form-group">
                 <label className="form-label">📍 ยืนยันสถานที่จัดเก็บ/ติดตั้ง (เปลี่ยนได้หากพัสดุย้ายห้อง)</label>
-                <select 
-                  className="form-select"
+                <SearchableSelect
+                  options={uniqueLocationsInList}
                   value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  onChange={(val) => {
+                    setSelectedLocation(val);
+                    if (val !== 'custom') setCustomLocation('');
+                  }}
+                  placeholder="พิมพ์ค้นหา หรือเลือกห้อง/ที่ตั้ง..."
+                  allowCustom={true}
+                  icon={<MapPin size={15} color="var(--primary)" />}
                   required
-                >
-                  {scannedAsset.location && !uniqueLocationsInList.includes(scannedAsset.location) && (
-                    <option value={scannedAsset.location}>{scannedAsset.location} (ที่ตั้งเดิม)</option>
-                  )}
-                  {uniqueLocationsInList.map((loc: string) => (
-                    <option key={loc} value={loc}>
-                      {loc} {loc === scannedAsset.location ? '(ที่ตั้งเดิม)' : ''}
-                    </option>
-                  ))}
-                  <option value="custom">✏️ ระบุห้องใหม่ด้วยตนเอง...</option>
-                </select>
+                />
               </div>
-
-              {selectedLocation === 'custom' && (
-                <div className="form-group animate-fade-in" style={{ marginTop: '-0.5rem' }}>
-                  <label className="form-label">✍️ ระบุชื่อห้อง/ตำแหน่งจัดเก็บใหม่</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    placeholder="เช่น Room 402, คลังอุปกรณ์..."
-                    value={customLocation}
-                    onChange={(e) => setCustomLocation(e.target.value)}
-                    required
-                  />
-                </div>
-              )}
 
               {/* Picture upload area for documenting asset damage */}
               <div className="form-group">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, ChevronDown, X } from 'lucide-react';
+import { Search, ChevronDown, X, Plus } from 'lucide-react';
 
 interface SearchableSelectProps {
   options: string[] | { value: string; label: string }[];
@@ -12,6 +12,7 @@ interface SearchableSelectProps {
   required?: boolean;
   compact?: boolean;
   clearable?: boolean;
+  allowCustom?: boolean;
   containerStyle?: React.CSSProperties;
   className?: string;
   dropdownWidth?: string;
@@ -21,13 +22,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   options,
   value,
   onChange,
-  placeholder = 'พิมพ์เพื่อค้นหา...',
+  placeholder = 'พิมพ์เพื่อค้นหาหรือเลือก...',
   disabled = false,
   label,
   icon,
   required = false,
   compact = false,
   clearable = false,
+  allowCustom = true,
   containerStyle,
   className = '',
   dropdownWidth
@@ -48,7 +50,12 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   }, [options]);
 
   const selectedOption = useMemo(() => {
-    return normalizedOptions.find(o => o.value === value);
+    const found = normalizedOptions.find(o => o.value === value);
+    if (found) return found;
+    if (value && value.trim()) {
+      return { value, label: value };
+    }
+    return null;
   }, [normalizedOptions, value]);
 
   const filteredOptions = useMemo(() => {
@@ -58,6 +65,12 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
       o.label.toLowerCase().includes(q) || 
       o.value.toLowerCase().includes(q)
     );
+  }, [normalizedOptions, searchTerm]);
+
+  const hasExactMatch = useMemo(() => {
+    const q = searchTerm.toLowerCase().trim();
+    if (!q) return true;
+    return normalizedOptions.some(o => o.value.toLowerCase() === q || o.label.toLowerCase() === q);
   }, [normalizedOptions, searchTerm]);
 
   // Close dropdown on click outside
@@ -204,16 +217,59 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 borderRadius: 'var(--radius-sm)',
                 height: '30px'
               }}
-              placeholder="พิมพ์เพื่อค้นหา..."
+              placeholder="พิมพ์เพื่อค้นหา หรือพิมพ์ชื่อใหม่..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (filteredOptions.length > 0) {
+                    handleSelect(filteredOptions[0].value);
+                  } else if (allowCustom && searchTerm.trim()) {
+                    handleSelect(searchTerm.trim());
+                  }
+                } else if (e.key === 'Escape') {
+                  setIsOpen(false);
+                }
+              }}
               onClick={(e) => e.stopPropagation()}
             />
           </div>
 
+          {/* Custom entry button if user typed something not matching existing options */}
+          {allowCustom && searchTerm.trim() && !hasExactMatch && (
+            <div
+              onClick={() => handleSelect(searchTerm.trim())}
+              style={{
+                padding: '0.45rem 0.65rem',
+                fontSize: '0.8rem',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+                background: 'rgba(59, 130, 246, 0.12)',
+                color: 'var(--primary)',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                border: '1px dashed var(--primary)',
+                marginBottom: '0.35rem',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.12)';
+              }}
+            >
+              <Plus size={14} />
+              <span>ใช้ค่าที่พิมพ์: &quot;<strong>{searchTerm.trim()}</strong>&quot;</span>
+            </div>
+          )}
+
           {/* Options Grid */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-            {filteredOptions.length === 0 ? (
+            {filteredOptions.length === 0 && (!allowCustom || !searchTerm.trim()) ? (
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.85rem' }}>
                 ❌ ไม่พบตัวเลือกที่ตรงกัน
               </div>
