@@ -361,19 +361,27 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         roundId: activeRound?.id || 'round-default'
       });
 
-      // 2. If status or location has changed, update the asset status and location in main database
+      // 2. If status, location, OR new image is attached, update the asset in the main database
       const hasStatusChanged = scannedAsset && scannedAsset.status !== selectedStatus;
       const hasLocationChanged = scannedAsset && scannedAsset.location !== finalLocation;
+      const hasNewImage = Boolean(uploadedUrl);
 
-      if (scannedAsset && (hasStatusChanged || hasLocationChanged)) {
-        await onUpdateAssetStatus(scannedId, selectedStatus, { location: finalLocation });
+      if (scannedAsset && (hasStatusChanged || hasLocationChanged || hasNewImage)) {
+        const assetUpdates: Partial<Asset> = {
+          location: finalLocation,
+          ...(hasNewImage ? { imageUrl: uploadedUrl } : {})
+        };
+        await onUpdateAssetStatus(scannedId, selectedStatus, assetUpdates);
         
         let details = 'สแกนสำรวจตรวจนับ';
+        if (hasNewImage) {
+          details += ' พร้อมอัปเดตภาพถ่ายสภาพครุภัณฑ์ล่าสุด';
+        }
         if (hasStatusChanged && hasLocationChanged) {
           details += ` และอัปเดตเปลี่ยนสถานะพัสดุ จาก "${scannedAsset.status}" เป็น "${selectedStatus}" พร้อมย้ายห้องที่ตั้ง จาก "${scannedAsset.location || '-'}" เป็น "${finalLocation}"`;
         } else if (hasStatusChanged) {
           details += ` และอัปเดตเปลี่ยนสถานะพัสดุ จาก "${scannedAsset.status}" เป็น "${selectedStatus}"`;
-        } else {
+        } else if (hasLocationChanged) {
           details += ` และย้ายห้องจัดเก็บพัสดุ จาก "${scannedAsset.location || '-'}" เป็น "${finalLocation}"`;
         }
 

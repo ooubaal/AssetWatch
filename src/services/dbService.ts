@@ -564,7 +564,7 @@ export const addAsset = async (asset: Asset): Promise<void> => {
     throw new Error('รหัสครุภัณฑ์นี้มีอยู่แล้วในระบบ');
   }
   assets.push(asset);
-  localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
+  safeSetItem('assetwatch_assets', JSON.stringify(assets));
 
   // 2. Sync to Firebase Firestore
   const { isFirebase, db } = getServices();
@@ -586,7 +586,7 @@ export const addAssetsBulk = async (newAssets: Asset[]): Promise<void> => {
   const existingIds = new Set(assets.map(a => a.id));
   const uniqueNewAssets = newAssets.filter(a => !existingIds.has(a.id));
   assets.push(...uniqueNewAssets);
-  localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
+  safeSetItem('assetwatch_assets', JSON.stringify(assets));
 
   // 2. Sync to Firebase Firestore
   const { isFirebase, db } = getServices();
@@ -611,11 +611,11 @@ export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<
   const index = assets.findIndex(a => a.id === id);
   if (index !== -1) {
     assets[index] = { ...assets[index], ...updates, updatedAt: new Date().toISOString() };
-    localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
+    safeSetItem('assetwatch_assets', JSON.stringify(assets));
   } else {
     const newAsset = { id, ...updates, updatedAt: new Date().toISOString() } as Asset;
     assets.push(newAsset);
-    localStorage.setItem('assetwatch_assets', JSON.stringify(assets));
+    safeSetItem('assetwatch_assets', JSON.stringify(assets));
   }
 
   // Sync updated assetName to existing schedules and repairs if name changed
