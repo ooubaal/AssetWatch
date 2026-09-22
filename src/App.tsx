@@ -63,7 +63,7 @@ import { Module11_QualityDocs } from './modules/Module11_QualityDocs';
 import { Module12_SpareParts } from './modules/Module12_SpareParts';
 
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS, PMContract, PMSchedule, PMNotification, SparePart } from './utils/mockData';
-import { X, Camera, AlertCircle, Lock, Bell, MapPin, Building } from 'lucide-react';
+import { X, Camera, AlertCircle, Lock, Bell, MapPin, Building, Trash2 } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
 function App() {
@@ -810,6 +810,30 @@ function App() {
   };
 
   // --- MODULE 6: EDIT ASSET LIFECYCLE ---
+  const isAllowedToDeleteImage = (targetAsset: Asset | null): boolean => {
+    if (!targetAsset || !currentUser) return false;
+    if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+      return true;
+    }
+    if (currentUser.role === 'head') {
+      return Boolean(
+        targetAsset.department && 
+        currentUser.department && 
+        targetAsset.department.trim().toLowerCase() === currentUser.department.trim().toLowerCase()
+      );
+    }
+    if (currentUser.role === 'user' || currentUser.role === 'operator') {
+      return Boolean(
+        targetAsset.createdBy && (
+          targetAsset.createdBy === currentUser.username ||
+          targetAsset.createdBy === currentUser.name ||
+          targetAsset.createdBy === currentUser.id
+        )
+      );
+    }
+    return false;
+  };
+
   const handleStartEditAsset = (asset: Asset) => {
     setEditingAsset(asset);
     setEditName(asset.name);
@@ -854,7 +878,13 @@ function App() {
       });
 
       if (editingAsset.imageUrl !== finalUrl) {
-        changes.imageUrl = { old: '[รูปถ่ายเดิม]', new: '[รูปถ่ายใหม่]' };
+        if (!finalUrl && editingAsset.imageUrl) {
+          changes.imageUrl = { old: '[รูปภาพเดิม]', new: '[ลบรูปภาพแล้ว]' };
+        } else if (finalUrl && !editingAsset.imageUrl) {
+          changes.imageUrl = { old: '[ไม่มีรูป]', new: '[อัปโหลดรูปภาพใหม่]' };
+        } else {
+          changes.imageUrl = { old: '[รูปถ่ายเดิม]', new: '[รูปถ่ายใหม่]' };
+        }
       }
 
       if (Object.keys(changes).length === 0) {
@@ -1569,7 +1599,25 @@ function App() {
 
               {/* Photo uploader inside editing drawer */}
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">📷 ถ่ายภาพ/อัปเดตรูปภาพเครื่องใหม่</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>📷 ถ่ายภาพ/อัปเดตรูปภาพเครื่องใหม่</label>
+                  {editImagePreview && isAllowedToDeleteImage(editingAsset) && (
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-xs"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setEditImagePreview('');
+                        setEditImageFile(null);
+                      }}
+                      style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                      title="นำรูปภาพนี้ออก (ลบรูป)"
+                    >
+                      <Trash2 size={11} /> นำรูปภาพออก
+                    </button>
+                  )}
+                </div>
                 <div className="survey-upload-trigger">
                   <input 
                     type="file" 
@@ -1588,14 +1636,14 @@ function App() {
                   />
                   <label htmlFor="edit-pic-picker" className="upload-box-dashed" style={{ padding: '1rem 0.5rem' }}>
                     {editImagePreview ? (
-                      <div className="preview-image-box" style={{ maxHeight: '100px', maxWidth: '140px' }}>
+                      <div className="preview-image-box" style={{ maxHeight: '120px', maxWidth: '160px' }}>
                         <img src={editImagePreview} alt="editing asset preview" />
-                        <span className="preview-indicator"><Camera size={10} /> กดถ่ายรูปใหม่</span>
+                        <span className="preview-indicator"><Camera size={10} /> กดถ่าย/เปลี่ยนรูปใหม่</span>
                       </div>
                     ) : (
                       <>
                         <Camera size={18} color="var(--text-muted)" />
-                        <span>กดถ่ายเพื่อเปลี่ยนรูปภาพครุภัณฑ์</span>
+                        <span>กดถ่าย หรือเลือกไฟล์รูปภาพครุภัณฑ์</span>
                       </>
                     )}
                   </label>

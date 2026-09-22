@@ -813,6 +813,25 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
   }
 };
 
+export const updateSurvey = async (id: string, updates: Partial<SurveyRecord>): Promise<void> => {
+  initLocalStorageIfNeeded();
+  const surveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
+  const index = surveys.findIndex(s => s.id === id);
+  if (index !== -1) {
+    surveys[index] = { ...surveys[index], ...updates };
+    safeSetItem('assetwatch_surveys', JSON.stringify(surveys));
+  }
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      const docRef = doc(db, 'surveys', id);
+      await setDoc(docRef, sanitizeForFirestore(updates as any), { merge: true });
+    } catch (e) {
+      console.error('Firebase updateSurvey failed:', e);
+    }
+  }
+};
+
 // --- REPAIR SERVICES ---
 export const getRepairs = async (): Promise<RepairCase[]> => {
   initLocalStorageIfNeeded();

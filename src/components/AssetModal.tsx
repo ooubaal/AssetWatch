@@ -41,7 +41,7 @@ import {
   loadSpareParts,
   saveSpareParts
 } from '../utils/mockData';
-import { updateAsset, addAuditTrail } from '../services/dbService';
+import { updateAsset, addAuditTrail, updateSurvey } from '../services/dbService';
 
 interface AssetModalProps {
   asset: Asset;
@@ -79,6 +79,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'repairs' | 'surveys' | 'barcode' | 'spare_parts'>('info');
   const [noteText, setNoteText] = useState(asset.note || '');
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
 
   const isAllowedToDelete = (targetAsset: Asset): boolean => {
     if (!currentUser) return false;
@@ -105,6 +106,140 @@ export const AssetModal: React.FC<AssetModalProps> = ({
       );
     }
     return false;
+  };
+
+  // Image deletion permissions:
+  // - Admin & Manager: Can delete images across the whole organization
+  // - Head: Can delete images for assets in their own department
+  // - User & Operator: Can delete images only if uploaded/created by themselves
+  const isAllowedToDeleteImage = (targetAsset: Asset): boolean => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+      return true;
+    }
+    if (currentUser.role === 'head') {
+      return Boolean(
+        targetAsset.department && 
+        currentUser.department && 
+        targetAsset.department.trim().toLowerCase() === currentUser.department.trim().toLowerCase()
+      );
+    }
+    if (currentUser.role === 'user' || currentUser.role === 'operator') {
+      return Boolean(
+        targetAsset.createdBy && (
+          targetAsset.createdBy === currentUser.username ||
+          targetAsset.createdBy === currentUser.name ||
+          targetAsset.createdBy === currentUser.id
+        )
+      );
+    }
+    return false;
+  };
+
+  const isAllowedToDeleteSurveyImage = (surveyItem: SurveyRecord, targetAsset: Asset): boolean => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+      return true;
+    }
+    if (currentUser.role === 'head') {
+      return Boolean(
+        targetAsset.department && 
+        currentUser.department && 
+        targetAsset.department.trim().toLowerCase() === currentUser.department.trim().toLowerCase()
+      );
+    }
+    if (currentUser.role === 'user' || currentUser.role === 'operator') {
+      return Boolean(
+        surveyItem.operator && (
+          surveyItem.operator === currentUser.username ||
+          surveyItem.operator === currentUser.name ||
+          surveyItem.operator === currentUser.id
+        )
+      );
+    }
+    return false;
+  };
+
+  const handleDeleteAssetImage = async () => {
+    if (!isAllowedToDeleteImage(asset)) {
+      if (currentUser?.role === 'head') {
+        alert(`คุณไม่มีสิทธิ์ลบรูปภาพนี้ เนื่องจากไม่ได้อยู่ในฝ่าย "${currentUser.department}"`);
+      } else if (currentUser?.role === 'user' || currentUser?.role === 'operator') {
+        alert(`คุณไม่มีสิทธิ์ลบรูปภาพนี้ (สงวนสิทธิ์เฉพาะผู้สร้าง/อัปโหลด: ${asset.createdBy || 'ระบบ/ผู้ดูแล'})`);
+      } else {
+        alert('คุณไม่มีสิทธิ์ในการลบรูปภาพนี้');
+      }
+      return;
+    }
+
+    if (!window.confirm(`⚠️ ยืนยันการลบรูปภาพของครุภัณฑ์รหัส "${asset.id}"?\n\nการดำเนินการนี้จะลบรูปภาพออกจากฐานข้อมูลทันที`)) {
+      return;
+    }
+
+    setIsDeletingImage(true);
+    try {
+      await updateAsset(asset.id, { imageUrl: '' });
+      await addAuditTrail({
+        assetId: asset.id,
+        assetName: asset.name,
+        action: 'edit',
+        operator: currentUser?.name || currentUser?.username || 'เจ้าหน้าที่พัสดุ',
+        details: `ลบรูปภาพประจำตัวครุภัณฑ์รหัส ${asset.id}`,
+        changes: {
+          imageUrl: { old: '[รูปภาพเดิม]', new: '[ลบรูปภาพแล้ว]' }
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      asset.imageUrl = '';
+      alert('ลบรูปภาพครุภัณฑ์เรียบร้อยแล้ว');
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (err: any) {
+      console.error('Failed to delete asset image:', err);
+      alert('เกิดข้อผิดพลาดในการลบรูปภาพ: ' + (err?.message || 'กรุณาลองใหม่อีกครั้ง'));
+    } finally {
+      setIsDeletingImage(false);
+    }
+  };
+
+  const handleDeleteSurveyImage = async (surveyItem: SurveyRecord) => {
+    if (!isAllowedToDeleteSurveyImage(surveyItem, asset)) {
+      if (currentUser?.role === 'head') {
+        alert(`คุณไม่มีสิทธิ์ลบรูปภาพนี้ เนื่องจากไม่ได้อยู่ในฝ่าย "${currentUser.department}"`);
+      } else if (currentUser?.role === 'user' || currentUser?.role === 'operator') {
+        alert(`คุณไม่มีสิทธิ์ลบรูปภาพนี้ (สงวนสิทธิ์เฉพาะผู้ตรวจที่แนบรูป: ${surveyItem.operator})`);
+      } else {
+        alert('คุณไม่มีสิทธิ์ในการลบรูปภาพนี้');
+      }
+      return;
+    }
+
+    if (!window.confirm(`⚠️ ยืนยันการลบรูปภาพผลการตรวจนับนี้หรือไม่?`)) {
+      return;
+    }
+
+    try {
+      await updateSurvey(surveyItem.id, { imageUrl: '' });
+      await addAuditTrail({
+        assetId: asset.id,
+        assetName: asset.name,
+        action: 'survey',
+        operator: currentUser?.name || currentUser?.username || 'เจ้าหน้าที่พัสดุ',
+        details: `ลบรูปภาพผลการตรวจนับครุภัณฑ์ ${asset.id} (บันทึกเมื่อ: ${new Date(surveyItem.timestamp).toLocaleDateString('th-TH')})`,
+        timestamp: new Date().toISOString()
+      });
+
+      surveyItem.imageUrl = '';
+      alert('ลบรูปภาพผลการตรวจนับเรียบร้อยแล้ว');
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (err: any) {
+      console.error('Failed to delete survey image:', err);
+      alert('เกิดข้อผิดพลาดในการลบรูปภาพตรวจนับ: ' + (err?.message || 'กรุณาลองใหม่อีกครั้ง'));
+    }
   };
 
   // Spare Parts & Stock Card State
@@ -717,7 +852,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
             <div className="tab-info-layout">
               {/* Asset Picture & QR Label Card */}
               <div className="info-visuals-panel">
-                <div className="info-image-container">
+                <div className="info-image-container" style={{ position: 'relative' }}>
                   <img 
                     src={asset.imageUrl || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60'} 
                     alt={asset.name} 
@@ -728,6 +863,62 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                       target.src = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
                     }}
                   />
+                  {asset.imageUrl && isAllowedToDeleteImage(asset) && (
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-xs"
+                      onClick={handleDeleteAssetImage}
+                      disabled={isDeletingImage}
+                      title="ลบรูปภาพครุภัณฑ์นี้ออกจากระบบ"
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        background: 'rgba(239, 68, 68, 0.92)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0.3rem 0.6rem',
+                        fontSize: '0.725rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                        backdropFilter: 'blur(4px)',
+                        cursor: 'pointer',
+                        zIndex: 5
+                      }}
+                    >
+                      <Trash2 size={12} /> {isDeletingImage ? 'กำลังลบ...' : 'ลบรูปภาพ'}
+                    </button>
+                  )}
+                  {asset.imageUrl && !isAllowedToDeleteImage(asset) && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        background: 'rgba(15, 23, 42, 0.75)',
+                        color: '#e2e8f0',
+                        borderRadius: '6px',
+                        padding: '0.25rem 0.5rem',
+                        fontSize: '0.675rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        backdropFilter: 'blur(4px)',
+                        zIndex: 5
+                      }}
+                      title={
+                        currentUser?.role === 'head' 
+                          ? `หัวหน้าฝ่ายลบได้เฉพาะรูปของฝ่าย ${currentUser.department}` 
+                          : `ผู้ใช้งานลบได้เฉพาะรูปที่ตนเองสร้าง/อัปโหลด (${asset.createdBy || 'ผู้ดูแลระบบ'})`
+                      }
+                    >
+                      🔒 รูปภาพครุภัณฑ์
+                    </div>
+                  )}
                 </div>
                 
                 {/* Area for saving misc info / notes */}
@@ -1029,7 +1220,20 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                       
                       {item.imageUrl && (
                         <div className="survey-attached-pic">
-                          <span>รูปแนบการตรวจสอบสภาพ:</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>📷 รูปแนบการตรวจสอบสภาพ:</span>
+                            {isAllowedToDeleteSurveyImage(item, asset) && (
+                              <button
+                                type="button"
+                                className="btn btn-danger btn-xs"
+                                onClick={() => handleDeleteSurveyImage(item)}
+                                style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                title="ลบรูปภาพผลการตรวจนับนี้"
+                              >
+                                <Trash2 size={11} /> ลบรูปตรวจนับ
+                              </button>
+                            )}
+                          </div>
                           <img src={item.imageUrl} alt="attached survey proof" />
                         </div>
                       )}
