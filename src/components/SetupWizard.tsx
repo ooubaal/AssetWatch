@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Database, Cloud, FileCode, CheckCircle2, AlertCircle, Play, QrCode, Sparkles } from 'lucide-react';
 import { saveFirebaseConfig } from '../firebase';
 import { BarcodeScanner } from './BarcodeScanner';
-import confetti from 'canvas-confetti';
 
 interface SetupWizardProps {
   onSetupComplete: () => void;
@@ -15,12 +14,6 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
   const [loading, setLoading] = useState(false);
 
   const handleDemoBypass = () => {
-    // Generate beautiful confetti to make offline mode entry exciting!
-    confetti({
-      particleCount: 80,
-      spread: 60,
-      origin: { y: 0.8 }
-    });
     onSetupComplete();
   };
 
@@ -61,11 +54,6 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
         });
 
         if (success) {
-          confetti({
-            particleCount: 150,
-            spread: 80,
-            origin: { y: 0.6 }
-          });
           onSetupComplete();
         } else {
           setError('การตั้งค่าล้มเหลว โปรดตรวจสอบสิทธิ์การอ่านเขียนของ Firebase Credentials');
@@ -88,11 +76,6 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
       if (parsed && parsed.apiKey && parsed.projectId) {
         const success = saveFirebaseConfig(parsed);
         if (success) {
-          confetti({
-            particleCount: 120,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
           onSetupComplete();
         } else {
           setError('การเชื่อมต่อผ่าน QR Code ล้มเหลว โปรดสแกน QR Code ที่ถูกต้อง');

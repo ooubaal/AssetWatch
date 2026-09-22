@@ -31,7 +31,6 @@ import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
 import { uploadImage, compressFileOrPdf } from '../services/dbService';
-import confetti from 'canvas-confetti';
 
 interface Module2ScanSurveyProps {
   assets: Asset[];
@@ -218,17 +217,6 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
   const progressPercent = totalInList > 0 ? Math.round((surveyedInList / totalInList) * 100) : 0;
 
-  // Trigger celebration on 100% completion of selected list!
-  useEffect(() => {
-    if (progressPercent === 100 && totalInList > 0 && !isNewScanNeeded && surveySuccess) {
-      confetti({
-        particleCount: 200,
-        spread: 100,
-        origin: { y: 0.5 }
-      });
-    }
-  }, [progressPercent, totalInList, isNewScanNeeded, surveySuccess]);
-
   const handleScanSuccess = (decodedId: string) => {
     // Intercept Firebase Config QR code scanned from Settings page
     if (decodedId.includes('apiKey') && decodedId.includes('projectId') && decodedId.includes('{')) {
@@ -243,12 +231,6 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
             localStorage.setItem('assetwatch_firebase_config', JSON.stringify(config));
             localStorage.setItem('assetwatch_db_mode', 'firebase');
             localStorage.setItem('assetwatch_force_base64_images', 'true');
-            
-            confetti({
-              particleCount: 150,
-              spread: 80,
-              origin: { y: 0.5 }
-            });
             
             alert('เชื่อมต่อระบบคลาวด์สำเร็จ! ระบบจะทำการรีโหลดแอปพลิเคชันเพื่อซิงค์ข้อมูลใหม่...');
             window.location.reload();
@@ -413,13 +395,6 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           details: `สแกนพบและตรวจนับรหัสที่ยังไม่เคยมีในคลังระบบ: "${scannedId}"`
         });
       }
-
-      // Polish: Confetti Rain!
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.7 }
-      });
 
       setSurveySuccess(true);
       setAttachImageFile(null);
@@ -927,26 +902,26 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           {/* CASE 4: Survey Success Screen */}
           {surveySuccess && (
             <div className="survey-success-card glass-panel">
-              <div className="success-sparkle-halo">
-                <Sparkles size={36} color="var(--success)" />
+              <div className="success-check-badge">
+                <CheckCircle2 size={42} color="var(--success)" />
               </div>
-              <h3>ยืนยันสภาพครุภัณฑ์สำเร็จ!</h3>
-              <p>ข้อมูลการแสกนสำรวจจากผู้ตรวจ <strong>{operator}</strong> ได้รับการบันทึกลงคลาวด์และอัปเดตระบบเรียบร้อยแล้ว</p>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '0.25rem' }}>บันทึกผลการสำรวจสำเร็จ</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>ข้อมูลการตรวจสอบสภาพครุภัณฑ์จาก <strong>{operator}</strong> ได้รับการบันทึกและซิงค์เรียบร้อยแล้ว</p>
               
               <div className="survey-summary-success-pill">
-                <span>รหัสตรวจแล้ว:</span>
+                <span>รหัสครุภัณฑ์ที่ตรวจนับ:</span>
                 <code>{scannedId}</code>
               </div>
 
               {progressPercent === 100 && totalInList > 0 ? (
-                <div className="alert alert-success animate-fade-in" style={{ width: '100%', marginBottom: '1rem' }}>
-                  <Sparkles size={20} />
-                  <span><strong>ยอดเยี่ยมมาก!</strong> คุณสำรวจครบ 100% ของเป้าหมายแผนงานนี้เรียบร้อยแล้ว! 🥳</span>
+                <div className="alert alert-success animate-fade-in" style={{ width: '100%', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <CheckCircle2 size={20} color="var(--success)" />
+                  <span><strong>เสร็จสมบูรณ์:</strong> สำรวจครบ 100% ตามเป้าหมายแผนงานนี้เรียบร้อยแล้ว</span>
                 </div>
               ) : null}
 
               <button className="btn btn-primary w-full" onClick={handleResetScan}>
-                สแกนชิ้นถัดไปทันที
+                สแกนชิ้นถัดไป
               </button>
             </div>
           )}
@@ -1091,7 +1066,6 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                               onClick={async () => {
                                 if (onDepartmentSignoff && userDept) {
                                   await onDepartmentSignoff(userDept, currentUser.name || operator);
-                                  confetti({ particleCount: 120, spread: 70 });
                                 }
                               }}
                               style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
@@ -1160,11 +1134,6 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                               if (!closeOperator.trim()) return;
                               await onCloseActiveRound(closeOperator);
                               setShowCloseConfirm(false);
-                              confetti({
-                                particleCount: 150,
-                                spread: 80,
-                                origin: { y: 0.6 }
-                              });
                             }}
                           >
                             ยืนยันการปิดรอบและรีเซ็ตระบบ
@@ -1271,10 +1240,6 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                           if (!newRoundName.trim()) return;
                           await onCreateSurveyRound(newRoundName, operator);
                           setNewRoundName('');
-                          confetti({
-                            particleCount: 100,
-                            spread: 50
-                          });
                         }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                       >
@@ -1371,7 +1336,6 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                                     const reason = prompt('กรุณาระบุเหตุผลในการดึงรอบกลับมาแก้ไข:', 'พบข้อมูลต้องตรวจนับเพิ่มเติม');
                                     if (reason !== null && onReopenSurveyRound) {
                                       await onReopenSurveyRound(round.id, currentUser.name || operator, reason);
-                                      confetti({ particleCount: 100, spread: 60 });
                                     }
                                   }}
                                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
@@ -2197,15 +2161,29 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           box-sizing: border-box;
         }
 
-        .success-sparkle-halo {
-          width: 68px;
-          height: 68px;
+        .success-check-badge {
+          width: 72px;
+          height: 72px;
           border-radius: 50%;
-          background-color: var(--success-light);
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.22));
+          border: 2px solid rgba(16, 185, 129, 0.35);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+          box-shadow: 0 4px 18px rgba(16, 185, 129, 0.18);
+          animation: badgePulse 2s infinite ease-in-out;
+        }
+
+        @keyframes badgePulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.25);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+          }
         }
 
         .survey-summary-success-pill {

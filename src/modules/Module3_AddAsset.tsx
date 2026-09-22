@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Download, UploadCloud, Clipboard, Trash2, HelpCircle, Printer, Image as ImageIcon, Sparkles, CheckCircle2, RefreshCw, FileSpreadsheet } from 'lucide-react';
 import { Asset, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 import { uploadImage, compressFileOrPdf } from '../services/dbService';
-import confetti from 'canvas-confetti';
 import { SearchableSelect } from '../components/SearchableSelect';
 import ExcelJS from 'exceljs';
 
@@ -940,13 +939,6 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         details: `${operatorName} ทำการนำเข้าข้อมูลครุภัณฑ์แบบกลุ่มสำเร็จ จำนวน ${assetsToAdd.length} รายการ (พร้อมประมวลผลและบีบอัดรูปภาพพัสดุ)`
       });
       
-      // Confetti!
-      confetti({
-        particleCount: 180,
-        spread: 100,
-        origin: { y: 0.6 }
-      });
-      
       setImportedCount(assetsToAdd.length);
       setMassSuccess(true);
     } catch (err: any) {
@@ -1072,13 +1064,6 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         action: 'create',
         operator: operatorName,
         details: `ขึ้นทะเบียนครุภัณฑ์รหัสใหม่ ผู้ขาย/ผู้บริจาค: ${newAsset.source} ตั้งที่: ${newAsset.location}`
-      });
-
-      // Show confetti for premium feeling!
-      confetti({
-        particleCount: 150,
-        spread: 90,
-        origin: { y: 0.6 }
       });
 
       setSuccess(true);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Move, Search, ArrowRight, CheckCircle2, AlertCircle, Building, Printer } from 'lucide-react';
 import { Asset, DepartmentLocationConfig, UserAccount, AuditTrail } from '../utils/mockData';
-import confetti from 'canvas-confetti';
 import { SearchableSelect } from '../components/SearchableSelect';
 
 interface Module5TransferProps {
@@ -139,13 +138,6 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
         operator: operatorName,
         details: `ทำรายการอนุมัติย้ายครุภัณฑ์ เลขที่คำขอ: ${transferDoc || 'ไม่มี'} ย้ายสถานที่และหน่วยงานผู้รับผิดชอบใหม่`,
         changes
-      });
-
-      // Polish
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        colors: ['#3b82f6', '#06b6d4', '#ffffff']
       });
 
       setSuccess(true);

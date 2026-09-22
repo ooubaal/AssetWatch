@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, AlertTriangle, FileText, CheckCircle2, Search, ArrowRight, Printer } from 'lucide-react';
 import { Asset, UserAccount, AuditTrail } from '../utils/mockData';
-import confetti from 'canvas-confetti';
 
 interface Module4DisposeProps {
   assets: Asset[];
@@ -87,13 +86,6 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
         action: 'dispose',
         operator: operatorName,
         details: logDetails
-      });
-
-      // Polishing effect
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        colors: ['#f59e0b', '#ef4444', '#ffffff']
       });
 
       setSuccess(true);

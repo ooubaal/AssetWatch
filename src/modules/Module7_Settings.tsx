@@ -22,7 +22,6 @@ import {
 import { getStoredFirebaseConfig, clearFirebaseConfig, FirebaseConfig } from '../firebase';
 import { exportBackupData, importBackupData, factoryResetDatabase } from '../services/dbService';
 import { QRCodeSVG } from 'qrcode.react';
-import confetti from 'canvas-confetti';
 import { Asset, AuditTrail, RepairCase, SurveyRecord, SurveyRound, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 
 interface Module7SettingsProps {
@@ -141,12 +140,6 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      confetti({
-        particleCount: 50,
-        spread: 30,
-        origin: { y: 0.8 }
-      });
     } catch (e) {
       alert('เกิดข้อผิดพลาดในการส่งออกไฟล์แบคอัพ');
     }
@@ -171,10 +164,6 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
           const res = await importBackupData(text);
           setImportStatus(res);
           if (res.success) {
-            confetti({
-              particleCount: 100,
-              spread: 60
-            });
             onImportSuccess();
           }
         } catch (err: any) {
@@ -202,12 +191,6 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
     setResetError('');
     try {
       await factoryResetDatabase();
-      
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
 
       setShowResetModal(false);
       setConfirmPassword('');

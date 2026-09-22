@@ -7,7 +7,6 @@ import {
 import { Asset, PMContract, PMSchedule, PMNotification, RepairCase, UserAccount } from '../utils/mockData';
 import { uploadImage, compressFileOrPdf, updateAsset } from '../services/dbService';
 import { SearchableSelect } from '../components/SearchableSelect';
-import confetti from 'canvas-confetti';
 
 interface Module10MaintenanceProps {
   assets: Asset[];
@@ -542,13 +541,6 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         details: `ทำรายการบันทึก Preventive Maintenance (PM) เรียบร้อย เมื่อวันที่ ${completedDate} ผลลัพธ์: ${statusLabel}${nextPMNotes ? ` (โน๊ตเตือนรอบถัดไป: ${nextPMNotes})` : ''}`
       });
 
-      // Confetti!
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 }
-      });
-
       setIsPMFormOpen(false);
       setSelectedSchedule(null);
       await onRefreshData();
@@ -933,11 +925,6 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         });
       }
 
-      confetti({
-        particleCount: 100,
-        spread: 60
-      });
-
       setIsContractFormOpen(false);
       setEditingContract(null);
       setCustomDates([]);
@@ -1047,11 +1034,6 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         action: 'repair_open',
         operator: operatorName,
         details: `เปิดใบสั่งแจ้งชำรุดเร่งด่วน (Corrective Maintenance) รหัสใบแจ้งซ่อม: ${repairId} อาการเสีย: ${repairSymptom}${symptomUrls.length > 0 ? ` (แนบรูปภาพ/เอกสาร ${symptomUrls.length} ไฟล์)` : ''}`
-      });
-
-      confetti({
-        particleCount: 60,
-        spread: 50
       });
 
       setIsRepairFormOpen(false);
@@ -1346,11 +1328,6 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         action: 'repair_receive',
         operator: operatorName,
         details: `ตรวจรับครุภัณฑ์พัสดุส่งซ่อมคืนคลังสำเร็จ ตรวจเช็คเครื่องแล้วสามารถนำกลับมา "ใช้งานได้" ตามปกติ${receiveNotes.trim() ? ` (รายละเอียดผลการตรวจรับ/การซ่อม: "${receiveNotes.trim()}")` : ''}${receiveCost.trim() ? ` (ค่าใช้จ่าย: ${receiveCost.trim()} บาท)` : ''}${receivedUrls.length > 0 ? ` (แนบหลักฐานตรวจรับ ${receivedUrls.length} ไฟล์)` : ''}`
-      });
-
-      confetti({
-        particleCount: 100,
-        spread: 80
       });
 
       setWorkflowCase(null);
