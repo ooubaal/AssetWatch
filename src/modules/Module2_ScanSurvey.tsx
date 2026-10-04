@@ -75,7 +75,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [selectedDept, setSelectedDept] = useState<string>(() => localStorage.getItem('assetwatch_selected_dept') || 'all');
   const [checklistTab, setChecklistTab] = useState<'pending' | 'completed'>('pending');
 
-  const [scannedId, setScannedId] = useState<string | null>(null);
+  const [scannedId, setScannedId] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem('assetwatch_draft_survey_id') || null;
+    } catch {
+      return null;
+    }
+  });
   const [scannedAsset, setScannedAsset] = useState<Asset | null>(null);
   
   // Survey Form States
@@ -87,7 +93,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   
   const [saving, setSaving] = useState(false);
   const [surveySuccess, setSurveySuccess] = useState(false);
-  const [isNewScanNeeded, setIsNewScanNeeded] = useState(true);
+  const [isNewScanNeeded, setIsNewScanNeeded] = useState(() => {
+    try {
+      return !sessionStorage.getItem('assetwatch_draft_survey_id');
+    } catch {
+      return true;
+    }
+  });
 
   // Survey Round Manager States
   const [newRoundName, setNewRoundName] = useState('');
@@ -247,6 +259,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
     setIsNewScanNeeded(false);
     setScannedId(decodedId);
+    try {
+      sessionStorage.setItem('assetwatch_draft_survey_id', decodedId);
+    } catch {}
     
     // Look up in assets list
     const found = assets.find(a => a.id.toLowerCase() === decodedId.toLowerCase());
@@ -256,11 +271,6 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       setSelectedLocation(found.location || '');
       setCustomLocation('');
       setSurveySuccess(false);
-
-      // Warning if scanned asset belongs to a different department than selected
-      if (selectedDept !== 'all' && found.department !== selectedDept) {
-        // Just log a console warning or show in UI, we will handle in UI dynamically
-      }
     } else {
       setScannedAsset(null);
       setSelectedLocation('');
@@ -269,9 +279,24 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     }
   };
 
+  // Sync scannedAsset if restored from draft session storage on page reload
+  useEffect(() => {
+    if (scannedId && !scannedAsset && assets.length > 0) {
+      const found = assets.find(a => a.id.toLowerCase() === scannedId.toLowerCase());
+      if (found) {
+        setScannedAsset(found);
+        setSelectedStatus(found.status);
+        setSelectedLocation(found.location || '');
+      }
+    }
+  }, [scannedId, scannedAsset, assets]);
+
   const handleManualCountSelect = (asset: Asset) => {
     setIsNewScanNeeded(false);
     setScannedId(asset.id);
+    try {
+      sessionStorage.setItem('assetwatch_draft_survey_id', asset.id);
+    } catch {}
     setScannedAsset(asset);
     setSelectedStatus(asset.status);
     setSelectedLocation(asset.location || '');
@@ -288,19 +313,21 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         // High efficiency mobile compression: 800x800, quality 0.65 (~20-35KB per photo)
         const compressed = await compressFileOrPdf(file, 800, 800, 0.65);
         setAttachImageFile(compressed);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setAttachImagePreview(reader.result as string);
-        };
-        reader.readAsDataURL(compressed);
+        
+        // Clean up previous blob URL to prevent mobile WebKit RAM leak
+        if (attachImagePreview && attachImagePreview.startsWith('blob:')) {
+          URL.revokeObjectURL(attachImagePreview);
+        }
+        const previewUrl = URL.createObjectURL(compressed);
+        setAttachImagePreview(previewUrl);
       } catch (err) {
         console.warn('Compression failed, using raw file:', err);
         setAttachImageFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setAttachImagePreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
+        if (attachImagePreview && attachImagePreview.startsWith('blob:')) {
+          URL.revokeObjectURL(attachImagePreview);
+        }
+        const previewUrl = URL.createObjectURL(file);
+        setAttachImagePreview(previewUrl);
       }
       // Reset input value so re-selecting or taking another photo works seamlessly
       e.target.value = '';
@@ -309,8 +336,11 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
   const handleClearAttachedImage = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (attachImagePreview && attachImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(attachImagePreview);
+    }
     setAttachImageFile(null);
-    setAttachImagePreview('');
+    setAttachImagePreview(null);
     if (surveyFileInputRef.current) {
       surveyFileInputRef.current.value = '';
     }
@@ -397,8 +427,14 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       }
 
       setSurveySuccess(true);
+      if (attachImagePreview && attachImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(attachImagePreview);
+      }
       setAttachImageFile(null);
       setAttachImagePreview(null);
+      try {
+        sessionStorage.removeItem('assetwatch_draft_survey_id');
+      } catch {}
     } catch (e: any) {
       console.error('Survey submit error:', e);
       alert('เกิดข้อผิดพลาดในการบันทึกผลการสำรวจ: ' + (e?.message || 'กรุณาลองใหม่อีกครั้ง'));
@@ -408,6 +444,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   };
 
   const handleResetScan = () => {
+    if (attachImagePreview && attachImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(attachImagePreview);
+    }
     setScannedId(null);
     setScannedAsset(null);
     setAttachImageFile(null);
@@ -416,6 +455,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     setCustomLocation('');
     setSurveySuccess(false);
     setIsNewScanNeeded(true);
+    try {
+      sessionStorage.removeItem('assetwatch_draft_survey_id');
+    } catch {}
   };
 
   const statusColors: Record<string, string> = {

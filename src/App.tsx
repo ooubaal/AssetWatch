@@ -74,7 +74,14 @@ function App() {
     return !services.isConfigured && demoBypass !== 'true';
   });
 
-  const [currentTab, setCurrentTab] = useState('dashboard');
+  const [currentTab, setCurrentTabState] = useState(() => {
+    return localStorage.getItem('assetwatch_active_tab') || 'dashboard';
+  });
+
+  const setCurrentTab = (tab: string) => {
+    setCurrentTabState(tab);
+    localStorage.setItem('assetwatch_active_tab', tab);
+  };
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('assetwatch_theme');
     if (saved === 'dark' || saved === 'light') return saved;
@@ -261,48 +268,74 @@ function App() {
 
   // Automated PM/CM alert check (throttled to once every 10 minutes)
   const lastPMCheckRef = useRef<number>(0);
+  const fetchAllDataPromiseRef = useRef<Promise<void> | null>(null);
 
   // Load all data from Firestore/LocalStorage
   const fetchAllData = async (forcePMCheck = false) => {
-    try {
-      const allAssets = await getAssets();
-      const allAudits = await getAuditTrails();
-      const allRepairs = await getRepairs();
-      const allSurveys = await getSurveys();
-      const allRounds = await getSurveyRounds();
-      const allDepts = await getDepartments();
-      const allUsers = await getUsers();
-      const allContracts = await getPMContracts();
-      const allSchedules = await getPMSchedules();
-      const allPMNotifs = await getPMNotifications();
-      const allSpareParts = await fetchSpareParts();
-
-      setAssets(allAssets);
-      setAudits(allAudits);
-      setRepairs(allRepairs);
-      setSurveys(allSurveys);
-      setRounds(allRounds);
-      setDepartments(allDepts);
-      setUsers(allUsers);
-      setContracts(allContracts);
-      setSchedules(allSchedules);
-      setPmNotifications(allPMNotifs);
-      setSpareParts(allSpareParts);
-
-      // Automated check and notification generation (only on initial load or once every 10 mins)
-      const now = Date.now();
-      if (forcePMCheck || now - lastPMCheckRef.current > 10 * 60 * 1000) {
-        lastPMCheckRef.current = now;
-        await checkAndGeneratePMNotifications(allSchedules, allPMNotifs, allContracts);
-        const updatedPMNotifs = await getPMNotifications();
-        setPmNotifications(updatedPMNotifs);
-      }
-
-      const active = allRounds.find(r => r.status === 'active');
-      setActiveRound(active || null);
-    } catch (e) {
-      console.error('Error fetching datasets:', e);
+    if (fetchAllDataPromiseRef.current) {
+      return fetchAllDataPromiseRef.current;
     }
+
+    const fetchPromise = (async () => {
+      try {
+        const [
+          allAssets,
+          allAudits,
+          allRepairs,
+          allSurveys,
+          allRounds,
+          allDepts,
+          allUsers,
+          allContracts,
+          allSchedules,
+          allPMNotifs,
+          allSpareParts
+        ] = await Promise.all([
+          getAssets(),
+          getAuditTrails(),
+          getRepairs(),
+          getSurveys(),
+          getSurveyRounds(),
+          getDepartments(),
+          getUsers(),
+          getPMContracts(),
+          getPMSchedules(),
+          getPMNotifications(),
+          fetchSpareParts()
+        ]);
+
+        setAssets(allAssets);
+        setAudits(allAudits);
+        setRepairs(allRepairs);
+        setSurveys(allSurveys);
+        setRounds(allRounds);
+        setDepartments(allDepts);
+        setUsers(allUsers);
+        setContracts(allContracts);
+        setSchedules(allSchedules);
+        setPmNotifications(allPMNotifs);
+        setSpareParts(allSpareParts);
+
+        // Automated check and notification generation (only on initial load or once every 10 mins)
+        const now = Date.now();
+        if (forcePMCheck || now - lastPMCheckRef.current > 10 * 60 * 1000) {
+          lastPMCheckRef.current = now;
+          await checkAndGeneratePMNotifications(allSchedules, allPMNotifs, allContracts);
+          const updatedPMNotifs = await getPMNotifications();
+          setPmNotifications(updatedPMNotifs);
+        }
+
+        const active = allRounds.find(r => r.status === 'active');
+        setActiveRound(active || null);
+      } catch (e) {
+        console.error('Error fetching datasets:', e);
+      } finally {
+        fetchAllDataPromiseRef.current = null;
+      }
+    })();
+
+    fetchAllDataPromiseRef.current = fetchPromise;
+    return fetchPromise;
   };
 
   useEffect(() => {

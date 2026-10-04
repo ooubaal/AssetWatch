@@ -329,11 +329,39 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       nativeDetectorLoopRef.current = null;
     }
 
-    if (qrCodeInstanceRef.current && qrCodeInstanceRef.current.isScanning) {
+    // 1. Explicitly stop and release hardware camera tracks to prevent mobile WebKit memory leaks
+    try {
+      if (videoTrackRef.current) {
+        videoTrackRef.current.stop();
+        videoTrackRef.current = null;
+      }
+
+      const videoEl = document.querySelector(`#${scannerId} video`) as HTMLVideoElement | null;
+      if (videoEl) {
+        videoEl.pause();
+        if (videoEl.srcObject) {
+          const stream = videoEl.srcObject as MediaStream;
+          stream.getTracks().forEach(track => {
+            try {
+              track.stop();
+            } catch (err) {}
+          });
+          videoEl.srcObject = null;
+        }
+      }
+    } catch (e) {
+      console.warn("Error releasing media stream tracks:", e);
+    }
+
+    // 2. Stop and clear Html5Qrcode instance
+    if (qrCodeInstanceRef.current) {
       try {
-        await qrCodeInstanceRef.current.stop();
+        if (qrCodeInstanceRef.current.isScanning) {
+          await qrCodeInstanceRef.current.stop();
+        }
+        await qrCodeInstanceRef.current.clear();
       } catch (e) {
-        console.error("Failed to stop scanner instance:", e);
+        console.error("Failed to stop/clear scanner instance:", e);
       }
       qrCodeInstanceRef.current = null;
     }

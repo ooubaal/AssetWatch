@@ -243,18 +243,30 @@ export const renderPdfToHdImage = async (file: File): Promise<File> => {
   });
 };
 
-export const compressImage = (file: File, maxWidth = 1400, maxHeight = 1400, quality = 0.78): Promise<File> => {
+export const compressImage = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.75): Promise<File> => {
   return new Promise(async (resolve) => {
-    if (!file.type.startsWith('image/')) {
+    if (!file || !file.type.startsWith('image/')) {
       resolve(file);
       return;
     }
 
     try {
-      // Hardware-accelerated createImageBitmap for fast mobile image decoding
+      // 1. Hardware-accelerated createImageBitmap with native downscaling
       if (typeof createImageBitmap === 'function') {
         try {
-          const bitmap = await createImageBitmap(file);
+          // Calculate target dimensions before decode to avoid decoding huge 48MP raw images
+          let bitmap: ImageBitmap;
+          try {
+            // First attempt with native downscaling hint
+            bitmap = await createImageBitmap(file, {
+              resizeWidth: maxWidth,
+              resizeHeight: maxHeight,
+              resizeQuality: 'medium'
+            });
+          } catch {
+            bitmap = await createImageBitmap(file);
+          }
+
           let width = bitmap.width;
           let height = bitmap.height;
 
@@ -278,11 +290,15 @@ export const compressImage = (file: File, maxWidth = 1400, maxHeight = 1400, qua
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
             ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
+            ctx.imageSmoothingQuality = 'medium';
             ctx.drawImage(bitmap, 0, 0, width, height);
             bitmap.close();
 
             const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', quality));
+            // Release canvas GPU memory buffer
+            canvas.width = 0;
+            canvas.height = 0;
+
             if (blob) {
               const cleanName = file.name.replace(/\.[^/.]+$/, "");
               resolve(new File([blob], `${cleanName}_compressed.jpg`, {
@@ -297,8 +313,8 @@ export const compressImage = (file: File, maxWidth = 1400, maxHeight = 1400, qua
         }
       }
 
+      // 2. Standard Image loader with URL.createObjectURL (Low RAM)
       const img = new Image();
-      // Memory Optimization: Using objectURL instead of FileReader Base64 string prevents RAM spikes
       const url = URL.createObjectURL(file);
       img.src = url;
 
@@ -308,7 +324,6 @@ export const compressImage = (file: File, maxWidth = 1400, maxHeight = 1400, qua
         let width = img.width;
         let height = img.height;
 
-        // Fit dimensions within max limits while maintaining ratio
         if (width > height) {
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width);
@@ -333,11 +348,13 @@ export const compressImage = (file: File, maxWidth = 1400, maxHeight = 1400, qua
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, width, height);
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        ctx.imageSmoothingQuality = 'medium';
 
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob(
           (blob) => {
+            canvas.width = 0;
+            canvas.height = 0;
             if (blob) {
               const cleanName = file.name.replace(/\.[^/.]+$/, "");
               const compressedFile = new File([blob], `${cleanName}_compressed.jpg`, {
@@ -356,7 +373,7 @@ export const compressImage = (file: File, maxWidth = 1400, maxHeight = 1400, qua
 
       img.onerror = () => {
         URL.revokeObjectURL(url);
-        resolve(file); // Fallback: return original file
+        resolve(file);
       };
     } catch (err) {
       console.warn('Image compression exception:', err);
