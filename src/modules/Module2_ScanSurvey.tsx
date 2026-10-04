@@ -25,7 +25,8 @@ import {
   CheckSquare,
   RotateCcw,
   Search,
-  Trash2
+  Trash2,
+  RotateCw
 } from 'lucide-react';
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -46,6 +47,8 @@ interface Module2ScanSurveyProps {
   onDepartmentSignoff?: (department: string, operatorName: string) => Promise<void>;
   onReopenSurveyRound?: (roundId: string, operatorName: string, reason?: string) => Promise<void>;
   currentUser: UserAccount | null;
+  onRefreshDevice?: () => Promise<void> | void;
+  isRefreshing?: boolean;
 }
 
 export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
@@ -61,7 +64,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   onCloseActiveRound,
   onDepartmentSignoff,
   onReopenSurveyRound,
-  currentUser
+  currentUser,
+  onRefreshDevice,
+  isRefreshing = false
 }) => {
   const [operator, setOperator] = useState(() => localStorage.getItem('assetwatch_operator') || 'ผู้ตรวจการทั่วไป');
 
@@ -523,8 +528,34 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               <p className="progress-sub">สำรวจพัสดุเสร็จแล้ว <strong>{surveyedInList}</strong> จากทั้งหมด <strong>{totalInList}</strong> รายการ</p>
             </div>
           </div>
-          <div className="progress-percent-large">
-            {progressPercent}%
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {onRefreshDevice && (
+              <button 
+                type="button" 
+                className="btn btn-secondary btn-xs" 
+                onClick={() => onRefreshDevice()}
+                disabled={isRefreshing}
+                title="รีเฟรชและซิงค์ข้อมูลเครื่องนี้กับระบบกลาง"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.75rem',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--primary)',
+                  cursor: isRefreshing ? 'wait' : 'pointer'
+                }}
+              >
+                <RotateCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+                <span>{isRefreshing ? 'กำลังซิงค์...' : '🔄 ซิงค์เครื่องนี้'}</span>
+              </button>
+            )}
+            <div className="progress-percent-large">
+              {progressPercent}%
+            </div>
           </div>
         </div>
 

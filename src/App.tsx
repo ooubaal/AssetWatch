@@ -63,7 +63,7 @@ import { Module11_QualityDocs } from './modules/Module11_QualityDocs';
 import { Module12_SpareParts } from './modules/Module12_SpareParts';
 
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS, PMContract, PMSchedule, PMNotification, SparePart } from './utils/mockData';
-import { X, Camera, AlertCircle, Lock, Bell, MapPin, Building, Trash2 } from 'lucide-react';
+import { X, Camera, AlertCircle, Lock, Bell, MapPin, Building, Trash2, RotateCw, CheckCircle2 } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
 function App() {
@@ -336,6 +336,39 @@ function App() {
 
     fetchAllDataPromiseRef.current = fetchPromise;
     return fetchPromise;
+  };
+
+  // Device-Specific Sync & Self-Healing Refresh Handler
+  const [isDeviceRefreshing, setIsDeviceRefreshing] = useState(false);
+  const [refreshToastMsg, setRefreshToastMsg] = useState<string | null>(null);
+
+  const handleDeviceRefresh = async () => {
+    setIsDeviceRefreshing(true);
+    setRefreshToastMsg('กำลังดึงข้อมูลอัปเดตและซิงค์เฉพาะเครื่องนี้...');
+    
+    try {
+      // 1. Clear any stuck temporary draft session
+      try {
+        sessionStorage.removeItem('assetwatch_draft_survey_id');
+      } catch {}
+
+      // 2. Pull fresh snapshot from database
+      await fetchAllData(true);
+
+      const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setRefreshToastMsg(`✓ รีเฟรชและซิงค์ข้อมูลเครื่องนี้สำเร็จ (${timeStr} น.)`);
+      setTimeout(() => {
+        setRefreshToastMsg(null);
+      }, 3500);
+    } catch (err: any) {
+      console.error('Device refresh error:', err);
+      setRefreshToastMsg('⚠️ ซิงค์ข้อมูลไม่สำเร็จ: ' + (err?.message || 'กรุณาลองใหม่อีกครั้ง'));
+      setTimeout(() => {
+        setRefreshToastMsg(null);
+      }, 4000);
+    } finally {
+      setIsDeviceRefreshing(false);
+    }
   };
 
   useEffect(() => {
@@ -1248,24 +1281,71 @@ function App() {
             isFirebaseConfigured={services.isConfigured}
             currentUser={currentUser}
             onLogout={handleLogout}
+            onRefreshDevice={handleDeviceRefresh}
+            isRefreshing={isDeviceRefreshing}
           />
 
           {/* Main Content Area */}
           <main className="main-content">
             
-            {/* Top Bar for Desktop/Mobile Notifications */}
+            {/* Top Bar for Desktop/Mobile Notifications & Device Sync */}
             <div className="top-header-bar glass-panel" style={{
               display: 'flex',
-              justifyContent: 'flex-end',
+              justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '0.5rem 1rem',
+              padding: '0.45rem 1rem',
               borderRadius: 'var(--radius-md)',
               marginBottom: '1.25rem',
               border: '1px solid var(--border)',
               background: 'var(--bg-secondary)',
               position: 'relative'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {/* Left Side: Status Info or Refresh Toast */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+                {refreshToastMsg ? (
+                  <span className="animate-fade-in" style={{ 
+                    color: refreshToastMsg.startsWith('✓') ? 'var(--success)' : 'var(--primary)', 
+                    fontWeight: 650, 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '5px' 
+                  }}>
+                    {refreshToastMsg.startsWith('✓') && <CheckCircle2 size={16} color="var(--success)" />}
+                    {refreshToastMsg}
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: services.isConfigured ? 'var(--success)' : 'var(--warning)', display: 'inline-block' }}></span>
+                    {services.isConfigured ? 'เชื่อมต่อ Cloud ส่วนกลางแบบเรียลไทม์' : 'โหมดทดสอบออฟไลน์ (Local Cache)'}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {/* 🔄 Device-Specific Sync & Refresh Button */}
+                <button 
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleDeviceRefresh}
+                  disabled={isDeviceRefreshing}
+                  title="รีเฟรชและซิงค์ข้อมูลเครื่องนี้กับระบบกลาง"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    fontSize: '0.8rem',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-primary)',
+                    color: 'var(--primary)',
+                    cursor: isDeviceRefreshing ? 'wait' : 'pointer'
+                  }}
+                >
+                  <RotateCw size={14} className={isDeviceRefreshing ? 'animate-spin' : ''} />
+                  <span>{isDeviceRefreshing ? 'กำลังซิงค์...' : '🔄 ซิงค์เครื่องนี้'}</span>
+                </button>
+
                 {/* Notification Bell */}
                 <button 
                   onClick={() => setIsNotifDrawerOpen(!isNotifDrawerOpen)}
@@ -1420,6 +1500,8 @@ function App() {
                 onDepartmentSignoff={handleDepartmentSignoff}
                 onReopenSurveyRound={handleReopenSurveyRound}
                 currentUser={currentUser}
+                onRefreshDevice={handleDeviceRefresh}
+                isRefreshing={isDeviceRefreshing}
               />
             )}
             {currentTab === 'module3' && (

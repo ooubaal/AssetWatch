@@ -17,7 +17,8 @@ import {
   Lock,
   Calendar,
   FileText,
-  Package
+  Package,
+  RotateCw
 } from 'lucide-react';
 import { UserAccount } from '../utils/mockData';
 
@@ -29,6 +30,8 @@ interface SidebarProps {
   isFirebaseConfigured: boolean;
   currentUser: UserAccount | null;
   onLogout: () => void;
+  onRefreshDevice?: () => Promise<void> | void;
+  isRefreshing?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -38,7 +41,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setTheme,
   isFirebaseConfigured,
   currentUser,
-  onLogout
+  onLogout,
+  onRefreshDevice,
+  isRefreshing = false
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -99,6 +104,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span className="logo-text">AMIS</span>
         </div>
         <div className="mobile-header-actions">
+          {onRefreshDevice && (
+            <button 
+              className="theme-toggle-btn" 
+              onClick={() => onRefreshDevice()} 
+              title="รีเฟรชและซิงค์ข้อมูลเครื่องนี้"
+              aria-label="Refresh and sync device"
+              style={{ color: 'var(--primary)' }}
+            >
+              <RotateCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
+            </button>
+          )}
           <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="Toggle theme">
             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
           </button>
@@ -186,6 +202,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Theme toggle & Footer */}
         <div className="sidebar-footer">
+          {onRefreshDevice && (
+            <button 
+              className="theme-switch" 
+              onClick={() => onRefreshDevice()}
+              disabled={isRefreshing}
+              style={{ marginBottom: '0.4rem', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+            >
+              <RotateCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+              <span>{isRefreshing ? 'กำลังซิงค์เครื่องนี้...' : '🔄 ซิงค์ข้อมูลเครื่องนี้'}</span>
+            </button>
+          )}
+
           <button className="theme-switch" onClick={toggleTheme}>
             {theme === 'light' ? (
               <>
