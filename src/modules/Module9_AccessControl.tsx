@@ -45,14 +45,31 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
   const blockedCount = users.filter(u => u.isBlocked).length;
 
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          u.department.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.toLowerCase().trim();
+    const matchesSearch = !term ||
+                          (u.name || '').toLowerCase().includes(term) || 
+                          (u.username || '').toLowerCase().includes(term) ||
+                          (u.department || '').toLowerCase().includes(term);
     const matchesRole = roleFilter === 'all' ? true : u.role === roleFilter;
     const matchesStatus = statusFilter === 'all' ? true : 
                           statusFilter === 'blocked' ? u.isBlocked : !u.isBlocked;
     return matchesSearch && matchesRole && matchesStatus;
   });
+
+  // Role Barrier: Non-admins cannot view or manage user accounts and RBAC
+  if (currentUser?.role !== 'admin') {
+    return (
+      <div className="module-container animate-fade-in" style={{ padding: '2rem', textAlign: 'center' }}>
+        <div className="glass-panel" style={{ padding: '3rem 2rem', maxWidth: '520px', margin: '2rem auto' }}>
+          <Lock size={48} color="var(--danger)" style={{ marginBottom: '1rem' }} />
+          <h3>การเข้าถึงถูกจำกัด (Access Restricted)</h3>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem', fontSize: '0.9rem', lineHeight: 1.5 }}>
+            โมดูลบริหารจัดการสิทธิ์และการเข้าถึง (Module 9) สงวนสิทธิ์เฉพาะผู้ดูแลระบบระดับสูง (Admin) เท่านั้น เพื่อความปลอดภัยของข้อมูลบัญชีผู้ใช้งาน
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleOpenAddModal = () => {
     setEditingUser(null);

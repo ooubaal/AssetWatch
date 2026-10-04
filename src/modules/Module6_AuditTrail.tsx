@@ -10,13 +10,15 @@ export const Module6_AuditTrail: React.FC<Module6AuditTrailProps> = ({ audits })
   const [searchTerm, setSearchTerm] = useState('');
   const [actionFilter, setActionFilter] = useState('');
 
-  // Filter logs
+  // Filter logs safely against null/undefined
   const filteredAudits = audits.filter(item => {
-    const matchesSearch = 
-      item.operator.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.assetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.assetId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.details.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!item) return false;
+    const term = searchTerm.toLowerCase().trim();
+    const matchesSearch = !term ||
+      (item.operator || '').toLowerCase().includes(term) ||
+      (item.assetName || '').toLowerCase().includes(term) ||
+      (item.assetId || '').toLowerCase().includes(term) ||
+      (item.details || '').toLowerCase().includes(term);
       
     const matchesAction = actionFilter ? item.action === actionFilter : true;
 

@@ -49,9 +49,11 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
   const [success, setSuccess] = useState(false);
 
   // Permissions & Sub-tab selection state
-  const canMassImport = currentUser?.role === 'admin' || currentUser?.role === 'manager' || currentUser?.role === 'head' || currentUser?.role === 'operator';
+  const canMassImport = currentUser?.role === 'admin' || currentUser?.role === 'head' || currentUser?.role === 'operator';
   const isAdmin = currentUser?.role === 'admin';
-  const [activeSubTab, setActiveSubTab] = useState<'single' | 'mass' | 'report'>('single');
+  const [activeSubTab, setActiveSubTab] = useState<'single' | 'mass' | 'report'>(() => {
+    return currentUser?.role === 'manager' ? 'report' : 'single';
+  });
 
   // Report states
   const [selectedReportDept, setSelectedReportDept] = useState(() => {
@@ -682,7 +684,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
       if (!department) {
         department = userDept;
         warnings.push(`กำหนดฝ่ายเป็น '${userDept}' อัตโนมัติตามสิทธิ์ของท่าน`);
-      } else if (department.toLowerCase() !== userDept.toLowerCase()) {
+      } else if ((department || '').toLowerCase() !== (userDept || '').toLowerCase()) {
         department = userDept;
         warnings.push(`ปรับฝ่ายเป็น '${userDept}' อัตโนมัติ (ท่านมีสิทธิ์ขึ้นทะเบียนเฉพาะฝ่ายตนเอง)`);
       }
@@ -691,7 +693,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         department = systemDepts[0]?.name || 'ฝ่ายบริหารทั่วไป';
         warnings.push(`ไม่ได้ระบุฝ่ายที่ดูแล (ตั้งค่าเป็น: '${department}')`);
       } else {
-        const deptExists = systemDepts.some(d => d.name.toLowerCase() === department.toLowerCase());
+        const deptExists = systemDepts.some(d => (d.name || '').toLowerCase() === (department || '').toLowerCase());
         if (!deptExists && systemDepts.length > 0) {
           warnings.push(`ฝ่าย '${department}' ไม่พบในโมดูลจัดการหน่วยงาน (จะบันทึกเป็นฝ่ายใหม่)`);
         }
@@ -704,9 +706,9 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
       location = 'คลังพัสดุกลาง';
       warnings.push("ไม่ได้ระบุสถานที่ตั้ง (ตั้งค่าเป็น: 'คลังพัสดุกลาง')");
     } else {
-      const currentDeptObj = systemDepts.find(d => d.name.toLowerCase() === department.toLowerCase());
+      const currentDeptObj = systemDepts.find(d => (d.name || '').toLowerCase() === (department || '').toLowerCase());
       if (currentDeptObj) {
-        const locExists = currentDeptObj.locations.some(l => l.toLowerCase() === location.toLowerCase());
+        const locExists = (currentDeptObj.locations || []).some(l => (l || '').toLowerCase() === (location || '').toLowerCase());
         if (!locExists && currentDeptObj.locations.length > 0) {
           warnings.push(`ไม่พบห้อง '${location}' ในฝ่าย '${department}' ของระบบ (จะบันทึกเป็นห้องใหม่)`);
         }
@@ -881,6 +883,10 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
   const handleMassImportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUser?.role === 'manager') {
+      alert('ผู้บริหาร (Manager) มีสิทธิ์เฉพาะการดูข้อมูลและรายงาน ไม่สามารถนำเข้าข้อมูลพัสดุได้');
+      return;
+    }
     const validRows = parsedRows.filter(r => r.isValid);
     if (validRows.length === 0) return;
     
@@ -890,7 +896,7 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
     try {
       const operatorName = currentUser 
-        ? `${currentUser.name} (${currentUser.role === 'admin' ? 'แอดมิน' : currentUser.role === 'head' ? 'หัวหน้าฝ่าย' : currentUser.role === 'manager' ? 'ผู้บริหาร' : 'เจ้าหน้าที่'})` 
+        ? `${currentUser.name} (${currentUser.role === 'admin' ? 'แอดมิน' : currentUser.role === 'head' ? 'หัวหน้าฝ่าย' : 'เจ้าหน้าที่'})` 
         : (localStorage.getItem('assetwatch_operator') || 'เจ้าหน้าที่');
       const assetsToAdd: Asset[] = [];
       
@@ -1023,6 +1029,10 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUser?.role === 'manager') {
+      alert('ผู้บริหาร (Manager) มีสิทธิ์เฉพาะการดูข้อมูลและรายงาน ไม่สามารถลงทะเบียนพัสดุใหม่ได้');
+      return;
+    }
     setError(null);
     setSaving(true);
 

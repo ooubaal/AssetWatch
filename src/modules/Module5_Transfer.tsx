@@ -64,8 +64,8 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
     return isTransferrable;
   });
   const filteredAssets = transferrableAssets.filter(a => 
-    a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.id.toLowerCase().includes(searchTerm.toLowerCase())
+    (a.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (a.id || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSelectAsset = (asset: Asset) => {
@@ -99,6 +99,11 @@ export const Module5_Transfer: React.FC<Module5TransferProps> = ({
   const handleTransferSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAsset) return;
+
+    if (currentUser?.role === 'manager') {
+      alert('ผู้บริหาร (Manager) มีสิทธิ์เฉพาะการดูข้อมูลเท่านั้น ไม่สามารถทำรายการโอนย้ายพัสดุได้');
+      return;
+    }
 
     setSaving(true);
     try {

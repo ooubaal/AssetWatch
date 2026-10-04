@@ -65,11 +65,11 @@ export const Module8_Departments: React.FC<Module8DepartmentsProps> = ({
   const [editingRoomName, setEditingRoomName] = useState<string>('');
 
   // --- PERMISSION HELPERS ---
-  const canAddDepartment = isOrgWide || (isHead && !departments.some(d => d.name.toLowerCase() === userDept.toLowerCase()));
+  const canAddDepartment = isOrgWide || (isHead && !departments.some(d => (d.name || '').toLowerCase() === (userDept || '').toLowerCase()));
   
   const canEditDeptName = (dept: DepartmentLocationConfig): boolean => {
     if (isOrgWide) return true;
-    if (isHead && dept.name.toLowerCase() === userDept.toLowerCase()) return true;
+    if (isHead && (dept.name || '').toLowerCase() === (userDept || '').toLowerCase()) return true;
     return false;
   };
 
@@ -80,14 +80,14 @@ export const Module8_Departments: React.FC<Module8DepartmentsProps> = ({
 
   const canAddRoomToDept = (dept: DepartmentLocationConfig): boolean => {
     if (isOrgWide) return true;
-    if ((isHead || isUser) && dept.name.toLowerCase() === userDept.toLowerCase()) return true;
+    if ((isHead || isUser) && (dept.name || '').toLowerCase() === (userDept || '').toLowerCase()) return true;
     return false;
   };
 
   const canManageRoom = (dept: DepartmentLocationConfig, roomName: string): boolean => {
     if (isOrgWide) return true;
-    if (isHead && dept.name.toLowerCase() === userDept.toLowerCase()) return true;
-    if (isUser && dept.name.toLowerCase() === userDept.toLowerCase()) {
+    if (isHead && (dept.name || '').toLowerCase() === (userDept || '').toLowerCase()) return true;
+    if (isUser && (dept.name || '').toLowerCase() === (userDept || '').toLowerCase()) {
       const creator = dept.locationCreators?.[roomName];
       return creator === currentUser?.username || creator === currentUser?.name;
     }
@@ -329,25 +329,25 @@ export const Module8_Departments: React.FC<Module8DepartmentsProps> = ({
     // Search query filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchName = dept.name.toLowerCase().includes(q);
-      const matchRoom = dept.locations.some(l => l.toLowerCase().includes(q));
+      const matchName = (dept.name || '').toLowerCase().includes(q);
+      const matchRoom = (dept.locations || []).some(l => (l || '').toLowerCase().includes(q));
       if (!matchName && !matchRoom) return false;
     }
 
     // Tab filter for Head / User
     if (isHead || isUser) {
       if (deptFilterTab === 'my') {
-        return dept.name.toLowerCase() === userDept.toLowerCase();
+        return (dept.name || '').toLowerCase() === (userDept || '').toLowerCase();
       } else {
-        return dept.name.toLowerCase() !== userDept.toLowerCase();
+        return (dept.name || '').toLowerCase() !== (userDept || '').toLowerCase();
       }
     }
 
     return true;
   });
 
-  const myDeptConfig = departments.find(d => d.name.toLowerCase() === userDept.toLowerCase());
-  const otherDeptsCount = departments.filter(d => d.name.toLowerCase() !== userDept.toLowerCase()).length;
+  const myDeptConfig = departments.find(d => (d.name || '').toLowerCase() === (userDept || '').toLowerCase());
+  const otherDeptsCount = departments.filter(d => (d.name || '').toLowerCase() !== (userDept || '').toLowerCase()).length;
 
   return (
     <div className="module-container animate-fade-in" style={{ maxWidth: '1400px', margin: '0 auto', paddingBottom: '3rem' }}>

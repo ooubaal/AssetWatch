@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, AlertTriangle, FileText, CheckCircle2, Search, ArrowRight, Printer } from 'lucide-react';
+import { Trash2, AlertTriangle, FileText, CheckCircle2, Search, ArrowRight, Printer, Lock } from 'lucide-react';
 import { Asset, UserAccount, AuditTrail } from '../utils/mockData';
 
 interface Module4DisposeProps {
@@ -28,7 +28,9 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
   const [success, setSuccess] = useState(false);
 
   // Tab control state
-  const [activeSubTab, setActiveSubTab] = useState<'single' | 'report'>('single');
+  const [activeSubTab, setActiveSubTab] = useState<'single' | 'report'>(() => {
+    return currentUser?.role === 'admin' ? 'single' : 'report';
+  });
 
   // Report Form States
   const [selectedReportDept, setSelectedReportDept] = useState(() => {
@@ -58,8 +60,8 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
     return isNotDisposed;
   });
   const filteredAssets = activeAssets.filter(a => 
-    a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.id.toLowerCase().includes(searchTerm.toLowerCase())
+    (a.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (a.id || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSelectAsset = (asset: Asset) => {
@@ -69,6 +71,10 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
 
   const handleDisposeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUser?.role !== 'admin') {
+      alert('เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่มีสิทธิ์ตัดจำหน่ายพัสดุ');
+      return;
+    }
     if (!selectedAsset) return;
 
     setSaving(true);
@@ -144,17 +150,19 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
 
       {/* Sub-tabs for Single and Report */}
       <div className="sub-tabs-container">
-        <button 
-          type="button" 
-          className={`sub-tab ${activeSubTab === 'single' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveSubTab('single');
-            setSuccess(false);
-            setSelectedAsset(null);
-          }}
-        >
-          ✍️ บันทึกตัดจำหน่ายครุภัณฑ์ (Single Disposal)
-        </button>
+        {currentUser?.role === 'admin' && (
+          <button 
+            type="button" 
+            className={`sub-tab ${activeSubTab === 'single' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveSubTab('single');
+              setSuccess(false);
+              setSelectedAsset(null);
+            }}
+          >
+            ✍️ บันทึกตัดจำหน่ายครุภัณฑ์ (Single Disposal)
+          </button>
+        )}
         <button 
           type="button" 
           className={`sub-tab ${activeSubTab === 'report' ? 'active' : ''}`}
@@ -167,7 +175,16 @@ export const Module4_Dispose: React.FC<Module4DisposeProps> = ({
       </div>
 
       {activeSubTab === 'single' ? (
-        success && selectedAsset ? (
+        currentUser?.role !== 'admin' ? (
+          <div className="glass-panel text-center" style={{ padding: '3rem 2rem', maxWidth: '540px', margin: '2rem auto' }}>
+            <Lock size={44} color="var(--danger)" style={{ marginBottom: '1rem' }} />
+            <h3>การเข้าถึงถูกจำกัด (Admin Only)</h3>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.75rem', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              การแทงจำหน่ายพัสดุสงวนสิทธิ์เฉพาะผู้ดูแลระบบระดับสูง (Admin) เท่านั้น<br />
+              หากต้องการส่งพิจารณาจำหน่าย กรุณาเปลี่ยนสถานะพัสดุเป็น <strong>"รอจำหน่าย"</strong> ผ่านหน้าสแกนสำรวจ (Module 2) หรือแจ้งซ่อม (Module 10)
+            </p>
+          </div>
+        ) : success && selectedAsset ? (
           <div className="success-wizard-card glass-panel text-center">
             <div className="success-checkmark-wrapper" style={{ backgroundColor: 'var(--warning-light)', boxShadow: '0 4px 15px rgba(245,158,11,0.2)' }}>
               <Trash2 size={40} color="var(--warning)" />

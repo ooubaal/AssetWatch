@@ -191,8 +191,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     if (checklistSearch.trim()) {
       const q = checklistSearch.toLowerCase().trim();
       list = list.filter((item: Asset) => 
-        item.name.toLowerCase().includes(q) || 
-        item.id.toLowerCase().includes(q) || 
+        (item.name || '').toLowerCase().includes(q) || 
+        (item.id || '').toLowerCase().includes(q) || 
         (item.location && item.location.toLowerCase().includes(q))
       );
     }
@@ -269,7 +269,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     } catch {}
     
     // Look up in assets list
-    const found = assets.find(a => a.id.toLowerCase() === decodedId.toLowerCase());
+    const found = assets.find(a => (a.id || '').toLowerCase() === (decodedId || '').toLowerCase());
     if (found) {
       setScannedAsset(found);
       setSelectedStatus(found.status);
@@ -287,7 +287,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   // Sync scannedAsset if restored from draft session storage on page reload
   useEffect(() => {
     if (scannedId && !scannedAsset && assets.length > 0) {
-      const found = assets.find(a => a.id.toLowerCase() === scannedId.toLowerCase());
+      const found = assets.find(a => (a.id || '').toLowerCase() === (scannedId || '').toLowerCase());
       if (found) {
         setScannedAsset(found);
         setSelectedStatus(found.status);
@@ -353,6 +353,10 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
   const handleSurveySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUser?.role === 'manager') {
+      alert('ผู้บริหาร (Manager) มีสิทธิ์เฉพาะการดูข้อมูลและรายงาน ไม่สามารถบันทึกผลการสำรวจได้');
+      return;
+    }
     if (!scannedId) return;
 
     setSaving(true);

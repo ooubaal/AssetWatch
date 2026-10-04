@@ -112,10 +112,10 @@ export const Module12_SpareParts: React.FC<Module12SparePartsProps> = ({
   const filteredParts = useMemo(() => {
     return spareParts.filter(part => {
       // 1. Text Search
-      const search = searchTerm.toLowerCase();
-      const matchesSearch = 
-        part.name.toLowerCase().includes(search) ||
-        part.partCode.toLowerCase().includes(search) ||
+      const search = searchTerm.toLowerCase().trim();
+      const matchesSearch = !search ||
+        (part.name || '').toLowerCase().includes(search) ||
+        (part.partCode || '').toLowerCase().includes(search) ||
         (part.specification || '').toLowerCase().includes(search) ||
         (part.brand || '').toLowerCase().includes(search) ||
         (part.storageLocation || '').toLowerCase().includes(search) ||

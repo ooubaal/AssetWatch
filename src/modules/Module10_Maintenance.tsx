@@ -126,8 +126,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       if (!modalAssetSearch.trim()) return true;
       const term = modalAssetSearch.toLowerCase().trim();
       return (
-        a.id.toLowerCase().includes(term) ||
-        a.name.toLowerCase().includes(term) ||
+        (a.id || '').toLowerCase().includes(term) ||
+        (a.name || '').toLowerCase().includes(term) ||
         (a.location && a.location.toLowerCase().includes(term)) ||
         (a.department && a.department.toLowerCase().includes(term))
       );
@@ -171,8 +171,8 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       const contractTitle = latestContract ? latestContract.title.toLowerCase() : '';
 
       return (
-        asset.id.toLowerCase().includes(term) ||
-        asset.name.toLowerCase().includes(term) ||
+        (asset.id || '').toLowerCase().includes(term) ||
+        (asset.name || '').toLowerCase().includes(term) ||
         (asset.note && asset.note.toLowerCase().includes(term)) ||
         (asset.location && asset.location.toLowerCase().includes(term)) ||
         (asset.department && asset.department.toLowerCase().includes(term)) ||
@@ -365,7 +365,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
   // Helper for schedule preset check-list
   const getPresetChecklist = (assetName: string) => {
-    const name = assetName.toLowerCase();
+    const name = (assetName || '').toLowerCase();
     if (name.includes('คอมพิวเตอร์') || name.includes('computer') || name.includes('server')) {
       return "1. ทำความสะอาดสิ่งสกปรกและเป่าฝุ่นพัดลมระบายความร้อน\n2. ตรวจสอบการอัปเดตระบบปฏิบัติการและแอนตี้ไวรัส\n3. สแกนตรวจสอบความสมบูรณ์ของดิสก์ SSD/HDD\n4. สำรองข้อมูลระบบ (System Backup)";
     } else if (name.includes('แอร์') || name.includes('ปรับอากาศ') || name.includes('air conditioning')) {
@@ -2631,9 +2631,9 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                   const filteredCM = repairs.filter(r => {
                     const q = cmRepairSearch.toLowerCase().trim();
                     const matchesSearch = !q || 
-                                          r.assetId.toLowerCase().includes(q) || 
-                                          r.assetName.toLowerCase().includes(q) ||
-                                          r.symptom.toLowerCase().includes(q) ||
+                                          (r.assetId || '').toLowerCase().includes(q) || 
+                                          (r.assetName || '').toLowerCase().includes(q) ||
+                                          (r.symptom || '').toLowerCase().includes(q) ||
                                           (r.notes && r.notes.toLowerCase().includes(q)) ||
                                           (r.repairCompany && r.repairCompany.toLowerCase().includes(q));
                     

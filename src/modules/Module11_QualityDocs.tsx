@@ -1,4 +1,8 @@
 
+import React, { useState, useMemo } from 'react';
+import { Asset, UserAccount, PMContract } from '../utils/mockData';
+import { FileText, Printer, Plus, Edit, Trash2, CheckCircle, Calendar, ShieldCheck, Filter, Search, Building2, Wrench, ChevronRight, Bookmark } from 'lucide-react';
+
 export interface MonthDef {
   name: string;
   monthNum: number;
@@ -48,10 +52,6 @@ export const getDaysInThaiMonth = (monthNum: number, yearBE: number = 2569): num
   if ([4, 6, 9, 11].includes(monthNum)) return 30;
   return 31;
 };
-
-import React, { useState, useMemo } from 'react';
-import { Asset, UserAccount, PMContract } from '../utils/mockData';
-import { FileText, Printer, Plus, Edit, Trash2, CheckCircle, Calendar, ShieldCheck, Filter, Search, Building2, Wrench, ChevronRight, Bookmark } from 'lucide-react';
 
 export interface QualityProcedure {
   id: string;
@@ -111,8 +111,8 @@ export const SearchableAssetSelect: React.FC<SearchableAssetSelectProps> = ({
     if (!searchTerm.trim()) return assets.slice(0, 100);
     const q = searchTerm.toLowerCase().trim();
     return assets.filter(a => 
-      a.name.toLowerCase().includes(q) || 
-      a.id.toLowerCase().includes(q) || 
+      (a.name || '').toLowerCase().includes(q) || 
+      (a.id || '').toLowerCase().includes(q) || 
       (a.location && a.location.toLowerCase().includes(q))
     ).slice(0, 100);
   }, [assets, searchTerm]);
@@ -507,7 +507,7 @@ export const Module11_QualityDocs: React.FC<Module11Props> = ({
       if (deptFilter !== 'all' && p.department !== deptFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        return p.assetName.toLowerCase().includes(q) || p.assetCode.toLowerCase().includes(q) || p.procedure.toLowerCase().includes(q) || p.responsiblePerson.toLowerCase().includes(q);
+        return (p.assetName || '').toLowerCase().includes(q) || (p.assetCode || '').toLowerCase().includes(q) || (p.procedure || '').toLowerCase().includes(q) || (p.responsiblePerson && p.responsiblePerson.toLowerCase().includes(q));
       }
       return true;
     });
