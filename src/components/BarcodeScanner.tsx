@@ -469,6 +469,23 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       }
     };
 
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isMountedRef.current && !fallbackMode) {
+        const videoEl = document.querySelector(`#${scannerId} video`) as HTMLVideoElement | null;
+        if (videoEl && videoEl.paused) {
+          try {
+            await videoEl.play();
+          } catch (e) {
+            // Track may have closed in OS background; auto restart scanner cleanly
+            if (qrCodeInstanceRef.current && !qrCodeInstanceRef.current.isScanning) {
+              startScannerWithRetry(0);
+            }
+          }
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     if (!fallbackMode) {
       // Small buffer to guarantee DOM element is painted
       const timer = setTimeout(() => {
@@ -479,6 +496,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         isCancelled = true;
         isMountedRef.current = false;
         clearTimeout(timer);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
         activeCameraTeardownPromise = stopScanner().then(() => {
           return new Promise(r => setTimeout(r, 150));
         });
@@ -488,6 +506,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     return () => {
       isCancelled = true;
       isMountedRef.current = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       activeCameraTeardownPromise = stopScanner();
     };
   }, [fallbackMode, applyTrackSettings, triggerSuccessFeedback, startNativeBarcodeDetectorLoop, stopScanner, scannerId]);
