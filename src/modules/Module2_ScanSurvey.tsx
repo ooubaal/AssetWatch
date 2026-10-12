@@ -234,11 +234,14 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
   const progressPercent = totalInList > 0 ? Math.round((surveyedInList / totalInList) * 100) : 0;
 
-  const handleScanSuccess = (decodedId: string) => {
+  const handleScanSuccess = async (decodedId: string) => {
+    const cleanedId = (decodedId || '').trim();
+    if (!cleanedId) return;
+
     // Intercept Firebase Config QR code scanned from Settings page
-    if (decodedId.includes('apiKey') && decodedId.includes('projectId') && decodedId.includes('{')) {
+    if (cleanedId.includes('apiKey') && cleanedId.includes('projectId') && cleanedId.includes('{')) {
       try {
-        const config = JSON.parse(decodedId);
+        const config = JSON.parse(cleanedId);
         if (config && config.apiKey && config.projectId) {
           const confirmConnect = window.confirm(
             '⚠️ พบ QR Code เชื่อมต่อระบบคลาวด์ร่วม (Cloud Database Configuration)\n\n' +
@@ -262,14 +265,15 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       return;
     }
 
+    // Look up in assets list
+    const found = assets.find(a => (a.id || '').toLowerCase() === cleanedId.toLowerCase());
+
     setIsNewScanNeeded(false);
-    setScannedId(decodedId);
+    setScannedId(cleanedId);
     try {
-      sessionStorage.setItem('assetwatch_draft_survey_id', decodedId);
+      sessionStorage.setItem('assetwatch_draft_survey_id', cleanedId);
     } catch {}
     
-    // Look up in assets list
-    const found = assets.find(a => (a.id || '').toLowerCase() === (decodedId || '').toLowerCase());
     if (found) {
       setScannedAsset(found);
       setSelectedStatus(found.status);
@@ -576,95 +580,108 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         
         {/* Left Column: Barcode scanner camera */}
         <div className="scanner-column">
-          {isNewScanNeeded ? (
-            isCameraActive ? (
-              <div className="scan-frame glass-panel">
-                <BarcodeScanner 
-                  onScanSuccess={handleScanSuccess} 
-                  onCloseCamera={() => setIsCameraActive(false)}
-                />
-              </div>
-            ) : (
-              <div className="scan-placeholder glass-panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '0.85rem' }}>
-                <Camera size={44} color="var(--text-muted)" style={{ opacity: 0.6 }} />
-                <h3>กล้องสแกนเนอร์ปิดทำงานอยู่</h3>
-                <p style={{ maxWidth: '280px', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', lineHeight: 1.4 }}>
-                  สแตนด์บายกล้องปิดไว้ชั่วคราวเพื่อประหยัดแบตเตอรี่และความเป็นส่วนตัว คุณสามารถเปิดกล้องเมื่อพร้อมเดินสายสแกนบาร์โค้ดครุภัณฑ์
-                </p>
-                <button 
-                  type="button" 
-                  className="btn btn-primary animate-pulse" 
-                  onClick={() => setIsCameraActive(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem' }}
-                >
-                  <Camera size={14} /> 📸 เปิดใช้งานกล้องตรวจนับ
-                </button>
+          {!isCameraActive ? (
+            <div className="scan-placeholder glass-panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '0.85rem' }}>
+              <Camera size={44} color="var(--text-muted)" style={{ opacity: 0.6 }} />
+              <h3>กล้องสแกนเนอร์ปิดทำงานอยู่</h3>
+              <p style={{ maxWidth: '280px', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', lineHeight: 1.4 }}>
+                สแตนด์บายกล้องปิดไว้ชั่วคราวเพื่อประหยัดแบตเตอรี่และความเป็นส่วนตัว คุณสามารถเปิดกล้องเมื่อพร้อมเดินสายสแกนบาร์โค้ดครุภัณฑ์
+              </p>
+              <button 
+                type="button" 
+                className="btn btn-primary animate-pulse" 
+                onClick={() => setIsCameraActive(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem' }}
+              >
+                <Camera size={14} /> 📸 เปิดใช้งานกล้องตรวจนับ
+              </button>
 
-                {localStorage.getItem('assetwatch_db_mode') !== 'firebase' && (
-                  <div style={{
-                    marginTop: '0.5rem',
-                    padding: '0.65rem 0.85rem',
-                    backgroundColor: 'rgba(99, 102, 241, 0.06)',
-                    border: '1px dashed var(--primary)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.7rem',
-                    color: 'var(--text-primary)',
-                    maxWidth: '300px',
-                    lineHeight: 1.4,
-                    textAlign: 'left'
-                  }}>
-                    💡 <strong>ซิงค์ข้อมูลกับคอมพิวเตอร์หลัก:</strong> เปิดกล้องแล้วสแกน <strong>QR Code ในหน้า "ตั้งค่า"</strong> ของคอมพิวเตอร์ เพื่อซิงค์รอบการสำรวจและการตรวจนับขึ้นคลาวด์โดยตรง!
-                  </div>
-                )}
-              </div>
-            )
-          ) : (
-            <div className="scan-placeholder glass-panel">
-              {(() => {
-                const isSurveyed = scannedAsset ? isAssetSurveyedInRound(scannedAsset.id) : false;
-                const surveyRecord = scannedAsset ? getSurveyInfo(scannedAsset.id) : null;
-
-                if (isSurveyed) {
-                  return (
-                    <>
-                      <CheckCircle2 size={48} color="var(--success)" className="success-bounce" />
-                      <h3 style={{ color: 'var(--success)', marginTop: '0.5rem' }}>ครุภัณฑ์ถูกสำรวจเรียบร้อยแล้ว</h3>
-                      <div className="scanned-code-pill" style={{ borderColor: 'var(--success)', background: 'rgba(34, 197, 94, 0.1)' }}>
-                        <code style={{ color: 'var(--success)' }}>{scannedId}</code>
-                      </div>
-                      {surveyRecord && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                          ✓ สำรวจแล้วเมื่อ {new Date(surveyRecord.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น. (สถานะ: {surveyRecord.status})
-                        </div>
-                      )}
-                    </>
-                  );
-                }
-
-                return (
-                  <>
-                    <AlertTriangle size={48} color="var(--danger)" className="danger-bounce" />
-                    <h3 style={{ color: 'var(--danger)', marginTop: '0.5rem' }}>ครุภัณฑ์ยังไม่ถูกสำรวจ</h3>
-                    <div className="scanned-code-pill" style={{ borderColor: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)' }}>
-                      <code style={{ color: 'var(--danger)' }}>{scannedId}</code>
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                      กรุณายืนยันสถานะและตำแหน่งพัสดุด้านขวาเพื่อบันทึกการสำรวจ
-                    </div>
-                  </>
-                );
-              })()}
-              
-              {scannedAsset && selectedDept !== 'all' && scannedAsset.department !== selectedDept && (
-                <div className="alert alert-danger" style={{ padding: '0.65rem 1rem', fontSize: '0.8rem', margin: '0.5rem 0' }}>
-                  <AlertTriangle size={16} />
-                  <span><strong>คำเตือน:</strong> ครุภัณฑ์ชิ้นนี้อยู่แผนก "{scannedAsset.department}" ไม่ตรงกับแผนกที่เลือกไว้!</span>
+              {localStorage.getItem('assetwatch_db_mode') !== 'firebase' && (
+                <div style={{
+                  marginTop: '0.5rem',
+                  padding: '0.65rem 0.85rem',
+                  backgroundColor: 'rgba(99, 102, 241, 0.06)',
+                  border: '1px dashed var(--primary)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.7rem',
+                  color: 'var(--text-primary)',
+                  maxWidth: '300px',
+                  lineHeight: 1.4,
+                  textAlign: 'left'
+                }}>
+                  💡 <strong>ซิงค์ข้อมูลกับคอมพิวเตอร์หลัก:</strong> เปิดกล้องแล้วสแกน <strong>QR Code ในหน้า "ตั้งค่า"</strong> ของคอมพิวเตอร์ เพื่อซิงค์รอบการสำรวจและการตรวจนับขึ้นคลาวด์โดยตรง!
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="scan-frame glass-panel" style={{ position: 'relative' }}>
+              <BarcodeScanner 
+                onScanSuccess={handleScanSuccess} 
+                onCloseCamera={() => setIsCameraActive(false)}
+                isPaused={!isNewScanNeeded}
+              />
 
-              <button className="btn btn-secondary w-full" onClick={handleResetScan} style={{ marginTop: '0.75rem' }}>
-                <RefreshCw size={14} /> กดเพื่อสแกนชิ้นถัดไป
-              </button>
+              {/* Status info displayed below camera when scanned in inspect mode */}
+              {!isNewScanNeeded && (
+                <div className="scan-standby-info animate-fade-in" style={{
+                  marginTop: '0.75rem',
+                  padding: '0.85rem',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border)',
+                  textAlign: 'center'
+                }}>
+                  {(() => {
+                    const isSurveyed = scannedAsset ? isAssetSurveyedInRound(scannedAsset.id) : false;
+                    const surveyRecord = scannedAsset ? getSurveyInfo(scannedAsset.id) : null;
+
+                    if (isSurveyed) {
+                      return (
+                        <>
+                          <CheckCircle2 size={36} color="var(--success)" className="success-bounce" style={{ margin: '0 auto 0.25rem' }} />
+                          <h4 style={{ color: 'var(--success)', fontSize: '0.9rem', margin: '0.2rem 0' }}>ครุภัณฑ์ถูกสำรวจเรียบร้อยแล้ว</h4>
+                          <div className="scanned-code-pill" style={{ borderColor: 'var(--success)', background: 'rgba(34, 197, 94, 0.1)', display: 'inline-block', margin: '0.25rem auto' }}>
+                            <code style={{ color: 'var(--success)' }}>{scannedId}</code>
+                          </div>
+                          {surveyRecord && (
+                            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                              ✓ สำรวจแล้วเมื่อ {new Date(surveyRecord.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                            </div>
+                          )}
+                        </>
+                      );
+                    }
+
+                    return (
+                      <>
+                        <AlertTriangle size={36} color="var(--warning)" className="warning-shake" style={{ margin: '0 auto 0.25rem' }} />
+                        <h4 style={{ color: 'var(--warning)', fontSize: '0.9rem', margin: '0.2rem 0' }}>ตรวจพบรหัสพัสดุ</h4>
+                        <div className="scanned-code-pill" style={{ borderColor: 'var(--warning)', background: 'rgba(234, 179, 8, 0.1)', display: 'inline-block', margin: '0.25rem auto' }}>
+                          <code style={{ color: 'var(--warning)' }}>{scannedId}</code>
+                        </div>
+                        <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>
+                          กรุณายืนยันสถานะในฟอร์มด้านขวาเพื่อบันทึก
+                        </div>
+                      </>
+                    );
+                  })()}
+
+                  {scannedAsset && selectedDept !== 'all' && scannedAsset.department !== selectedDept && (
+                    <div className="alert alert-danger" style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', margin: '0.5rem 0' }}>
+                      <AlertTriangle size={14} />
+                      <span><strong>คำเตือน:</strong> อยู่แผนก "{scannedAsset.department}" ไม่ตรงกับที่เลือก!</span>
+                    </div>
+                  )}
+
+                  <button 
+                    className="btn btn-secondary w-full" 
+                    onClick={handleResetScan} 
+                    style={{ marginTop: '0.5rem', fontSize: '0.775rem' }}
+                  >
+                    <RefreshCw size={13} /> ข้าม / สแกนชิ้นถัดไป
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -1,28 +1,66 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { Camera, AlertTriangle, Keyboard, RefreshCw, VideoOff, Zap, ZapOff, ZoomIn, Focus, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Camera, AlertTriangle, Keyboard, RefreshCw, VideoOff, Zap, ZapOff, ZoomIn, Focus, Sparkles, CheckCircle2, PauseCircle } from 'lucide-react';
 
 interface BarcodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
   onScanFailure?: (error: string) => void;
   onCloseCamera?: () => void;
+  isPaused?: boolean;
 }
+
+// Global teardown lock to prevent hardware camera collisions across rapid unmount/mount cycles
+let activeCameraTeardownPromise: Promise<void> | null = null;
+
+// Built-in Web Audio API scanner beep (identical to handheld Honeywell/Zebra scanners)
+const playScannerBeep = (isSuccess = true) => {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    if (isSuccess) {
+      osc.frequency.setValueAtTime(2050, ctx.currentTime);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+    } else {
+      osc.frequency.setValueAtTime(350, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    }
+  } catch (e) {
+    // Audio restricted or uninitialized before user gesture
+  }
+};
 
 export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ 
   onScanSuccess, 
   onScanFailure,
-  onCloseCamera
+  onCloseCamera,
+  isPaused = false
 }) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [fallbackMode, setFallbackMode] = useState<boolean>(false);
   const [manualInput, setManualInput] = useState<string>('');
   const [activeCameraId, setActiveCameraId] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
+  const [retryAttempt, setRetryAttempt] = useState<number>(0);
   
   // Advanced Camera Controls & Zoom defaults (1.8x is the optical sweet-spot for iPhone 15 & S24 FE)
   const [currentZoom, setCurrentZoom] = useState<number>(1.8);
-  const [hasHardwareZoom, setHasHardwareZoom] = useState<boolean>(false);
+  const [, setHasHardwareZoom] = useState<boolean>(false);
   const [torchOn, setTorchOn] = useState<boolean>(false);
-  const [hasTorch, setHasTorch] = useState<boolean>(false);
+  const [, setHasTorch] = useState<boolean>(false);
   const [focusRingPos, setFocusRingPos] = useState<{ x: number; y: number } | null>(null);
   const [showFocusTip, setShowFocusTip] = useState<boolean>(true);
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
@@ -31,18 +69,31 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const qrCodeInstanceRef = useRef<Html5Qrcode | null>(null);
   const videoTrackRef = useRef<MediaStreamTrack | null>(null);
   const nativeDetectorLoopRef = useRef<number | null>(null);
+  const lastDetectTimestampRef = useRef<number>(0);
   const isScannedRecentlyRef = useRef<boolean>(false);
-  const scannerId = "assetwatch-qr-reader";
+  const isMountedRef = useRef<boolean>(true);
+  const isPausedRef = useRef<boolean>(isPaused);
 
-  // Vibration and audio-like haptic feedback on successful scan
+  // Keep isPausedRef synced without re-triggering scanner effects
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
+
+  // Unique DOM ID per component instance to prevent DOM collision in fast remounts
+  const scannerIdRef = useRef<string>(`assetwatch-qr-reader-${Math.random().toString(36).slice(2, 7)}`);
+  const scannerId = scannerIdRef.current;
+
+  // Vibration and audio feedback on successful scan
   const triggerSuccessFeedback = useCallback((code: string) => {
-    if (isScannedRecentlyRef.current) return;
+    if (isPausedRef.current || isScannedRecentlyRef.current) return;
     isScannedRecentlyRef.current = true;
     setLastScannedCode(code);
 
+    playScannerBeep(true);
+
     try {
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([40, 30, 40]);
+        navigator.vibrate([45, 30, 45]);
       }
     } catch (e) {
       // ignore haptic error
@@ -52,9 +103,11 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
     // Cooldown to prevent multi-triggering
     setTimeout(() => {
-      isScannedRecentlyRef.current = false;
-      setLastScannedCode(null);
-    }, 1500);
+      if (isMountedRef.current) {
+        isScannedRecentlyRef.current = false;
+        setLastScannedCode(null);
+      }
+    }, 1200);
   }, [onScanSuccess]);
 
   // Helper to apply hardware constraints (focus, zoom, torch) to active video track
@@ -138,7 +191,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     const y = e.clientY - rect.top;
 
     setFocusRingPos({ x, y });
-    setTimeout(() => setFocusRingPos(null), 1000);
+    setTimeout(() => {
+      if (isMountedRef.current) setFocusRingPos(null);
+    }, 1000);
 
     // Trigger focus re-calibration
     try {
@@ -154,7 +209,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   };
 
-  // Native BarcodeDetector Parallel Accelerated Engine Loop (AppSheet / Google Lens Tech)
+  // Throttled BarcodeDetector engine (Max 12-15 FPS to eliminate mobile CPU/GPU memory leaks)
   const startNativeBarcodeDetectorLoop = useCallback((videoEl: HTMLVideoElement) => {
     if (typeof window === 'undefined' || !('BarcodeDetector' in window)) {
       setIsAiEngineActive(false);
@@ -184,26 +239,39 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       setIsAiEngineActive(true);
       let isDetecting = false;
 
-      const detectFrame = async () => {
-        if (!videoEl || videoEl.paused || videoEl.ended || isScannedRecentlyRef.current) {
+      const detectFrame = async (timestamp: number) => {
+        if (!isMountedRef.current) return;
+
+        if (
+          !videoEl || 
+          videoEl.paused || 
+          videoEl.ended || 
+          isPausedRef.current || 
+          isScannedRecentlyRef.current
+        ) {
           nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
           return;
         }
 
-        if (!isDetecting && videoEl.readyState >= 2) {
-          isDetecting = true;
-          try {
-            const barcodes = await detector.detect(videoEl);
-            if (barcodes && barcodes.length > 0) {
-              const detected = barcodes[0];
-              if (detected.rawValue) {
-                triggerSuccessFeedback(detected.rawValue);
+        // Throttle detection to every ~85ms (~12 FPS) to avoid GPU buffer saturation & camera crashing
+        if (timestamp - lastDetectTimestampRef.current >= 85) {
+          lastDetectTimestampRef.current = timestamp;
+
+          if (!isDetecting && videoEl.readyState >= 2) {
+            isDetecting = true;
+            try {
+              const barcodes = await detector.detect(videoEl);
+              if (barcodes && barcodes.length > 0) {
+                const detected = barcodes[0];
+                if (detected.rawValue) {
+                  triggerSuccessFeedback(detected.rawValue);
+                }
               }
+            } catch (detErr) {
+              // Ignore single frame detection error
+            } finally {
+              isDetecting = false;
             }
-          } catch (detErr) {
-            // Frame detection pass
-          } finally {
-            isDetecting = false;
           }
         }
 
@@ -217,119 +285,28 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   }, [triggerSuccessFeedback]);
 
-  useEffect(() => {
-    let html5Qr: Html5Qrcode | null = null;
-    
-    const startScanner = async () => {
-      try {
-        const devices = await Html5Qrcode.getCameras();
-        if (devices && devices.length > 0) {
-          setHasPermission(true);
-          
-          // Select rear / back camera automatically
-          const backCamera = devices.find(device => 
-            device.label.toLowerCase().includes('back') || 
-            device.label.toLowerCase().includes('environment') || 
-            device.label.toLowerCase().includes('rear') ||
-            device.label.toLowerCase().includes('0, facing back') ||
-            device.label.toLowerCase().includes('main')
-          );
-          
-          const targetCameraId = backCamera ? backCamera.id : devices[0].id;
-          setActiveCameraId(targetCameraId);
-
-          // All comprehensive 1D and 2D formats configuration for zero-lag recognition
-          const supportedFormats = [
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.CODE_93,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.DATA_MATRIX,
-            Html5QrcodeSupportedFormats.ITF,
-            Html5QrcodeSupportedFormats.CODABAR
-          ];
-
-          html5Qr = new Html5Qrcode(scannerId, {
-            verbose: false,
-            formatsToSupport: supportedFormats,
-            experimentalFeatures: {
-              useBarCodeDetectorIfSupported: true
-            }
-          });
-          qrCodeInstanceRef.current = html5Qr;
-
-          await html5Qr.start(
-            targetCameraId,
-            {
-              fps: 25, // High scanning frame rate for instant detection
-              aspectRatio: 1.0,
-              videoConstraints: {
-                facingMode: 'environment',
-                width: { min: 1280, ideal: 1920, max: 2560 }, // High resolution for crisp barcode lines
-                height: { min: 720, ideal: 1080, max: 1440 },
-                advanced: [
-                  { focusMode: 'continuous' } as any,
-                  { exposureMode: 'continuous' } as any,
-                  { whiteBalanceMode: 'continuous' } as any
-                ]
-              } as any
-            },
-            (decodedText) => {
-              triggerSuccessFeedback(decodedText);
-            },
-            (errorMessage) => {
-              if (onScanFailure) onScanFailure(errorMessage);
-            }
-          );
-
-          // Apply initial track settings (Autofocus & 1.8x sweet spot zoom)
-          setTimeout(() => {
-            applyTrackSettings(1.8, false);
-            handleZoomChange(1.8);
-
-            const videoEl = document.querySelector(`#${scannerId} video`) as HTMLVideoElement | null;
-            if (videoEl) {
-              startNativeBarcodeDetectorLoop(videoEl);
-            }
-          }, 450);
-
-        } else {
-          setHasPermission(false);
-          setFallbackMode(true);
-        }
-      } catch (err) {
-        console.error("Camera startup error:", err);
-        setHasPermission(false);
-        setFallbackMode(true);
-      }
-    };
-
-    if (!fallbackMode) {
-      const timer = setTimeout(() => {
-        startScanner();
-      }, 250);
-      return () => {
-        clearTimeout(timer);
-        stopScanner();
-      };
-    }
-
-    return () => {
-      stopScanner();
-    };
-  }, [fallbackMode, applyTrackSettings, triggerSuccessFeedback, startNativeBarcodeDetectorLoop]);
-
-  const stopScanner = async () => {
+  // Clean teardown logic with graceful sequence
+  const stopScanner = useCallback(async () => {
     if (nativeDetectorLoopRef.current) {
       cancelAnimationFrame(nativeDetectorLoopRef.current);
       nativeDetectorLoopRef.current = null;
     }
 
-    // 1. Explicitly stop and release hardware camera tracks to prevent mobile WebKit memory leaks
+    const instance = qrCodeInstanceRef.current;
+    qrCodeInstanceRef.current = null;
+
+    if (instance) {
+      try {
+        if (instance.isScanning) {
+          await instance.stop();
+        }
+        await instance.clear();
+      } catch (e) {
+        // Safe to ignore stop error if stream already detached
+      }
+    }
+
+    // Explicitly release any lingering tracks after Html5Qrcode stops
     try {
       if (videoTrackRef.current) {
         videoTrackRef.current.stop();
@@ -342,30 +319,178 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         if (videoEl.srcObject) {
           const stream = videoEl.srcObject as MediaStream;
           stream.getTracks().forEach(track => {
-            try {
-              track.stop();
-            } catch (err) {}
+            try { track.stop(); } catch {}
           });
           videoEl.srcObject = null;
         }
       }
     } catch (e) {
-      console.warn("Error releasing media stream tracks:", e);
+      console.warn("Error releasing media tracks:", e);
     }
 
-    // 2. Stop and clear Html5Qrcode instance
-    if (qrCodeInstanceRef.current) {
-      try {
-        if (qrCodeInstanceRef.current.isScanning) {
-          await qrCodeInstanceRef.current.stop();
-        }
-        await qrCodeInstanceRef.current.clear();
-      } catch (e) {
-        console.error("Failed to stop/clear scanner instance:", e);
-      }
-      qrCodeInstanceRef.current = null;
+    // Clear inner DOM of container to allow clean remount
+    const container = document.getElementById(scannerId);
+    if (container) {
+      container.innerHTML = '';
     }
-  };
+  }, [scannerId]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    let isCancelled = false;
+
+    const startScannerWithRetry = async (attempt = 0) => {
+      if (isCancelled || !isMountedRef.current) return;
+      setIsInitializing(true);
+      setRetryAttempt(attempt);
+
+      // Wait if previous teardown is still releasing hardware camera
+      if (activeCameraTeardownPromise) {
+        try {
+          await activeCameraTeardownPromise;
+        } catch {}
+      }
+
+      try {
+        let targetCameraConfig: any = { facingMode: 'environment' };
+        try {
+          const devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length > 0) {
+            const backCamera = devices.find(device => 
+              device.label.toLowerCase().includes('back') || 
+              device.label.toLowerCase().includes('environment') || 
+              device.label.toLowerCase().includes('rear') ||
+              device.label.toLowerCase().includes('0, facing back') ||
+              device.label.toLowerCase().includes('main')
+            );
+            if (backCamera) {
+              targetCameraConfig = backCamera.id;
+              setActiveCameraId(backCamera.id);
+            }
+          }
+        } catch (e) {
+          // getCameras can fail before permission; facingMode environment works directly
+          targetCameraConfig = { facingMode: 'environment' };
+        }
+
+        if (isCancelled || !isMountedRef.current) return;
+        setHasPermission(true);
+
+        const supportedFormats = [
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.CODE_93,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.CODABAR
+        ];
+
+        const html5Qr = new Html5Qrcode(scannerId, {
+          verbose: false,
+          formatsToSupport: supportedFormats,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+          }
+        });
+        qrCodeInstanceRef.current = html5Qr;
+
+        // Adaptive video constraints (attempt 0: 1080p ideal, attempt 1: 720p ideal, attempt 2: standard fallback)
+        // Note: Advanced track settings (focus, zoom) are applied safely AFTER stream is created
+        const adaptiveConstraints = attempt === 0 
+          ? {
+              facingMode: 'environment',
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            }
+          : attempt === 1
+          ? {
+              facingMode: 'environment',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }
+          : {
+              facingMode: 'environment'
+            };
+
+        await html5Qr.start(
+          targetCameraConfig,
+          {
+            fps: 20, // 20 FPS is smooth and balanced to prevent thermal throttling
+            aspectRatio: 1.0,
+            videoConstraints: adaptiveConstraints as any
+          },
+          (decodedText) => {
+            triggerSuccessFeedback(decodedText);
+          },
+          (errorMessage) => {
+            if (onScanFailure) onScanFailure(errorMessage);
+          }
+        );
+
+          if (isCancelled || !isMountedRef.current) {
+            await stopScanner();
+            return;
+          }
+
+          setIsInitializing(false);
+
+          // Apply initial track settings (Autofocus & 1.8x sweet spot zoom)
+          setTimeout(() => {
+            if (!isMountedRef.current || isCancelled) return;
+            applyTrackSettings(1.8, false);
+            handleZoomChange(1.8);
+
+            const videoEl = document.querySelector(`#${scannerId} video`) as HTMLVideoElement | null;
+            if (videoEl) {
+              startNativeBarcodeDetectorLoop(videoEl);
+            }
+          }, 350);
+      } catch (err: any) {
+        console.warn(`Camera startup error (attempt ${attempt + 1}):`, err);
+
+        // Auto-retry transient hardware lock errors (NotReadableError, AbortError, OverconstrainedError)
+        if (attempt < 3 && err?.name !== 'NotAllowedError') {
+          await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+          if (!isCancelled && isMountedRef.current) {
+            return startScannerWithRetry(attempt + 1);
+          }
+        }
+
+        if (!isCancelled && isMountedRef.current) {
+          setHasPermission(false);
+          setFallbackMode(true);
+          setIsInitializing(false);
+        }
+      }
+    };
+
+    if (!fallbackMode) {
+      // Small buffer to guarantee DOM element is painted
+      const timer = setTimeout(() => {
+        startScannerWithRetry(0);
+      }, 150);
+
+      return () => {
+        isCancelled = true;
+        isMountedRef.current = false;
+        clearTimeout(timer);
+        activeCameraTeardownPromise = stopScanner().then(() => {
+          return new Promise(r => setTimeout(r, 150));
+        });
+      };
+    }
+
+    return () => {
+      isCancelled = true;
+      isMountedRef.current = false;
+      activeCameraTeardownPromise = stopScanner();
+    };
+  }, [fallbackMode, applyTrackSettings, triggerSuccessFeedback, startNativeBarcodeDetectorLoop, stopScanner, scannerId]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -414,15 +539,11 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         await html5Qr.start(
           nextCameraId,
           {
-            fps: 25,
+            fps: 20,
             aspectRatio: 1.0,
             videoConstraints: {
               width: { ideal: 1920 },
-              height: { ideal: 1080 },
-              advanced: [
-                { focusMode: 'continuous' } as any,
-                { exposureMode: 'continuous' } as any
-              ]
+              height: { ideal: 1080 }
             } as any
           },
           (decodedText) => triggerSuccessFeedback(decodedText),
@@ -437,7 +558,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           if (videoEl) {
             startNativeBarcodeDetectorLoop(videoEl);
           }
-        }, 450);
+        }, 350);
       }
     } catch (e) {
       console.error("Error switching camera:", e);
@@ -450,7 +571,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         <Keyboard size={32} className="fallback-icon" />
         <h4>โหมดป้อนรหัสด้วยตัวเอง</h4>
         <p className="fallback-desc">
-          กล้องไม่พร้อมใช้งาน หรืออุปกรณ์ไม่รองรับการเปิดกล้องผ่านเบราว์เซอร์ โปรดป้อนรหัสครุภัณฑ์เพื่อตรวจงาน
+          กล้องไม่พร้อมใช้งานชั่วคราว หรืออุปกรณ์ไม่อนุญาตการเปิดกล้องผ่านเบราว์เซอร์ โปรดป้อนรหัสครุภัณฑ์เพื่อตรวจงาน
         </p>
         <form onSubmit={handleManualSubmit} className="manual-scan-form">
           <input 
@@ -469,25 +590,36 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         <button 
           type="button" 
           className="btn-retry-camera"
-          onClick={() => setFallbackMode(false)}
+          onClick={() => {
+            setFallbackMode(false);
+            setHasPermission(null);
+          }}
         >
-          <Camera size={14} /> ลองเปิดกล้องอีกครั้ง
+          <Camera size={14} /> 🔄 ลองเปิดกล้องอีกครั้ง
         </button>
       </div>
     );
   }
 
   return (
-    <div className="scanner-wrapper">
+    <div className={`scanner-wrapper ${isPaused ? 'scanner-is-paused' : ''}`}>
       {/* Scanner Header Bar */}
       <div className="scanner-header-bar">
         <div className="scanner-title-group">
-          <div className="live-dot-pulse"></div>
-          <span style={{ fontSize: '0.78rem' }}>กล้องสแกนพร้อมทำงาน</span>
-          {isAiEngineActive && (
-            <span className="badge-ai-engine" title="ระบบใช้ Neural Engine ตรวจจับบาร์โค้ดระดับฮาร์ดแวร์ความเร็วสูง">
-              <Sparkles size={11} /> AI Hardware Mode
+          {isPaused ? (
+            <span style={{ fontSize: '0.78rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <PauseCircle size={13} /> พักกล้องชั่วคราว (สแตนด์บาย)
             </span>
+          ) : (
+            <>
+              <div className="live-dot-pulse"></div>
+              <span style={{ fontSize: '0.78rem' }}>กล้องสแกนพร้อมทำงาน</span>
+              {isAiEngineActive && (
+                <span className="badge-ai-engine" title="ระบบใช้ Neural Engine ตรวจจับบาร์โค้ดระดับฮาร์ดแวร์ความเร็วสูง">
+                  <Sparkles size={11} /> AI Hardware Mode
+                </span>
+              )}
+            </>
           )}
         </div>
         <div className="scanner-controls">
@@ -543,23 +675,45 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       {/* Video Viewfinder Container */}
       <div className="video-container" onClick={handleTapToFocus}>
         <div id={scannerId} className="scanner-view"></div>
+
+        {/* Loading / Connecting Overlay */}
+        {isInitializing && (
+          <div className="scanner-connecting-overlay">
+            <RefreshCw size={24} className="animate-spin text-primary" />
+            <span>
+              {retryAttempt > 0 
+                ? `กำลังเชื่อมต่อกล้องใหม่... (ครั้งที่ ${retryAttempt + 1}/3)` 
+                : 'กำลังเริ่มการทำงานกล้อง...'}
+            </span>
+          </div>
+        )}
+
+        {/* Paused Overlay */}
+        {isPaused && (
+          <div className="scanner-paused-overlay">
+            <PauseCircle size={36} color="#fbbf24" style={{ opacity: 0.8 }} />
+            <span>สแตนด์บาย — ระบบพร้อมสแกนทันทีเมื่อกดชิ้นถัดไป</span>
+          </div>
+        )}
         
         {/* Scanning Reticle Box */}
-        <div className="scanner-overlay-aim">
-          <div className="aim-corner top-left"></div>
-          <div className="aim-corner top-right"></div>
-          <div className="aim-corner bottom-left"></div>
-          <div className="aim-corner bottom-right"></div>
-          <div className="scan-laser-line"></div>
+        {!isPaused && (
+          <div className="scanner-overlay-aim">
+            <div className="aim-corner top-left"></div>
+            <div className="aim-corner top-right"></div>
+            <div className="aim-corner bottom-left"></div>
+            <div className="aim-corner bottom-right"></div>
+            <div className="scan-laser-line"></div>
 
-          {/* Scanned Feedback Overlay */}
-          {lastScannedCode && (
-            <div className="scan-locked-badge animate-fade-in">
-              <CheckCircle2 size={18} color="#10b981" />
-              <span>ตรวจพบ: {lastScannedCode}</span>
-            </div>
-          )}
-        </div>
+            {/* Scanned Feedback Overlay */}
+            {lastScannedCode && (
+              <div className="scan-locked-badge animate-fade-in">
+                <CheckCircle2 size={18} color="#10b981" />
+                <span>ตรวจพบ: {lastScannedCode}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tap-to-Focus Animated Ring */}
         {focusRingPos && (
@@ -572,25 +726,27 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         )}
 
         {/* Zoom Quick Selector Overlaid inside video (iPhone 15 & S24 FE Optimized) */}
-        <div className="zoom-selector-pill" onClick={(e) => e.stopPropagation()}>
-          <div className="zoom-label">
-            <ZoomIn size={12} /> ซูม
+        {!isPaused && (
+          <div className="zoom-selector-pill" onClick={(e) => e.stopPropagation()}>
+            <div className="zoom-label">
+              <ZoomIn size={12} /> ซูม
+            </div>
+            {[1, 1.5, 1.8, 2.5, 3].map((z) => (
+              <button
+                key={z}
+                type="button"
+                className={`zoom-opt-btn ${currentZoom === z ? 'active' : ''}`}
+                onClick={() => handleZoomChange(z)}
+              >
+                {z}x
+              </button>
+            ))}
           </div>
-          {[1, 1.5, 1.8, 2.5, 3].map((z) => (
-            <button
-              key={z}
-              type="button"
-              className={`zoom-opt-btn ${currentZoom === z ? 'active' : ''}`}
-              onClick={() => handleZoomChange(z)}
-            >
-              {z}x
-            </button>
-          ))}
-        </div>
+        )}
       </div>
 
       {/* Focus & Distance Helper Tip Banner */}
-      {showFocusTip && (
+      {showFocusTip && !isPaused && (
         <div className="scanner-focus-tip">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flex: 1 }}>
             <span style={{ fontSize: '1rem' }}>💡</span>
@@ -703,6 +859,25 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           justify-content: center;
           cursor: crosshair;
           overflow: hidden;
+        }
+
+        .scanner-connecting-overlay,
+        .scanner-paused-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(11, 15, 25, 0.85);
+          backdrop-filter: blur(4px);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.75rem;
+          z-index: 20;
+          color: #ffffff;
+          font-size: 0.8rem;
+          font-weight: 600;
+          text-align: center;
+          padding: 1rem;
         }
 
         .scanner-view {
