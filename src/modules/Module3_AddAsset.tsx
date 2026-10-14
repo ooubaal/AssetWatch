@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PlusCircle, QrCode, FileText, Camera, AlertCircle, CheckCircle, Download, UploadCloud, Clipboard, Trash2, HelpCircle, Printer, Image as ImageIcon, Sparkles, CheckCircle2, RefreshCw, FileSpreadsheet } from 'lucide-react';
 import { Asset, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 import { uploadImage, compressFileOrPdf } from '../services/dbService';
@@ -43,6 +43,8 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
   // Image Upload States
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const addAssetCameraInputRef = useRef<HTMLInputElement>(null);
+  const addAssetDocInputRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1243,29 +1245,92 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
 
           {/* Row 2: Visual Upload Drawer */}
           <div className="form-group">
-            <label className="form-label">📷 ถ่ายรูป หรือ อัปโหลดเอกสาร PDF/รูปภาพครุภัณฑ์ (บีบอัด HD อัตโนมัติ)</label>
-            <div className="image-dropzone">
+            <label className="form-label">📸 ถ่ายรูป หรือ แนบเอกสาร PDF/รูปภาพครุภัณฑ์ (บีบอัด HD อัตโนมัติ)</label>
+            <div className="survey-upload-trigger">
               <input 
+                ref={addAssetCameraInputRef}
                 type="file" 
-                id="asset-image-picker"
+                id="asset-camera-picker"
+                accept="image/*"
+                capture="environment"
+                className="file-hidden-input"
+                onChange={handleImageChange}
+              />
+              <input 
+                ref={addAssetDocInputRef}
+                type="file" 
+                id="asset-doc-picker"
                 accept="image/*,application/pdf,.pdf"
                 className="file-hidden-input"
                 onChange={handleImageChange}
               />
-              <label htmlFor="asset-image-picker" className="dropzone-label">
-                {imagePreview ? (
-                  <div className="intake-preview-wrapper">
+              {imagePreview ? (
+                <div className="preview-image-card">
+                  <div className="preview-image-box">
                     <img src={imagePreview} alt="Intake asset preview" />
-                    <span className="change-pic-badge"><Camera size={12} /> เปลี่ยนรูป</span>
                   </div>
-                ) : (
-                  <>
-                    <Camera size={32} color="var(--text-muted)" className="camera-bounce" />
-                    <span>ลากไฟล์รูปภาพมาวางที่นี่ หรือ กดคลิกเพื่ออัปโหลด</span>
-                    <span className="subtitle-help">รองรับไฟล์ JPG, PNG และการถ่ายภาพด่วนผ่านมือถือ</span>
-                  </>
-                )}
-              </label>
+                  <div className="preview-action-row">
+                    <button
+                      type="button"
+                      className="btn-preview-action"
+                      onClick={() => addAssetCameraInputRef.current?.click()}
+                      title="ถ่ายใหม่ด้วยกล้องหลัง"
+                    >
+                      <Camera size={13} color="#10b981" /> ถ่ายใหม่ (กล้อง)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-preview-action"
+                      onClick={() => addAssetDocInputRef.current?.click()}
+                      title="เลือกเอกสารหรือรูปภาพใหม่"
+                    >
+                      <FileText size={13} color="#3b82f6" /> เปลี่ยนไฟล์ (เอกสาร)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-preview-action btn-preview-delete"
+                      onClick={() => {
+                        setImageFile(null);
+                        setImagePreview(null);
+                        if (addAssetCameraInputRef.current) addAssetCameraInputRef.current.value = '';
+                        if (addAssetDocInputRef.current) addAssetDocInputRef.current.value = '';
+                      }}
+                      title="ลบรูปภาพ"
+                    >
+                      <Trash2 size={13} /> ลบไฟล์
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="upload-choice-grid">
+                  <button
+                    type="button"
+                    className="upload-choice-card"
+                    onClick={() => addAssetCameraInputRef.current?.click()}
+                  >
+                    <div className="upload-choice-icon-bubble camera-bubble">
+                      <Camera size={26} />
+                    </div>
+                    <div className="upload-choice-info">
+                      <span className="upload-choice-main">ถ่ายภาพทันที</span>
+                      <span className="upload-choice-sub">เปิดกล้องหลัง</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="upload-choice-card"
+                    onClick={() => addAssetDocInputRef.current?.click()}
+                  >
+                    <div className="upload-choice-icon-bubble doc-bubble">
+                      <FileText size={26} />
+                    </div>
+                    <div className="upload-choice-info">
+                      <span className="upload-choice-main">แนบเอกสาร / ไฟล์</span>
+                      <span className="upload-choice-sub">PDF หรือ คลังภาพ</span>
+                    </div>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2067,6 +2132,157 @@ export const Module3_AddAsset: React.FC<Module3AddAssetProps> = ({
         .subtitle-help {
           font-size: 0.75rem;
           color: var(--text-muted);
+        }
+
+        /* Upload Choice Cards (Camera vs Document) */
+        .upload-choice-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.65rem;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .upload-choice-card {
+          background: var(--bg-primary);
+          border: 1.5px dashed var(--border);
+          border-radius: var(--radius-md);
+          padding: 1.15rem 0.65rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.65rem;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+          text-align: center;
+          width: 100%;
+          color: inherit;
+          box-sizing: border-box;
+        }
+
+        .upload-choice-card:hover {
+          border-color: var(--primary);
+          background: rgba(59, 130, 246, 0.04);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .upload-choice-card:active {
+          transform: translateY(0);
+        }
+
+        .upload-choice-icon-bubble {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform var(--transition-fast);
+        }
+
+        .camera-bubble {
+          background: rgba(16, 185, 129, 0.12);
+          color: #10b981;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .doc-bubble {
+          background: rgba(59, 130, 246, 0.12);
+          color: #3b82f6;
+          border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .upload-choice-card:hover .upload-choice-icon-bubble {
+          transform: scale(1.08);
+        }
+
+        .upload-choice-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .upload-choice-main {
+          font-size: 0.825rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .upload-choice-sub {
+          font-size: 0.7rem;
+          color: var(--text-muted);
+        }
+
+        /* Preview Image Card with actions */
+        .preview-image-card {
+          background: var(--bg-primary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          padding: 0.85rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .preview-image-box {
+          position: relative;
+          width: 100%;
+          max-width: 260px;
+          aspect-ratio: 4/3;
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .preview-image-box img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .preview-action-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.45rem;
+          justify-content: center;
+          width: 100%;
+        }
+
+        .btn-preview-action {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          color: var(--text-primary);
+          padding: 0.35rem 0.65rem;
+          border-radius: var(--radius-sm);
+          font-size: 0.725rem;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .btn-preview-action:hover {
+          background: var(--bg-card);
+          border-color: var(--primary);
+        }
+
+        .btn-preview-delete {
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.3);
+          background: rgba(239, 68, 68, 0.08);
+        }
+
+        .btn-preview-delete:hover {
+          background: rgba(239, 68, 68, 0.16);
+          border-color: #ef4444;
         }
 
         .grid-cols-3 {

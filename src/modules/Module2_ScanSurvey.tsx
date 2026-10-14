@@ -313,7 +313,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     setSurveySuccess(false);
   };
 
-  const surveyFileInputRef = useRef<HTMLInputElement>(null);
+  const surveyCameraInputRef = useRef<HTMLInputElement>(null);
+  const surveyDocInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -343,15 +344,18 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     }
   };
 
-  const handleClearAttachedImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleClearAttachedImage = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (attachImagePreview && attachImagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(attachImagePreview);
     }
     setAttachImageFile(null);
     setAttachImagePreview(null);
-    if (surveyFileInputRef.current) {
-      surveyFileInputRef.current.value = '';
+    if (surveyCameraInputRef.current) {
+      surveyCameraInputRef.current.value = '';
+    }
+    if (surveyDocInputRef.current) {
+      surveyDocInputRef.current.value = '';
     }
   };
 
@@ -930,49 +934,93 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
               {/* Picture upload area for documenting asset damage */}
               <div className="form-group">
-                <label className="form-label">📷 แนบรูปภาพ หรือ เอกสาร PDF ถ่ายตรวจสอบสภาพ (ตัวเลือกกรณีมีปัญหา)</label>
+                <label className="form-label">📸 แนบรูปภาพ หรือ เอกสาร PDF ถ่ายตรวจสอบสภาพ (ตัวเลือกกรณีมีปัญหา)</label>
                 <div className="survey-upload-trigger">
+                  {/* Direct Rear Camera Input */}
                   <input 
-                    ref={surveyFileInputRef}
+                    ref={surveyCameraInputRef}
                     type="file" 
-                    id="survey-photo-capture" 
+                    id="survey-camera-capture" 
+                    accept="image/*" 
+                    capture="environment"
+                    className="file-hidden-input"
+                    onChange={handleImageChange}
+                  />
+                  {/* Document & File Picker Input */}
+                  <input 
+                    ref={surveyDocInputRef}
+                    type="file" 
+                    id="survey-doc-picker" 
                     accept="image/*,application/pdf,.pdf" 
                     className="file-hidden-input"
                     onChange={handleImageChange}
                   />
-                  <div 
-                    className="upload-box-dashed"
-                    onClick={() => surveyFileInputRef.current?.click()}
-                    role="button"
-                    tabIndex={0}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {attachImagePreview ? (
+
+                  {attachImagePreview ? (
+                    <div className="preview-image-card">
                       <div className="preview-image-box">
                         <img src={attachImagePreview} alt="damage report preview" />
-                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', marginTop: '0.4rem' }}>
-                          <span className="preview-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <RefreshCw size={12} /> กดเพื่อเปลี่ยนไฟล์
-                          </span>
-                          <button
-                            type="button"
-                            className="btn btn-danger btn-xs"
-                            onClick={handleClearAttachedImage}
-                            title="ลบรูปภาพที่แนบ"
-                            style={{ padding: '2px 6px', fontSize: '0.7rem' }}
-                          >
-                            <Trash2 size={11} /> ลบไฟล์
-                          </button>
-                        </div>
                       </div>
-                    ) : (
-                      <>
-                        <Camera size={26} color="var(--primary)" />
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>กดเพื่อถ่ายภาพ หรือ เลือกเอกสาร PDF / รูปภาพ</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>รองรับ JPG, PNG, WEBP, PDF (แปลงและบีบอัด HD คมชัดอัตโนมัติ)</span>
-                      </>
-                    )}
-                  </div>
+                      <div className="preview-action-row">
+                        <button
+                          type="button"
+                          className="btn-preview-action"
+                          onClick={() => surveyCameraInputRef.current?.click()}
+                          title="เปิดกล้องถ่ายภาพใหม่ (กล้องหลัง)"
+                        >
+                          <Camera size={13} color="#10b981" /> ถ่ายใหม่ (กล้อง)
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-preview-action"
+                          onClick={() => surveyDocInputRef.current?.click()}
+                          title="เลือกเอกสารหรือรูปภาพใหม่จากเครื่อง"
+                        >
+                          <FileText size={13} color="#3b82f6" /> เปลี่ยนไฟล์ (เอกสาร)
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-preview-action btn-preview-delete"
+                          onClick={handleClearAttachedImage}
+                          title="ลบไฟล์ที่แนบ"
+                        >
+                          <Trash2 size={13} /> ลบไฟล์
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="upload-choice-grid">
+                      {/* Option 1: Open Camera directly (default rear camera) */}
+                      <button 
+                        type="button"
+                        className="upload-choice-card"
+                        onClick={() => surveyCameraInputRef.current?.click()}
+                      >
+                        <div className="upload-choice-icon-bubble camera-bubble">
+                          <Camera size={24} />
+                        </div>
+                        <div className="upload-choice-info">
+                          <span className="upload-choice-main">ถ่ายภาพทันที</span>
+                          <span className="upload-choice-sub">เปิดกล้องหลัง</span>
+                        </div>
+                      </button>
+
+                      {/* Option 2: Attach File / Document */}
+                      <button 
+                        type="button"
+                        className="upload-choice-card"
+                        onClick={() => surveyDocInputRef.current?.click()}
+                      >
+                        <div className="upload-choice-icon-bubble doc-bubble">
+                          <FileText size={24} />
+                        </div>
+                        <div className="upload-choice-info">
+                          <span className="upload-choice-main">แนบเอกสาร / ไฟล์</span>
+                          <span className="upload-choice-sub">PDF หรือ คลังภาพ</span>
+                        </div>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2189,35 +2237,110 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           pointer-events: none !important;
         }
 
-        .upload-box-dashed {
+        /* Upload Choice Cards (Camera vs Document) */
+        .upload-choice-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.65rem;
           width: 100%;
-          border: 2px dashed var(--border);
+          box-sizing: border-box;
+        }
+
+        .upload-choice-card {
+          background: var(--bg-primary);
+          border: 1.5px dashed var(--border);
           border-radius: var(--radius-md);
-          padding: 2rem 1rem;
+          padding: 1.15rem 0.65rem;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 0.75rem;
+          gap: 0.65rem;
           cursor: pointer;
           transition: all var(--transition-fast);
-          background-color: var(--bg-primary);
+          text-align: center;
+          width: 100%;
+          color: inherit;
           box-sizing: border-box;
         }
 
-        .upload-box-dashed:hover {
+        .upload-choice-card:hover {
           border-color: var(--primary);
-          background-color: rgba(59, 130, 246, 0.02);
+          background: rgba(59, 130, 246, 0.04);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .upload-choice-card:active {
+          transform: translateY(0);
+        }
+
+        .upload-choice-icon-bubble {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform var(--transition-fast);
+        }
+
+        .camera-bubble {
+          background: rgba(16, 185, 129, 0.12);
+          color: #10b981;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .doc-bubble {
+          background: rgba(59, 130, 246, 0.12);
+          color: #3b82f6;
+          border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .upload-choice-card:hover .upload-choice-icon-bubble {
+          transform: scale(1.08);
+        }
+
+        .upload-choice-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .upload-choice-main {
+          font-size: 0.825rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .upload-choice-sub {
+          font-size: 0.7rem;
+          color: var(--text-muted);
+        }
+
+        /* Preview Image Card with actions */
+        .preview-image-card {
+          background: var(--bg-primary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          padding: 0.85rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .preview-image-box {
           position: relative;
           width: 100%;
-          max-width: 240px;
+          max-width: 260px;
           aspect-ratio: 4/3;
           border-radius: var(--radius-sm);
           overflow: hidden;
           border: 1px solid var(--border);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
         }
 
         .preview-image-box img {
@@ -2226,21 +2349,43 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           object-fit: cover;
         }
 
-        .preview-indicator {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 100%;
-          background-color: rgba(0, 0, 0, 0.6);
-          color: #ffffff;
-          padding: 0.35rem;
-          font-size: 0.65rem;
-          text-align: center;
+        .preview-action-row {
           display: flex;
-          align-items: center;
+          flex-wrap: wrap;
+          gap: 0.45rem;
           justify-content: center;
-          gap: 0.25rem;
-          backdrop-filter: blur(2px);
+          width: 100%;
+        }
+
+        .btn-preview-action {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          color: var(--text-primary);
+          padding: 0.35rem 0.65rem;
+          border-radius: var(--radius-sm);
+          font-size: 0.725rem;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .btn-preview-action:hover {
+          background: var(--bg-card);
+          border-color: var(--primary);
+        }
+
+        .btn-preview-delete {
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.3);
+          background: rgba(239, 68, 68, 0.08);
+        }
+
+        .btn-preview-delete:hover {
+          background: rgba(239, 68, 68, 0.16);
+          border-color: #ef4444;
         }
 
         /* Success screen card */
