@@ -56,9 +56,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [retryAttempt, setRetryAttempt] = useState<number>(0);
   
-  // Advanced Camera Controls & Zoom defaults (1.8x is the optical sweet-spot for iPhone 15 & S24 FE)
-  const [currentZoom, setCurrentZoom] = useState<number>(1.8);
-  const [, setHasHardwareZoom] = useState<boolean>(false);
+  // Advanced Camera Controls & Zoom defaults (1.0x default, hardware zoom if supported)
+  const [currentZoom, setCurrentZoom] = useState<number>(1.0);
+  const [hasHardwareZoom, setHasHardwareZoom] = useState<boolean>(false);
   const [torchOn, setTorchOn] = useState<boolean>(false);
   const [, setHasTorch] = useState<boolean>(false);
   const [focusRingPos, setFocusRingPos] = useState<{ x: number; y: number } | null>(null);
@@ -82,6 +82,13 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   // Unique DOM ID per component instance to prevent DOM collision in fast remounts
   const scannerIdRef = useRef<string>(`assetwatch-qr-reader-${Math.random().toString(36).slice(2, 7)}`);
   const scannerId = scannerIdRef.current;
+
+  // Exact rectangular box for Code 128 / Code 39 asset tags and QR codes (matches visual reticle)
+  const getQrBoxDimensions = useCallback((viewfinderWidth: number, viewfinderHeight: number) => {
+    const width = Math.min(Math.floor(viewfinderWidth * 0.84), 480);
+    const height = Math.min(Math.floor(viewfinderHeight * 0.48), 240);
+    return { width, height };
+  }, []);
 
   // Vibration and audio feedback on successful scan
   const triggerSuccessFeedback = useCallback((code: string) => {
@@ -163,18 +170,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   }, [scannerId]);
 
-  // Handle Zoom change (Both Hardware Sensor Zoom & High-Def Digital Scaling)
+  // Handle Zoom change (Direct Hardware Sensor Zoom so video frames match decoder coordinates 1:1)
   const handleZoomChange = async (newZoom: number) => {
     setCurrentZoom(newZoom);
     await applyTrackSettings(newZoom, torchOn);
-
-    // Apply digital CSS scale on video element for instant visual magnification
-    const videoEl = document.querySelector(`#${scannerId} video`) as HTMLVideoElement | null;
-    if (videoEl) {
-      videoEl.style.transform = newZoom > 1 ? `scale(${newZoom})` : 'none';
-      videoEl.style.transformOrigin = 'center center';
-      videoEl.style.transition = 'transform 0.18s cubic-bezier(0.2, 0, 0, 1)';
-    }
   };
 
   // Handle Torch toggle
@@ -209,8 +208,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   };
 
-  // Throttled BarcodeDetector engine (Max 12-15 FPS to eliminate mobile CPU/GPU memory leaks)
-  const startNativeBarcodeDetectorLoop = useCallback((videoEl: HTMLVideoElement) => {
+  // Throttled BarcodeDetector engine (Safe format checking to prevent Safari iOS crashes)
+  const startNativeBarcodeDetectorLoop = useCallback(async (videoEl: HTMLVideoElement) => {
     if (typeof window === 'undefined' || !('BarcodeDetector' in window)) {
       setIsAiEngineActive(false);
       return;
@@ -218,24 +217,30 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
     try {
       const BarcodeDetectorClass = (window as any).BarcodeDetector;
-      const detector = new BarcodeDetectorClass({
-        formats: [
-          'code_128',
-          'code_39',
-          'code_93',
-          'ean_13',
-          'ean_8',
-          'upc_a',
-          'upc_e',
-          'qr_code',
-          'data_matrix',
-          'itf',
-          'codabar',
-          'aztec',
-          'pdf417'
-        ]
-      });
+      let targetFormats = [
+        'code_128',
+        'code_39',
+        'code_93',
+        'ean_13',
+        'ean_8',
+        'upc_a',
+        'upc_e',
+        'qr_code',
+        'data_matrix',
+        'itf',
+        'codabar'
+      ];
 
+      if (typeof BarcodeDetectorClass.getSupportedFormats === 'function') {
+        const supported: string[] = await BarcodeDetectorClass.getSupportedFormats();
+        targetFormats = targetFormats.filter(f => supported.includes(f));
+        if (targetFormats.length === 0) {
+          setIsAiEngineActive(false);
+          return;
+        }
+      }
+
+      const detector = new BarcodeDetectorClass({ formats: targetFormats });
       setIsAiEngineActive(true);
       let isDetecting = false;
 
@@ -379,22 +384,37 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         const supportedFormats = [
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.CODE_93,
+          Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.EAN_8,
           Html5QrcodeSupportedFormats.UPC_A,
           Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.CODE_93,
           Html5QrcodeSupportedFormats.ITF,
           Html5QrcodeSupportedFormats.CODABAR
         ];
+
+        // On iOS Safari, native BarcodeDetector only supports QR code and breaks when 1D barcodes are passed
+        // Use native detector inside Html5Qrcode only if it actually supports code_128
+        let useNativeInHtml5Qr = false;
+        if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+          try {
+            const BDetector = (window as any).BarcodeDetector;
+            if (typeof BDetector.getSupportedFormats === 'function') {
+              const supported: string[] = await BDetector.getSupportedFormats();
+              useNativeInHtml5Qr = supported.includes('code_128');
+            }
+          } catch {
+            useNativeInHtml5Qr = false;
+          }
+        }
 
         const html5Qr = new Html5Qrcode(scannerId, {
           verbose: false,
           formatsToSupport: supportedFormats,
           experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
+            useBarCodeDetectorIfSupported: useNativeInHtml5Qr
           }
         });
         qrCodeInstanceRef.current = html5Qr;
@@ -422,6 +442,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           {
             fps: 20, // 20 FPS is smooth and balanced to prevent thermal throttling
             aspectRatio: 1.0,
+            qrbox: getQrBoxDimensions,
             videoConstraints: adaptiveConstraints as any
           },
           (decodedText) => {
@@ -432,24 +453,23 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           }
         );
 
-          if (isCancelled || !isMountedRef.current) {
-            await stopScanner();
-            return;
+        if (isCancelled || !isMountedRef.current) {
+          await stopScanner();
+          return;
+        }
+
+        setIsInitializing(false);
+
+        // Apply initial track settings (Autofocus & start at 1.0x true view)
+        setTimeout(() => {
+          if (!isMountedRef.current || isCancelled) return;
+          applyTrackSettings(1.0, false);
+
+          const videoEl = document.querySelector(`#${scannerId} video`) as HTMLVideoElement | null;
+          if (videoEl) {
+            startNativeBarcodeDetectorLoop(videoEl);
           }
-
-          setIsInitializing(false);
-
-          // Apply initial track settings (Autofocus & 1.8x sweet spot zoom)
-          setTimeout(() => {
-            if (!isMountedRef.current || isCancelled) return;
-            applyTrackSettings(1.8, false);
-            handleZoomChange(1.8);
-
-            const videoEl = document.querySelector(`#${scannerId} video`) as HTMLVideoElement | null;
-            if (videoEl) {
-              startNativeBarcodeDetectorLoop(videoEl);
-            }
-          }, 350);
+        }, 350);
       } catch (err: any) {
         console.warn(`Camera startup error (attempt ${attempt + 1}):`, err);
 
@@ -535,22 +555,35 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         const supportedFormats = [
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.CODE_93,
+          Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.EAN_8,
           Html5QrcodeSupportedFormats.UPC_A,
           Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.CODE_93,
           Html5QrcodeSupportedFormats.ITF,
           Html5QrcodeSupportedFormats.CODABAR
         ];
+
+        let useNativeInHtml5Qr = false;
+        if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+          try {
+            const BDetector = (window as any).BarcodeDetector;
+            if (typeof BDetector.getSupportedFormats === 'function') {
+              const supported: string[] = await BDetector.getSupportedFormats();
+              useNativeInHtml5Qr = supported.includes('code_128');
+            }
+          } catch {
+            useNativeInHtml5Qr = false;
+          }
+        }
 
         const html5Qr = new Html5Qrcode(scannerId, {
           verbose: false,
           formatsToSupport: supportedFormats,
           experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
+            useBarCodeDetectorIfSupported: useNativeInHtml5Qr
           }
         });
         qrCodeInstanceRef.current = html5Qr;
@@ -560,6 +593,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           {
             fps: 20,
             aspectRatio: 1.0,
+            qrbox: getQrBoxDimensions,
             videoConstraints: {
               width: { ideal: 1920 },
               height: { ideal: 1080 }
@@ -571,7 +605,6 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
         setTimeout(() => {
           applyTrackSettings(currentZoom, torchOn);
-          handleZoomChange(currentZoom);
 
           const videoEl = document.querySelector(`#${scannerId} video`) as HTMLVideoElement | null;
           if (videoEl) {
@@ -744,13 +777,13 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           </div>
         )}
 
-        {/* Zoom Quick Selector Overlaid inside video (iPhone 15 & S24 FE Optimized) */}
-        {!isPaused && (
+        {/* Zoom Quick Selector Overlaid inside video (Active when hardware sensor zoom is supported) */}
+        {!isPaused && hasHardwareZoom && (
           <div className="zoom-selector-pill" onClick={(e) => e.stopPropagation()}>
             <div className="zoom-label">
               <ZoomIn size={12} /> ซูม
             </div>
-            {[1, 1.5, 1.8, 2.5, 3].map((z) => (
+            {[1, 1.5, 2, 2.5, 3].map((z) => (
               <button
                 key={z}
                 type="button"
@@ -770,7 +803,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flex: 1 }}>
             <span style={{ fontSize: '1rem' }}>💡</span>
             <span>
-              <strong>เทคนิคสแกนไว (iPhone 15 / S24 FE):</strong> ถือกล้องห่าง <strong>15–20 ซม.</strong> แล้วเปิดโหมด <strong>ซูม 1.8x - 2.5x</strong> ภาพจะคมชัดและติดทันทีโดยไม่ต้องจ่อใกล้
+              <strong>คำแนะนำสำหรับ iPhone 15 / ทุกรุ่น:</strong> ถือกล้องห่างบาร์โค้ดประมาณ <strong>15–20 ซม.</strong> (ระยะ 1 ฝ่ามือ) ให้บาร์โค้ดอยู่กลางกรอบสีฟ้า (หากภาพเบลอแตะหน้าจอ 1 ครั้งเพื่อโฟกัส)
             </span>
           </div>
           <button 
@@ -932,6 +965,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           transform: translate(-50%, -50%);
           width: 84%;
           height: 48%;
+          max-width: 480px;
+          max-height: 240px;
           border: 1px dashed rgba(255, 255, 255, 0.35);
           border-radius: var(--radius-sm);
           pointer-events: none;
@@ -939,6 +974,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           align-items: center;
           justify-content: center;
           z-index: 10;
+        }
+
+        #qr-shaded-region {
+          display: none !important;
         }
 
         .aim-corner {
