@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@zxing/library": "^0.23.0",
     "canvas-confetti": "^1.9.4",
     "exceljs": "^4.4.0",
     "firebase": "^12.13.0",

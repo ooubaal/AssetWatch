@@ -1,5 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { 
+  MultiFormatReader, 
+  BarcodeFormat, 
+  DecodeHintType, 
+  BinaryBitmap, 
+  HybridBinarizer, 
+  GlobalHistogramBinarizer,
+  HTMLCanvasElementLuminanceSource 
+} from '@zxing/library';
 import { Camera, AlertTriangle, Keyboard, RefreshCw, VideoOff, Zap, ZapOff, ZoomIn, Focus, Sparkles, CheckCircle2, PauseCircle } from 'lucide-react';
 
 interface BarcodeScannerProps {
@@ -208,86 +217,153 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   };
 
-  // Throttled BarcodeDetector engine (Safe format checking to prevent Safari iOS crashes)
+  // High-Performance Hybrid Detection Loop (Hardware BarcodeDetector on Android + High-Res ZXing on iOS)
   const startNativeBarcodeDetectorLoop = useCallback(async (videoEl: HTMLVideoElement) => {
-    if (typeof window === 'undefined' || !('BarcodeDetector' in window)) {
-      setIsAiEngineActive(false);
-      return;
+    let nativeDetector: any = null;
+    let hasNative1D = false;
+
+    if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+      try {
+        const BarcodeDetectorClass = (window as any).BarcodeDetector;
+        let targetFormats = ['code_128', 'code_39', 'qr_code', 'ean_13', 'ean_8'];
+        if (typeof BarcodeDetectorClass.getSupportedFormats === 'function') {
+          const supported: string[] = await BarcodeDetectorClass.getSupportedFormats();
+          targetFormats = targetFormats.filter(f => supported.includes(f));
+          hasNative1D = supported.includes('code_128');
+        }
+        if (targetFormats.length > 0) {
+          nativeDetector = new BarcodeDetectorClass({ formats: targetFormats });
+        }
+      } catch (e) {
+        nativeDetector = null;
+      }
     }
 
-    try {
-      const BarcodeDetectorClass = (window as any).BarcodeDetector;
-      let targetFormats = [
-        'code_128',
-        'code_39',
-        'code_93',
-        'ean_13',
-        'ean_8',
-        'upc_a',
-        'upc_e',
-        'qr_code',
-        'data_matrix',
-        'itf',
-        'codabar'
-      ];
+    // Set up dedicated High-Resolution ZXing Reader for iOS / 1D fallback
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.CODE_39,
+      BarcodeFormat.QR_CODE,
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8
+    ]);
+    hints.set(DecodeHintType.TRY_HARDER, true);
 
-      if (typeof BarcodeDetectorClass.getSupportedFormats === 'function') {
-        const supported: string[] = await BarcodeDetectorClass.getSupportedFormats();
-        targetFormats = targetFormats.filter(f => supported.includes(f));
-        if (targetFormats.length === 0) {
-          setIsAiEngineActive(false);
-          return;
+    const zxingReader = new MultiFormatReader();
+    zxingReader.setHints(hints);
+
+    // Reusable offscreen canvas (720x360 keeps individual barcode stripes sharp and unblurred)
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = 720;
+    offscreenCanvas.height = 360;
+    const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+
+    setIsAiEngineActive(true);
+    let isDetecting = false;
+
+    const detectFrame = async (timestamp: number) => {
+      if (!isMountedRef.current) return;
+
+      if (
+        !videoEl || 
+        videoEl.paused || 
+        videoEl.ended || 
+        isPausedRef.current || 
+        isScannedRecentlyRef.current
+      ) {
+        nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
+        return;
+      }
+
+      // Throttle detection to every ~75ms (~13 FPS)
+      if (timestamp - lastDetectTimestampRef.current >= 75) {
+        lastDetectTimestampRef.current = timestamp;
+
+        if (!isDetecting && videoEl.readyState >= 2) {
+          isDetecting = true;
+          try {
+            // STEP 1: If device supports native 1D detection (Android ML Kit), use it directly
+            if (nativeDetector && hasNative1D) {
+              const barcodes = await nativeDetector.detect(videoEl);
+              if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                triggerSuccessFeedback(barcodes[0].rawValue);
+                isDetecting = false;
+                nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
+                return;
+              }
+            }
+
+            // STEP 2: High-Resolution Optical Crop Decoder (Crucial for iPhone / iOS Safari)
+            if (offscreenCtx) {
+              const vw = videoEl.videoWidth;
+              const vh = videoEl.videoHeight;
+              if (vw > 0 && vh > 0) {
+                // Focus on central 84% x 50% matching the blue aiming reticle
+                const cropW = Math.floor(vw * 0.84);
+                const cropH = Math.floor(vh * 0.50);
+                const cropX = Math.floor((vw - cropW) / 2);
+                const cropY = Math.floor((vh - cropH) / 2);
+
+                offscreenCtx.drawImage(
+                  videoEl,
+                  cropX, cropY, cropW, cropH,
+                  0, 0, 720, 360
+                );
+
+                try {
+                  const lum = new HTMLCanvasElementLuminanceSource(offscreenCanvas);
+                  const bitmap = new BinaryBitmap(new HybridBinarizer(lum));
+                  const res = zxingReader.decode(bitmap);
+                  if (res && res.getText()) {
+                    triggerSuccessFeedback(res.getText());
+                    isDetecting = false;
+                    nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
+                    return;
+                  }
+                } catch {
+                  // Fallback to GlobalHistogramBinarizer for low-contrast / glossy asset tags
+                  try {
+                    const lum = new HTMLCanvasElementLuminanceSource(offscreenCanvas);
+                    const bitmap = new BinaryBitmap(new GlobalHistogramBinarizer(lum));
+                    const res = zxingReader.decode(bitmap);
+                    if (res && res.getText()) {
+                      triggerSuccessFeedback(res.getText());
+                      isDetecting = false;
+                      nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
+                      return;
+                    }
+                  } catch {
+                    // Normal frame non-detection
+                  }
+                }
+              }
+            }
+
+            // STEP 3: Check native detector for 2D QR codes (supported on iOS Safari)
+            if (nativeDetector && !hasNative1D) {
+              try {
+                const barcodes = await nativeDetector.detect(videoEl);
+                if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                  triggerSuccessFeedback(barcodes[0].rawValue);
+                  isDetecting = false;
+                  nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
+                  return;
+                }
+              } catch {}
+            }
+          } catch (detErr) {
+            // Ignore single frame detection error
+          } finally {
+            isDetecting = false;
+          }
         }
       }
 
-      const detector = new BarcodeDetectorClass({ formats: targetFormats });
-      setIsAiEngineActive(true);
-      let isDetecting = false;
-
-      const detectFrame = async (timestamp: number) => {
-        if (!isMountedRef.current) return;
-
-        if (
-          !videoEl || 
-          videoEl.paused || 
-          videoEl.ended || 
-          isPausedRef.current || 
-          isScannedRecentlyRef.current
-        ) {
-          nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
-          return;
-        }
-
-        // Throttle detection to every ~85ms (~12 FPS) to avoid GPU buffer saturation & camera crashing
-        if (timestamp - lastDetectTimestampRef.current >= 85) {
-          lastDetectTimestampRef.current = timestamp;
-
-          if (!isDetecting && videoEl.readyState >= 2) {
-            isDetecting = true;
-            try {
-              const barcodes = await detector.detect(videoEl);
-              if (barcodes && barcodes.length > 0) {
-                const detected = barcodes[0];
-                if (detected.rawValue) {
-                  triggerSuccessFeedback(detected.rawValue);
-                }
-              }
-            } catch (detErr) {
-              // Ignore single frame detection error
-            } finally {
-              isDetecting = false;
-            }
-          }
-        }
-
-        nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
-      };
-
       nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
-    } catch (e) {
-      console.warn("Native BarcodeDetector not available, relying on optimized WebAssembly engine:", e);
-      setIsAiEngineActive(false);
-    }
+    };
+
+    nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
   }, [triggerSuccessFeedback]);
 
   // Clean teardown logic with graceful sequence
@@ -386,13 +462,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           Html5QrcodeSupportedFormats.CODE_39,
           Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.DATA_MATRIX,
-          Html5QrcodeSupportedFormats.CODE_93,
-          Html5QrcodeSupportedFormats.ITF,
-          Html5QrcodeSupportedFormats.CODABAR
+          Html5QrcodeSupportedFormats.EAN_8
         ];
 
         // On iOS Safari, native BarcodeDetector only supports QR code and breaks when 1D barcodes are passed
@@ -440,8 +510,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         await html5Qr.start(
           targetCameraConfig,
           {
-            fps: 20, // 20 FPS is smooth and balanced to prevent thermal throttling
-            aspectRatio: 1.0,
+            fps: 12, // 12 FPS leaves CPU headroom for ZXing and prevents thermal throttling on iPhone
             qrbox: getQrBoxDimensions,
             videoConstraints: adaptiveConstraints as any
           },
@@ -557,13 +626,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           Html5QrcodeSupportedFormats.CODE_39,
           Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.DATA_MATRIX,
-          Html5QrcodeSupportedFormats.CODE_93,
-          Html5QrcodeSupportedFormats.ITF,
-          Html5QrcodeSupportedFormats.CODABAR
+          Html5QrcodeSupportedFormats.EAN_8
         ];
 
         let useNativeInHtml5Qr = false;
@@ -591,8 +654,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         await html5Qr.start(
           nextCameraId,
           {
-            fps: 20,
-            aspectRatio: 1.0,
+            fps: 12,
             qrbox: getQrBoxDimensions,
             videoConstraints: {
               width: { ideal: 1920 },
