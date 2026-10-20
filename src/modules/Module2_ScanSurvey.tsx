@@ -654,7 +654,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               <h3>
                 เป้าหมาย: {selectedDept === 'all' ? 'ทุกหน่วยงานรวมกัน' : selectedDept}
               </h3>
-              <p className="progress-sub">สำรวจพัสดุเสร็จแล้ว <strong>{surveyedInList}</strong> จากทั้งหมด <strong>{totalInList}</strong> รายการ</p>
+              {isRefreshing || (assets.length === 0 && !surveySuccess) ? (
+                <p className="progress-sub" style={{ color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <RotateCw size={12} className="animate-spin" /> กำลังซิงค์ข้อมูลความก้าวหน้าล่าสุดจากคลาวด์...
+                </p>
+              ) : (
+                <p className="progress-sub">สำรวจพัสดุเสร็จแล้ว <strong>{surveyedInList}</strong> จากทั้งหมด <strong>{totalInList}</strong> รายการ</p>
+              )}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -682,8 +688,14 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 <span>{isRefreshing ? 'กำลังซิงค์...' : '🔄 ซิงค์เครื่องนี้'}</span>
               </button>
             )}
-            <div className="progress-percent-large">
-              {progressPercent}%
+            <div className="progress-percent-large" style={{ fontSize: isRefreshing || (assets.length === 0 && !surveySuccess) ? '0.95rem' : '1.5rem', minWidth: '48px', textAlign: 'right' }}>
+              {isRefreshing || (assets.length === 0 && !surveySuccess) ? (
+                <span style={{ color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <RotateCw size={12} className="animate-spin" /> ซิงค์...
+                </span>
+              ) : (
+                `${progressPercent}%`
+              )}
             </div>
           </div>
         </div>
@@ -691,7 +703,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         <div className="progress-bar-bg" style={{ height: '12px', marginTop: '0.75rem' }}>
           <div 
             className="progress-bar-fill fill-primary"
-            style={{ width: `${progressPercent}%`, height: '100%', borderRadius: 'inherit' }}
+            style={{ 
+              width: isRefreshing || (assets.length === 0 && !surveySuccess) ? '100%' : `${progressPercent}%`, 
+              height: '100%', 
+              borderRadius: 'inherit',
+              opacity: isRefreshing || (assets.length === 0 && !surveySuccess) ? 0.6 : 1,
+              transition: 'width 0.4s ease'
+            }}
           ></div>
         </div>
       </div>
@@ -901,7 +919,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               </div>
 
               <div className="checklist-items-scroll">
-                {checklistTab === 'pending' ? (
+                {isRefreshing || (assets.length === 0 && !surveySuccess) ? (
+                  <div className="empty-checklist-state">
+                    <RotateCw size={36} className="animate-spin text-primary" style={{ opacity: 0.8 }} />
+                    <h4 style={{ color: 'var(--primary)', marginTop: '0.5rem' }}>กำลังเชื่อมต่อและซิงค์ข้อมูลล่าสุด...</h4>
+                    <p>ระบบกำลังดึงข้อมูลบัญชีครุภัณฑ์และผลการสำรวจจากคลาวด์ โปรดรอสักครู่</p>
+                  </div>
+                ) : checklistTab === 'pending' ? (
                   pendingList.length === 0 ? (
                     <div className="empty-checklist-state">
                       <CheckCircle2 size={36} color="var(--success)" />

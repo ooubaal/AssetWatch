@@ -340,10 +340,13 @@ function App() {
 
   // Device-Specific Sync & Self-Healing Refresh Handler
   const [isDeviceRefreshing, setIsDeviceRefreshing] = useState(false);
+  const [isInitialSyncing, setIsInitialSyncing] = useState(true);
+  const [syncStatusSuccess, setSyncStatusSuccess] = useState(false);
   const [refreshToastMsg, setRefreshToastMsg] = useState<string | null>(null);
 
   const handleDeviceRefresh = async () => {
     setIsDeviceRefreshing(true);
+    setSyncStatusSuccess(false);
     setRefreshToastMsg('กำลังดึงข้อมูลอัปเดตและซิงค์เฉพาะเครื่องนี้...');
     
     try {
@@ -355,32 +358,49 @@ function App() {
       // 2. Pull fresh snapshot from database
       await fetchAllData(true);
 
+      setSyncStatusSuccess(true);
       const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       setRefreshToastMsg(`✓ รีเฟรชและซิงค์ข้อมูลเครื่องนี้สำเร็จ (${timeStr} น.)`);
+      setTimeout(() => {
+        setIsDeviceRefreshing(false);
+        setSyncStatusSuccess(false);
+      }, 1200);
       setTimeout(() => {
         setRefreshToastMsg(null);
       }, 3500);
     } catch (err: any) {
       console.error('Device refresh error:', err);
+      setIsDeviceRefreshing(false);
       setRefreshToastMsg('⚠️ ซิงค์ข้อมูลไม่สำเร็จ: ' + (err?.message || 'กรุณาลองใหม่อีกครั้ง'));
       setTimeout(() => {
         setRefreshToastMsg(null);
       }, 4000);
-    } finally {
-      setIsDeviceRefreshing(false);
     }
   };
 
   useEffect(() => {
     if (!isSetupWizardNeeded) {
-      fetchAllData(true);
+      setIsInitialSyncing(true);
+      setSyncStatusSuccess(false);
 
-      // Smart background polling: sync every 20s when tab is active
+      fetchAllData(true)
+        .then(() => {
+          setSyncStatusSuccess(true);
+          setTimeout(() => {
+            setIsInitialSyncing(false);
+            setSyncStatusSuccess(false);
+          }, 1200);
+        })
+        .catch(() => {
+          setIsInitialSyncing(false);
+        });
+
+      // Smart background polling: sync every 25s when tab is active
       const intervalId = setInterval(() => {
         if (!document.hidden) {
           fetchAllData(false);
         }
-      }, 20000);
+      }, 25000);
 
       // Immediate sync when user focuses back to tab or unlocks phone
       const handleVisibilityOrFocus = () => {
@@ -1526,7 +1546,7 @@ function App() {
                 onReopenSurveyRound={handleReopenSurveyRound}
                 currentUser={currentUser}
                 onRefreshDevice={handleDeviceRefresh}
-                isRefreshing={isDeviceRefreshing}
+                isRefreshing={isDeviceRefreshing || isInitialSyncing}
               />
             )}
             {currentTab === 'module3' && (
@@ -1804,6 +1824,165 @@ function App() {
           </form>
         </div>
       )}
+
+      {/* Global Syncing Popup Alert Modal */}
+      {(isInitialSyncing || isDeviceRefreshing) && (
+        <div className="global-sync-popup-backdrop animate-fade-in">
+          <div className={`global-sync-popup-card ${syncStatusSuccess ? 'sync-success-state' : ''}`}>
+            <div className="sync-popup-icon-bubble">
+              {syncStatusSuccess ? (
+                <CheckCircle2 size={24} color="#10b981" />
+              ) : (
+                <RotateCw size={24} className="animate-spin text-primary" />
+              )}
+            </div>
+            <div className="sync-popup-text">
+              <h4>{syncStatusSuccess ? '✓ ซิงค์ข้อมูลล่าสุดสำเร็จ!' : 'กำลังซิงค์ข้อมูลกับระบบคลาวด์...'}</h4>
+              <p>
+                {syncStatusSuccess 
+                  ? 'ข้อมูลครุภัณฑ์และผลการสำรวจล่าสุดพร้อมใช้งานแล้ว' 
+                  : 'ระบบกำลังดึงข้อมูลและอัปเดตความก้าวหน้าล่าสุด โปรดรอสักครู่'}
+              </p>
+              {!syncStatusSuccess && (
+                <div className="sync-popup-progress-track">
+                  <div className="sync-popup-progress-bar"></div>
+                </div>
+              )}
+            </div>
+            {!syncStatusSuccess && (
+              <button 
+                type="button" 
+                className="btn-sync-dismiss"
+                onClick={() => {
+                  setIsInitialSyncing(false);
+                  setIsDeviceRefreshing(false);
+                }}
+                title="ปิดการแจ้งเตือน"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .global-sync-popup-backdrop {
+          position: fixed;
+          top: 16px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 99999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 92%;
+          max-width: 440px;
+          pointer-events: auto;
+          animation: slide-down-popup 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slide-down-popup {
+          from { opacity: 0; transform: translate(-50%, -15px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+
+        .global-sync-popup-card {
+          width: 100%;
+          background: rgba(15, 23, 42, 0.95);
+          backdrop-filter: blur(12px);
+          border: 1.5px solid rgba(59, 130, 246, 0.45);
+          border-radius: var(--radius-lg, 16px);
+          padding: 0.85rem 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.85rem;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 20px rgba(59, 130, 246, 0.25);
+          color: #ffffff;
+          position: relative;
+          transition: all 0.3s ease;
+        }
+
+        .global-sync-popup-card.sync-success-state {
+          border-color: rgba(16, 185, 129, 0.6);
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .sync-popup-icon-bubble {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: rgba(59, 130, 246, 0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .sync-success-state .sync-popup-icon-bubble {
+          background: rgba(16, 185, 129, 0.2);
+        }
+
+        .sync-popup-text {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 0.15rem;
+        }
+
+        .sync-popup-text h4 {
+          margin: 0;
+          font-size: 0.875rem;
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        .sync-popup-text p {
+          margin: 0;
+          font-size: 0.72rem;
+          color: rgba(255, 255, 255, 0.75);
+          line-height: 1.35;
+        }
+
+        .sync-popup-progress-track {
+          width: 100%;
+          height: 3px;
+          background: rgba(255, 255, 255, 0.12);
+          border-radius: 2px;
+          overflow: hidden;
+          margin-top: 0.35rem;
+        }
+
+        .sync-popup-progress-bar {
+          width: 45%;
+          height: 100%;
+          background: linear-gradient(90deg, #3b82f6, #38bdf8);
+          border-radius: inherit;
+          animation: sync-indeterminate 1.3s infinite ease-in-out;
+        }
+
+        @keyframes sync-indeterminate {
+          0% { transform: translateX(-100%); width: 30%; }
+          50% { width: 60%; }
+          100% { transform: translateX(300%); width: 30%; }
+        }
+
+        .btn-sync-dismiss {
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.5);
+          font-size: 0.9rem;
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          line-height: 1;
+        }
+
+        .btn-sync-dismiss:hover {
+          color: #ffffff;
+          background: rgba(255, 255, 255, 0.1);
+        }
+      `}</style>
 
     </div>
   );
