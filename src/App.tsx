@@ -467,10 +467,10 @@ function App() {
     localStorage.removeItem('assetwatch_operator');
   };
 
-  // --- USER ACCESS & ROLE HANDLERS ---
+  // --- USER ACCESS & ROLE HANDLERS (Optimistic UI Updates) ---
   const handleCreateUser = async (user: UserAccount) => {
     await addOrUpdateUser(user);
-    await fetchAllData();
+    setUsers(prev => [...prev.filter(u => u.id !== user.id), user]);
   };
 
   const handleUpdateUser = async (id: string, updates: Partial<UserAccount>) => {
@@ -478,7 +478,7 @@ function App() {
     if (userToUpdate) {
       const updatedUser = { ...userToUpdate, ...updates };
       await addOrUpdateUser(updatedUser);
-      await fetchAllData();
+      setUsers(prev => prev.map(u => u.id === id ? updatedUser : u));
       
       // If the updated user is the active user, sync session
       if (currentUser && currentUser.id === id) {
@@ -490,18 +490,18 @@ function App() {
 
   const handleDeleteUser = async (id: string) => {
     await deleteUser(id);
-    await fetchAllData();
+    setUsers(prev => prev.filter(u => u.id !== id));
   };
 
-  // --- PM & CM MAINTENANCE HANDLERS ---
+  // --- PM & CM MAINTENANCE HANDLERS (Optimistic UI Updates) ---
   const handleAddContract = async (contract: PMContract) => {
     await addPMContract(contract);
-    await fetchAllData();
+    setContracts(prev => [...prev.filter(c => c.id !== contract.id), contract]);
   };
 
   const handleUpdateContract = async (id: string, updates: Partial<PMContract>) => {
     await updatePMContract(id, updates);
-    await fetchAllData();
+    setContracts(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   };
 
   const handleDeleteContract = async (id: string) => {
@@ -511,42 +511,43 @@ function App() {
       await deletePMSchedule(s.id);
     }
     await deletePMContract(id);
-    await fetchAllData();
+    setContracts(prev => prev.filter(c => c.id !== id));
+    setSchedules(prev => prev.filter(s => s.contractId !== id));
   };
 
   const handleAddPMSchedule = async (schedule: PMSchedule) => {
     await addPMSchedule(schedule);
-    await fetchAllData();
+    setSchedules(prev => [...prev.filter(s => s.id !== schedule.id), schedule]);
   };
 
   const handleUpdatePMSchedule = async (id: string, updates: Partial<PMSchedule>) => {
     await updatePMSchedule(id, updates);
-    await fetchAllData();
+    setSchedules(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
   };
 
   const handleDeletePMSchedule = async (id: string) => {
     await deletePMSchedule(id);
-    await fetchAllData();
+    setSchedules(prev => prev.filter(s => s.id !== id));
   };
 
   const handleUpdatePMNotification = async (id: string, updates: Partial<PMNotification>) => {
     await updatePMNotification(id, updates);
-    await fetchAllData();
+    setPmNotifications(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
   };
 
   const handleAddSparePart = async (part: SparePart) => {
     await saveSparePart(part);
-    await fetchAllData();
+    setSpareParts(prev => [...prev.filter(p => p.id !== part.id), part]);
   };
 
   const handleUpdateSparePart = async (part: SparePart) => {
     await saveSparePart(part);
-    await fetchAllData();
+    setSpareParts(prev => prev.map(p => p.id === part.id ? part : p));
   };
 
   const handleDeleteSparePart = async (id: string) => {
     await deleteSparePart(id);
-    await fetchAllData();
+    setSpareParts(prev => prev.filter(p => p.id !== id));
   };
 
   const handleLogout = () => {
@@ -609,42 +610,52 @@ function App() {
     }
   };
 
-  // --- DATABASE TRIGGER WRAPPERS ---
+  // --- DATABASE TRIGGER WRAPPERS (Optimistic UI Updates - 0 Cloud Reads) ---
   const handleAddNewAsset = async (newAsset: Asset) => {
     await addAsset(newAsset);
-    await fetchAllData();
+    setAssets(prev => [newAsset, ...prev.filter(a => a.id !== newAsset.id)]);
   };
 
   const handleBulkAddAssets = async (newAssets: Asset[]) => {
     await addAssetsBulk(newAssets);
-    await fetchAllData();
+    const newIds = new Set(newAssets.map(a => a.id));
+    setAssets(prev => [...newAssets, ...prev.filter(a => !newIds.has(a.id))]);
   };
 
   const handleUpdateAssetStatus = async (id: string, status: Asset['status'], updates?: Partial<Asset>) => {
     await updateAsset(id, { status, ...updates });
-    await fetchAllData();
+    setAssets(prev => prev.map(a => a.id === id ? { ...a, status, ...updates } : a));
   };
 
   const handleUpdateAssetTransfer = async (id: string, transferData: { location: string; department: string; responsiblePerson: string }) => {
     await updateAsset(id, transferData);
-    await fetchAllData();
+    setAssets(prev => prev.map(a => a.id === id ? { ...a, ...transferData } : a));
   };
 
   const handleLogAudit = async (trail: Omit<AuditTrail, 'id' | 'timestamp'>) => {
-    await addAuditTrail({
+    const newTrail: AuditTrail = {
       ...trail,
+      id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       timestamp: new Date().toISOString()
-    });
-    await fetchAllData();
+    };
+    await addAuditTrail(newTrail);
+    setAudits(prev => [newTrail, ...prev]);
   };
 
   const handleAddSurvey = async (survey: Omit<SurveyRecord, 'id'>) => {
-    await addSurvey(survey);
+    const surveyWithId: SurveyRecord = {
+      ...survey,
+      id: `survey-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    };
+    await addSurvey(surveyWithId);
     
-    // Dynamically calculate and update active round stats in DB
+    // 1. Optimistically update local surveys state immediately (0 cloud reads)
+    const nextSurveys = [surveyWithId, ...surveys.filter(s => s.id !== surveyWithId.id)];
+    setSurveys(nextSurveys);
+
+    // 2. Dynamically calculate and update active round stats in DB and in local state (0 cloud reads)
     if (activeRound) {
-      const allSurveys = await getSurveys();
-      const activeSurveys = allSurveys.filter(s => s.roundId === activeRound.id);
+      const activeSurveys = nextSurveys.filter(s => s.roundId === activeRound.id);
       
       const total = assets.length;
       const completed = activeSurveys.length;
@@ -668,14 +679,17 @@ function App() {
         }
       });
       
-      await updateSurveyRound(activeRound.id, {
+      const roundUpdates = {
         surveyedAssets: completed,
         completionRate: rate,
         statusBreakdown: breakdown
-      });
-    }
+      };
 
-    await fetchAllData();
+      await updateSurveyRound(activeRound.id, roundUpdates);
+
+      setActiveRound(prev => prev ? { ...prev, ...roundUpdates } : null);
+      setRounds(prev => prev.map(r => r.id === activeRound.id ? { ...r, ...roundUpdates } : r));
+    }
   };
 
   const handleCreateSurveyRound = async (name: string, operator: string) => {
@@ -705,13 +719,14 @@ function App() {
     };
 
     await addSurveyRound(newRound);
-    await fetchAllData();
+    setRounds(prev => [newRound, ...prev]);
+    setActiveRound(newRound);
   };
 
   const handleCloseActiveRound = async (operator: string) => {
     if (!activeRound) return;
 
-    const latestSurveys = await getSurveys();
+    const latestSurveys = surveys;
     const activeSurveys = latestSurveys.filter(s => s.roundId === activeRound.id);
     
     const totalAssetsCount = assets.length;
@@ -748,6 +763,10 @@ function App() {
 
     await updateSurveyRound(activeRound.id, closedRoundUpdates);
     
+    const updatedRound = { ...activeRound, ...closedRoundUpdates } as SurveyRound;
+    setRounds(prev => prev.map(r => r.id === activeRound.id ? updatedRound : r));
+    setActiveRound(null);
+
     await handleLogAudit({
       assetId: 'SYSTEM',
       assetName: `รอบการสำรวจ: ${activeRound.name}`,
@@ -755,13 +774,11 @@ function App() {
       operator: operator || 'แอดมินพัสดุ',
       details: `ปิดรอบการสำรวจประจำปีสำเร็จ อัตราการตรวจสอบ ${rate}% (ตรวจสอบแล้ว ${surveyedCount}/${totalAssetsCount} รายการ)`,
     });
-
-    await fetchAllData();
   };
 
   const handleDepartmentSignoff = async (department: string, operatorName: string) => {
     if (!activeRound) return;
-    const latestSurveys = await getSurveys();
+    const latestSurveys = surveys;
     const deptAssets = assets.filter(a => a.department === department);
     const deptSurveys = latestSurveys.filter(s => {
       if (s.roundId !== activeRound.id) return false;
@@ -782,9 +799,14 @@ function App() {
       }
     };
 
-    await updateSurveyRound(activeRound.id, {
+    const roundUpdates = {
       departmentSignoffs: updatedSignoffs
-    });
+    };
+
+    await updateSurveyRound(activeRound.id, roundUpdates);
+
+    setActiveRound(prev => prev ? { ...prev, ...roundUpdates } : null);
+    setRounds(prev => prev.map(r => r.id === activeRound.id ? { ...r, ...roundUpdates } : r));
 
     await handleLogAudit({
       assetId: 'SYSTEM',
@@ -793,8 +815,6 @@ function App() {
       operator: operatorName,
       details: `หัวหน้าฝ่าย/หน่วยงาน ${department} ยืนยันปิดรอบระดับฝ่ายเรียบร้อยแล้ว (${deptSurveys.length}/${deptAssets.length} ชิ้น)`,
     });
-
-    await fetchAllData();
   };
 
   const handleReopenSurveyRound = async (roundId: string, operatorName: string, reason?: string) => {
@@ -811,11 +831,17 @@ function App() {
       }
     ];
 
-    await updateSurveyRound(roundId, {
+    const roundUpdates: Partial<SurveyRound> = {
       status: 'active',
       dateClosed: undefined,
       reopenHistory: updatedHistory
-    });
+    };
+
+    await updateSurveyRound(roundId, roundUpdates);
+
+    setRounds(prev => prev.map(r => r.id === roundId ? { ...r, ...roundUpdates } : r));
+    const reopenedRound = { ...targetRound, ...roundUpdates };
+    setActiveRound(reopenedRound as SurveyRound);
 
     await handleLogAudit({
       assetId: 'SYSTEM',
@@ -824,11 +850,9 @@ function App() {
       operator: operatorName,
       details: `ผู้บริหาร/แอดมินดึงรอบการสำรวจกลับมาแก้ไขตรวจนับเพิ่ม (เหตุผล: ${reason || 'ดึงรอบกลับมาแก้ไข'})`,
     });
-
-    await fetchAllData();
   };
 
-  // --- MODULE 8: DEPARTMENT CONFIG HANDLERS ---
+  // --- MODULE 8: DEPARTMENT CONFIG HANDLERS (Optimistic UI Updates) ---
   const handleCreateDepartment = async (name: string, locations: string[], createdBy?: string) => {
     const newDept: DepartmentLocationConfig = {
       id: `dept-${Date.now()}`,
@@ -839,7 +863,7 @@ function App() {
       locationCreators: {}
     };
     await addDepartment(newDept);
-    await fetchAllData();
+    setDepartments(prev => [...prev.filter(d => d.id !== newDept.id), newDept]);
   };
 
   const handleUpdateDepartment = async (id: string, name: string, locations: string[], locationCreators?: Record<string, string>) => {
@@ -851,28 +875,29 @@ function App() {
       updates.locationCreators = locationCreators;
     }
     await updateDepartment(id, updates);
-    await fetchAllData();
+    setDepartments(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
   };
 
   const handleDeleteDepartment = async (id: string) => {
     await deleteDepartment(id);
-    await fetchAllData();
+    setDepartments(prev => prev.filter(d => d.id !== id));
   };
 
   const handleAddRepair = async (repair: Omit<RepairCase, 'id'>) => {
     const id = await addRepair(repair);
-    await fetchAllData();
+    const newRepair: RepairCase = { ...repair, id };
+    setRepairs(prev => [newRepair, ...prev.filter(r => r.id !== id)]);
     return id;
   };
 
   const handleUpdateRepair = async (id: string, updates: Partial<RepairCase>) => {
     await updateRepair(id, updates);
-    await fetchAllData();
+    setRepairs(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
   };
 
   const handleDeleteRepair = async (id: string) => {
     await deleteRepair(id);
-    await fetchAllData();
+    setRepairs(prev => prev.filter(r => r.id !== id));
   };
 
   // --- MODULE 6: EDIT ASSET LIFECYCLE ---
