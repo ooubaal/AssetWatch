@@ -257,10 +257,9 @@ export const compressImage = (file: File, maxWidth = 1200, maxHeight = 1200, qua
           // Calculate target dimensions before decode to avoid decoding huge 48MP raw images
           let bitmap: ImageBitmap;
           try {
-            // First attempt with native downscaling hint
+            // Native downscaling hint on decode (resizeWidth preserves aspect ratio automatically)
             bitmap = await createImageBitmap(file, {
               resizeWidth: maxWidth,
-              resizeHeight: maxHeight,
               resizeQuality: 'medium'
             });
           } catch {
@@ -355,6 +354,7 @@ export const compressImage = (file: File, maxWidth = 1200, maxHeight = 1200, qua
           (blob) => {
             canvas.width = 0;
             canvas.height = 0;
+            img.src = '';
             if (blob) {
               const cleanName = file.name.replace(/\.[^/.]+$/, "");
               const compressedFile = new File([blob], `${cleanName}_compressed.jpg`, {
@@ -373,6 +373,7 @@ export const compressImage = (file: File, maxWidth = 1200, maxHeight = 1200, qua
 
       img.onerror = () => {
         URL.revokeObjectURL(url);
+        img.src = '';
         resolve(file);
       };
     } catch (err) {

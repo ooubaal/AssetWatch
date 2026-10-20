@@ -32,6 +32,7 @@ import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
 import { uploadImage, compressFileOrPdf } from '../services/dbService';
+import { InAppCameraModal } from '../components/InAppCameraModal';
 
 interface Module2ScanSurveyProps {
   assets: Asset[];
@@ -80,31 +81,43 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [selectedDept, setSelectedDept] = useState<string>(() => localStorage.getItem('assetwatch_selected_dept') || 'all');
   const [checklistTab, setChecklistTab] = useState<'pending' | 'completed'>('pending');
 
-  const [scannedId, setScannedId] = useState<string | null>(() => {
+  const SURVEY_DRAFT_KEY = 'assetwatch_survey_active_draft_v2';
+
+  // Read saved survey draft (persists across Android OS background memory kills)
+  const getInitialDraft = () => {
     try {
-      return sessionStorage.getItem('assetwatch_draft_survey_id') || null;
+      const saved = localStorage.getItem(SURVEY_DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.assetId && Date.now() - (parsed.savedAt || 0) < 3 * 3600 * 1000) {
+          return parsed;
+        }
+      }
+      const sessionOld = sessionStorage.getItem('assetwatch_draft_survey_id');
+      if (sessionOld) return { assetId: sessionOld };
     } catch {
       return null;
     }
-  });
+    return null;
+  };
+
+  const initialDraft = useMemo(() => getInitialDraft(), []);
+
+  const [scannedId, setScannedId] = useState<string | null>(() => initialDraft?.assetId || null);
   const [scannedAsset, setScannedAsset] = useState<Asset | null>(null);
   
   // Survey Form States
-  const [selectedStatus, setSelectedStatus] = useState<Asset['status']>('ใช้งานได้');
-  const [selectedLocation, setSelectedLocation] = useState('');
-  const [customLocation, setCustomLocation] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState<Asset['status']>(() => initialDraft?.selectedStatus || 'ใช้งานได้');
+  const [selectedLocation, setSelectedLocation] = useState<string>(() => initialDraft?.selectedLocation || '');
+  const [customLocation, setCustomLocation] = useState<string>(() => initialDraft?.customLocation || '');
   const [attachImageFile, setAttachImageFile] = useState<File | null>(null);
   const [attachImagePreview, setAttachImagePreview] = useState<string | null>(null);
   
   const [saving, setSaving] = useState(false);
   const [surveySuccess, setSurveySuccess] = useState(false);
-  const [isNewScanNeeded, setIsNewScanNeeded] = useState(() => {
-    try {
-      return !sessionStorage.getItem('assetwatch_draft_survey_id');
-    } catch {
-      return true;
-    }
-  });
+  const [isNewScanNeeded, setIsNewScanNeeded] = useState<boolean>(() => !initialDraft?.assetId);
+  const [isDraftRestoredNotice, setIsDraftRestoredNotice] = useState<boolean>(() => Boolean(initialDraft?.assetId));
+  const [isInAppCameraOpen, setIsInAppCameraOpen] = useState(false);
 
   // Survey Round Manager States
   const [newRoundName, setNewRoundName] = useState('');
@@ -270,9 +283,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
     setIsNewScanNeeded(false);
     setScannedId(cleanedId);
-    try {
-      sessionStorage.setItem('assetwatch_draft_survey_id', cleanedId);
-    } catch {}
+    saveSurveyDraft(cleanedId, found ? found.status : 'ใช้งานได้', found ? (found.location || '') : '', '');
     
     if (found) {
       setScannedAsset(found);
@@ -288,24 +299,55 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     }
   };
 
-  // Sync scannedAsset if restored from draft session storage on page reload
+  // Helper to persist draft across mobile OS kills
+  const saveSurveyDraft = (id: string, status?: Asset['status'], loc?: string, custLoc?: string) => {
+    try {
+      localStorage.setItem(SURVEY_DRAFT_KEY, JSON.stringify({
+        assetId: id,
+        selectedStatus: status !== undefined ? status : selectedStatus,
+        selectedLocation: loc !== undefined ? loc : selectedLocation,
+        customLocation: custLoc !== undefined ? custLoc : customLocation,
+        savedAt: Date.now()
+      }));
+      sessionStorage.setItem('assetwatch_draft_survey_id', id);
+    } catch {}
+  };
+
+  const clearSurveyDraft = () => {
+    try {
+      localStorage.removeItem(SURVEY_DRAFT_KEY);
+      sessionStorage.removeItem('assetwatch_draft_survey_id');
+    } catch {}
+    setIsDraftRestoredNotice(false);
+  };
+
+  // Auto-sync survey draft changes to localStorage
+  useEffect(() => {
+    if (scannedId) {
+      saveSurveyDraft(scannedId, selectedStatus, selectedLocation, customLocation);
+    }
+  }, [scannedId, selectedStatus, selectedLocation, customLocation]);
+
+  // Sync scannedAsset if restored from draft on page reload
   useEffect(() => {
     if (scannedId && !scannedAsset && assets.length > 0) {
       const found = assets.find(a => (a.id || '').toLowerCase() === (scannedId || '').toLowerCase());
       if (found) {
         setScannedAsset(found);
-        setSelectedStatus(found.status);
-        setSelectedLocation(found.location || '');
+        if (!initialDraft?.selectedStatus) {
+          setSelectedStatus(found.status);
+        }
+        if (!initialDraft?.selectedLocation) {
+          setSelectedLocation(found.location || '');
+        }
       }
     }
-  }, [scannedId, scannedAsset, assets]);
+  }, [scannedId, scannedAsset, assets, initialDraft]);
 
   const handleManualCountSelect = (asset: Asset) => {
     setIsNewScanNeeded(false);
     setScannedId(asset.id);
-    try {
-      sessionStorage.setItem('assetwatch_draft_survey_id', asset.id);
-    } catch {}
+    saveSurveyDraft(asset.id, asset.status, asset.location || '', '');
     setScannedAsset(asset);
     setSelectedStatus(asset.status);
     setSelectedLocation(asset.location || '');
@@ -449,9 +491,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       }
       setAttachImageFile(null);
       setAttachImagePreview(null);
-      try {
-        sessionStorage.removeItem('assetwatch_draft_survey_id');
-      } catch {}
+      clearSurveyDraft();
     } catch (e: any) {
       console.error('Survey submit error:', e);
       alert('เกิดข้อผิดพลาดในการบันทึกผลการสำรวจ: ' + (e?.message || 'กรุณาลองใหม่อีกครั้ง'));
@@ -472,9 +512,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     setCustomLocation('');
     setSurveySuccess(false);
     setIsNewScanNeeded(true);
-    try {
-      sessionStorage.removeItem('assetwatch_draft_survey_id');
-    } catch {}
+    clearSurveyDraft();
   };
 
   const statusColors: Record<string, string> = {
@@ -881,6 +919,26 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           {/* CASE 3: Asset Scanned Successfully, displaying Confirm Form */}
           {scannedId && scannedAsset && !surveySuccess && (
             <form onSubmit={handleSurveySubmit} className="survey-form-panel glass-panel">
+              {/* Auto-Draft Restored Notice Banner */}
+              {isDraftRestoredNotice && (
+                <div className="survey-draft-restored-banner animate-fade-in">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flex: 1 }}>
+                    <span style={{ fontSize: '1rem' }}>🛡️</span>
+                    <span>
+                      <strong>กู้คืนรายการตรวจนับอัตโนมัติ:</strong> ระบบบันทึกข้อมูลครุภัณฑ์นี้ไว้ให้เรียบร้อยแล้ว แม้สลับถ่ายภาพหรือเบราว์เซอร์รีเฟรช ข้อมูลก็ไม่สูญหาย
+                    </span>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsDraftRestoredNotice(false)}
+                    className="btn-dismiss-banner"
+                    title="ปิดข้อความแจ้งเตือน"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
               <div className="survey-asset-brief">
                 <img 
                   src={scannedAsset.imageUrl || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60'} 
@@ -936,7 +994,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               <div className="form-group">
                 <label className="form-label">📸 แนบรูปภาพ หรือ เอกสาร PDF ถ่ายตรวจสอบสภาพ (ตัวเลือกกรณีมีปัญหา)</label>
                 <div className="survey-upload-trigger">
-                  {/* Direct Rear Camera Input */}
+                  {/* Direct Rear Camera Input (Fallback) */}
                   <input 
                     ref={surveyCameraInputRef}
                     type="file" 
@@ -965,10 +1023,10 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                         <button
                           type="button"
                           className="btn-preview-action"
-                          onClick={() => surveyCameraInputRef.current?.click()}
-                          title="เปิดกล้องถ่ายภาพใหม่ (กล้องหลัง)"
+                          onClick={() => setIsInAppCameraOpen(true)}
+                          title="เปิดกล้องถ่ายภาพใหม่ (In-App Camera)"
                         >
-                          <Camera size={13} color="#10b981" /> ถ่ายใหม่ (กล้อง)
+                          <Camera size={13} color="#10b981" /> ถ่ายใหม่ (กล้องด่วน)
                         </button>
                         <button
                           type="button"
@@ -976,7 +1034,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                           onClick={() => surveyDocInputRef.current?.click()}
                           title="เลือกเอกสารหรือรูปภาพใหม่จากเครื่อง"
                         >
-                          <FileText size={13} color="#3b82f6" /> เปลี่ยนไฟล์ (เอกสาร)
+                          <FileText size={13} color="#3b82f6" /> เปลี่ยนไฟล์ (เอกสาร/คลังภาพ)
                         </button>
                         <button
                           type="button"
@@ -990,18 +1048,19 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                     </div>
                   ) : (
                     <div className="upload-choice-grid">
-                      {/* Option 1: Open Camera directly (default rear camera) */}
+                      {/* Option 1: In-App Camera directly (No app switching, zero crash, ultra low RAM) */}
                       <button 
                         type="button"
-                        className="upload-choice-card"
-                        onClick={() => surveyCameraInputRef.current?.click()}
+                        className="upload-choice-card upload-choice-inapp"
+                        onClick={() => setIsInAppCameraOpen(true)}
+                        title="เปิดกล้องถ่ายในหน้าเว็บโดยตรง ไม่สลับแอป หมดปัญหาแอปหลุดหรือหน่วยความจำไม่พอ 100%"
                       >
-                        <div className="upload-choice-icon-bubble camera-bubble">
+                        <div className="upload-choice-icon-bubble camera-bubble inapp-bubble">
                           <Camera size={24} />
                         </div>
                         <div className="upload-choice-info">
-                          <span className="upload-choice-main">ถ่ายภาพทันที</span>
-                          <span className="upload-choice-sub">เปิดกล้องหลัง</span>
+                          <span className="upload-choice-main">ถ่ายภาพด่วน (แนะนำ) ⚡</span>
+                          <span className="upload-choice-sub">กล้องในเว็บ ไม่สลับแอป ไม่เด้ง</span>
                         </div>
                       </button>
 
@@ -1010,13 +1069,14 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                         type="button"
                         className="upload-choice-card"
                         onClick={() => surveyDocInputRef.current?.click()}
+                        title="เลือกรูปภาพจากคลังเครื่อง หรือ แนบเอกสาร PDF"
                       >
                         <div className="upload-choice-icon-bubble doc-bubble">
                           <FileText size={24} />
                         </div>
                         <div className="upload-choice-info">
-                          <span className="upload-choice-main">แนบเอกสาร / ไฟล์</span>
-                          <span className="upload-choice-sub">PDF หรือ คลังภาพ</span>
+                          <span className="upload-choice-main">แนบเอกสาร / คลังภาพ</span>
+                          <span className="upload-choice-sub">PDF หรือ คลังภาพในเครื่อง</span>
                         </div>
                       </button>
                     </div>
@@ -2616,7 +2676,69 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
             max-width: 100% !important;
           }
         }
+
+        /* Auto-Draft Restored Banner */
+        .survey-draft-restored-banner {
+          background: rgba(59, 130, 246, 0.12);
+          border: 1px solid rgba(59, 130, 246, 0.35);
+          color: var(--text-primary);
+          padding: 0.65rem 0.85rem;
+          border-radius: var(--radius-md);
+          font-size: 0.775rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.5rem;
+          margin-bottom: 0.9rem;
+        }
+
+        .btn-dismiss-banner {
+          background: transparent;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          font-size: 0.85rem;
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+
+        .btn-dismiss-banner:hover {
+          color: var(--text-primary);
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .upload-choice-inapp {
+          border-color: rgba(16, 185, 129, 0.45);
+          background: rgba(16, 185, 129, 0.03);
+        }
+
+        .upload-choice-inapp:hover {
+          border-color: #10b981;
+          background: rgba(16, 185, 129, 0.08);
+        }
+
+        .inapp-bubble {
+          background: rgba(16, 185, 129, 0.16) !important;
+          color: #10b981 !important;
+          border-color: rgba(16, 185, 129, 0.4) !important;
+        }
       `}</style>
+
+      {/* In-App Camera Modal for Crash-Proof Photo Capture */}
+      <InAppCameraModal
+        isOpen={isInAppCameraOpen}
+        onClose={() => setIsInAppCameraOpen(false)}
+        onCapture={(file) => {
+          if (attachImagePreview && attachImagePreview.startsWith('blob:')) {
+            URL.revokeObjectURL(attachImagePreview);
+          }
+          setAttachImageFile(file);
+          const previewUrl = URL.createObjectURL(file);
+          setAttachImagePreview(previewUrl);
+        }}
+        title={`ถ่ายภาพสภาพครุภัณฑ์ (${scannedAsset?.id || scannedId || ''})`}
+        subtitle="ถ่ายผ่านหน้าเว็บโดยตรง ไม่สลับแอป ป้องกันปัญหาแอปหลุดหรือหน่วยความจำไม่พอ 100%"
+      />
     </div>
   );
 };
