@@ -217,6 +217,38 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   };
 
+  // Calculate exact crop rectangle from video element matching the visual .scanner-overlay-aim (accounting for object-fit: cover)
+  const getAimBoxCropRect = (videoEl: HTMLVideoElement) => {
+    const vw = videoEl.videoWidth;
+    const vh = videoEl.videoHeight;
+    if (!vw || !vh) return null;
+
+    const container = videoEl.closest('.video-container') as HTMLElement | null;
+    const containerW = container && container.offsetWidth > 0 ? container.offsetWidth : 360;
+    const containerH = container && container.offsetHeight > 0 ? container.offsetHeight : 360;
+
+    // The video element is rendered with `object-fit: cover`
+    const scale = Math.max(containerW / vw, containerH / vh);
+    const renderedW = vw * scale;
+    const renderedH = vh * scale;
+    const offsetX = (renderedW - containerW) / 2;
+    const offsetY = (renderedH - containerH) / 2;
+
+    // Aim reticle in container coordinates: width 84% max 480px, height 48% max 240px, centered
+    const aimW = Math.min(containerW * 0.84, 480);
+    const aimH = Math.min(containerH * 0.48, 240);
+    const aimX = (containerW - aimW) / 2;
+    const aimY = (containerH - aimH) / 2;
+
+    // Convert aim box coordinates back to video sensor pixels
+    const cropX = Math.max(0, Math.floor((aimX + offsetX) / scale));
+    const cropY = Math.max(0, Math.floor((aimY + offsetY) / scale));
+    const cropW = Math.min(vw - cropX, Math.floor(aimW / scale));
+    const cropH = Math.min(vh - cropY, Math.floor(aimH / scale));
+
+    return { cropX, cropY, cropW, cropH };
+  };
+
   // High-Performance Hybrid Detection Loop (Hardware BarcodeDetector on Android + High-Res ZXing on iOS)
   const startNativeBarcodeDetectorLoop = useCallback(async (videoEl: HTMLVideoElement) => {
     let nativeDetector: any = null;
@@ -283,34 +315,33 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         if (!isDetecting && videoEl.readyState >= 2) {
           isDetecting = true;
           try {
-            // STEP 1: If device supports native 1D detection (Android ML Kit), use it directly
-            if (nativeDetector && hasNative1D) {
-              const barcodes = await nativeDetector.detect(videoEl);
-              if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
-                triggerSuccessFeedback(barcodes[0].rawValue);
-                isDetecting = false;
-                nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
-                return;
-              }
-            }
-
-            // STEP 2: High-Resolution Optical Crop Decoder (Crucial for iPhone / iOS Safari)
             if (offscreenCtx) {
-              const vw = videoEl.videoWidth;
-              const vh = videoEl.videoHeight;
-              if (vw > 0 && vh > 0) {
-                // Focus on central 84% x 50% matching the blue aiming reticle
-                const cropW = Math.floor(vw * 0.84);
-                const cropH = Math.floor(vh * 0.50);
-                const cropX = Math.floor((vw - cropW) / 2);
-                const cropY = Math.floor((vh - cropH) / 2);
-
+              const crop = getAimBoxCropRect(videoEl);
+              if (crop && crop.cropW > 0 && crop.cropH > 0) {
+                // Render ONLY the cropped content within the visual aiming reticle to offscreen canvas
                 offscreenCtx.drawImage(
                   videoEl,
-                  cropX, cropY, cropW, cropH,
+                  crop.cropX, crop.cropY, crop.cropW, crop.cropH,
                   0, 0, 720, 360
                 );
 
+                // STEP 1: Hardware BarcodeDetector on cropped canvas (Android ML Kit)
+                // Passing offscreenCanvas guarantees BarcodeDetector NEVER reads anything outside the aiming box
+                if (nativeDetector && hasNative1D) {
+                  try {
+                    const barcodes = await nativeDetector.detect(offscreenCanvas);
+                    if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                      triggerSuccessFeedback(barcodes[0].rawValue);
+                      isDetecting = false;
+                      nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
+                      return;
+                    }
+                  } catch (e) {
+                    // Fall through to ZXing
+                  }
+                }
+
+                // STEP 2: High-Resolution Optical Crop Decoder (Crucial for iPhone / iOS Safari)
                 try {
                   const lum = new HTMLCanvasElementLuminanceSource(offscreenCanvas);
                   const bitmap = new BinaryBitmap(new HybridBinarizer(lum));
@@ -337,20 +368,20 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                     // Normal frame non-detection
                   }
                 }
-              }
-            }
 
-            // STEP 3: Check native detector for 2D QR codes (supported on iOS Safari)
-            if (nativeDetector && !hasNative1D) {
-              try {
-                const barcodes = await nativeDetector.detect(videoEl);
-                if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
-                  triggerSuccessFeedback(barcodes[0].rawValue);
-                  isDetecting = false;
-                  nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
-                  return;
+                // STEP 3: Native detector fallback for 2D QR codes on cropped canvas
+                if (nativeDetector && !hasNative1D) {
+                  try {
+                    const barcodes = await nativeDetector.detect(offscreenCanvas);
+                    if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                      triggerSuccessFeedback(barcodes[0].rawValue);
+                      isDetecting = false;
+                      nativeDetectorLoopRef.current = requestAnimationFrame(detectFrame);
+                      return;
+                    }
+                  } catch {}
                 }
-              } catch {}
+              }
             }
           } catch (detErr) {
             // Ignore single frame detection error
@@ -465,26 +496,13 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           Html5QrcodeSupportedFormats.EAN_8
         ];
 
-        // On iOS Safari, native BarcodeDetector only supports QR code and breaks when 1D barcodes are passed
-        // Use native detector inside Html5Qrcode only if it actually supports code_128
-        let useNativeInHtml5Qr = false;
-        if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
-          try {
-            const BDetector = (window as any).BarcodeDetector;
-            if (typeof BDetector.getSupportedFormats === 'function') {
-              const supported: string[] = await BDetector.getSupportedFormats();
-              useNativeInHtml5Qr = supported.includes('code_128');
-            }
-          } catch {
-            useNativeInHtml5Qr = false;
-          }
-        }
-
+        // Note: Do not enable BarcodeDetector inside Html5Qrcode because Html5Qrcode runs it on the full video frame,
+        // which ignores the bounding reticle. Our dedicated loop below handles BarcodeDetector strictly cropped to the reticle.
         const html5Qr = new Html5Qrcode(scannerId, {
           verbose: false,
           formatsToSupport: supportedFormats,
           experimentalFeatures: {
-            useBarCodeDetectorIfSupported: useNativeInHtml5Qr
+            useBarCodeDetectorIfSupported: false
           }
         });
         qrCodeInstanceRef.current = html5Qr;
@@ -629,24 +647,11 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           Html5QrcodeSupportedFormats.EAN_8
         ];
 
-        let useNativeInHtml5Qr = false;
-        if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
-          try {
-            const BDetector = (window as any).BarcodeDetector;
-            if (typeof BDetector.getSupportedFormats === 'function') {
-              const supported: string[] = await BDetector.getSupportedFormats();
-              useNativeInHtml5Qr = supported.includes('code_128');
-            }
-          } catch {
-            useNativeInHtml5Qr = false;
-          }
-        }
-
         const html5Qr = new Html5Qrcode(scannerId, {
           verbose: false,
           formatsToSupport: supportedFormats,
           experimentalFeatures: {
-            useBarCodeDetectorIfSupported: useNativeInHtml5Qr
+            useBarCodeDetectorIfSupported: false
           }
         });
         qrCodeInstanceRef.current = html5Qr;
@@ -865,7 +870,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flex: 1 }}>
             <span style={{ fontSize: '1rem' }}>💡</span>
             <span>
-              <strong>คำแนะนำสำหรับ iPhone 15 / ทุกรุ่น:</strong> ถือกล้องห่างบาร์โค้ดประมาณ <strong>15–20 ซม.</strong> (ระยะ 1 ฝ่ามือ) ให้บาร์โค้ดอยู่กลางกรอบสีฟ้า (หากภาพเบลอแตะหน้าจอ 1 ครั้งเพื่อโฟกัส)
+              <strong>คำแนะนำการสแกน:</strong> วางบาร์โค้ดให้อยู่ใน <strong>กรอบสีฟ้าตรงกลาง</strong> เท่านั้น (ระบบจะตัดส่วนรอบนอกออกเพื่อป้องกันการสแกนผิดตัว) ระยะห่าง 15–20 ซม. หากเบลอแตะหน้าจอ 1 ครั้งเพื่อโฟกัส
             </span>
           </div>
           <button 
@@ -1029,13 +1034,14 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           height: 48%;
           max-width: 480px;
           max-height: 240px;
-          border: 1px dashed rgba(255, 255, 255, 0.35);
+          border: 1.5px solid rgba(59, 130, 246, 0.65);
           border-radius: var(--radius-sm);
           pointer-events: none;
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 10;
+          box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.52);
         }
 
         #qr-shaded-region {
