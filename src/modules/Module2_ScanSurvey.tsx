@@ -26,7 +26,9 @@ import {
   RotateCcw,
   Search,
   Trash2,
-  RotateCw
+  RotateCw,
+  FileSpreadsheet,
+  Download
 } from 'lucide-react';
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -513,6 +515,83 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     setSurveySuccess(false);
     setIsNewScanNeeded(true);
     clearSurveyDraft();
+  };
+
+  // Export survey round data to CSV (Excel-ready with UTF-8 BOM, supports room filtering & analysis)
+  const handleExportRoundCSV = (targetRound: SurveyRound | null) => {
+    if (!targetRound) return;
+
+    // Filter assets by selected department in the rounds manager view
+    const roundAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
+
+    if (roundAssets.length === 0) {
+      alert('ไม่พบรายการครุภัณฑ์สำหรับส่งออกรายงาน');
+      return;
+    }
+
+    const headers = [
+      'ลำดับ',
+      'รหัสครุภัณฑ์',
+      'ชื่อรายการครุภัณฑ์',
+      'หน่วยงาน/ฝ่าย',
+      'ห้อง/สถานที่จัดเก็บตามระบบ',
+      'สถานะการตรวจนับในรอบนี้',
+      'สภาพครุภัณฑ์ที่ยืนยัน',
+      'วันที่-เวลาที่สแกนตรวจนับ',
+      'ผู้ตรวจสอบนับ',
+      'มีรูปภาพแนบ',
+      'ลิงก์รูปภาพสภาพครุภัณฑ์',
+      'ชื่องานรอบการสำรวจ'
+    ];
+
+    const escapeCsv = (val: any) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = roundAssets.map((asset, idx) => {
+      const survey = surveys.find(s => s.roundId === targetRound.id && s.assetId === asset.id);
+      const isSurveyed = Boolean(survey);
+
+      const progressStatus = isSurveyed ? 'สำรวจแล้ว' : 'ค้างสำรวจ (ยังไม่ได้ตรวจนับ)';
+      const condition = isSurveyed ? (survey?.status || asset.status) : asset.status;
+      const surveyTime = survey ? new Date(survey.timestamp).toLocaleString('th-TH') : '-';
+      const surveyor = survey?.operator || (isSurveyed ? targetRound.operator : '-');
+      const hasImage = survey?.imageUrl ? 'มีรูปภาพ' : (asset.imageUrl ? 'มีรูปภาพเดิม' : 'ไม่มี');
+      const imageUrl = survey?.imageUrl || asset.imageUrl || '-';
+
+      return [
+        idx + 1,
+        escapeCsv(asset.id),
+        escapeCsv(asset.name),
+        escapeCsv(asset.department),
+        escapeCsv(asset.location || '-'),
+        escapeCsv(progressStatus),
+        escapeCsv(condition),
+        escapeCsv(surveyTime),
+        escapeCsv(surveyor),
+        escapeCsv(hasImage),
+        escapeCsv(imageUrl),
+        escapeCsv(targetRound.name)
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    const deptSuffix = selectedRoundDept !== 'all' ? `_${selectedRoundDept}` : '_ทุกฝ่าย';
+    const cleanRoundName = targetRound.name.replace(/[/\\?%*:|"<>]/g, '_');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    link.setAttribute('download', `รายงานผลสำรวจครุภัณฑ์_${cleanRoundName}${deptSuffix}_${dateStr}.csv`);
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const statusColors: Record<string, string> = {
@@ -1231,11 +1310,22 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
                       <button 
                         type="button" 
+                        className="btn btn-success"
+                        onClick={() => handleExportRoundCSV(activeRound)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
+                        title="ดาวน์โหลดข้อมูลรอบปัจจุบันเป็นไฟล์ CSV (เปิดใน Excel ได้ทันที ฟิลเตอร์ดูห้องที่ยังไม่ครบได้ง่าย)"
+                      >
+                        <FileSpreadsheet size={16} /> 📊 ส่งออกรายงานรอบปัจจุบัน (CSV / Excel)
+                      </button>
+
+                      <button 
+                        type="button" 
                         className="btn btn-secondary"
                         onClick={() => setPrintingRound(activeRound)}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                        title="ดูตัวอย่างเอกสารทางการแบบหน้ากระดาษ A4"
                       >
-                        <Printer size={15} /> 🖨️ ออกรายงานรอบปัจจุบัน
+                        <Printer size={15} /> พิมพ์รายงาน A4 (PDF)
                       </button>
 
                       {/* Head: Department level signoff/close */}
@@ -1523,6 +1613,16 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                             <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                               <button 
                                 type="button" 
+                                className="btn btn-success btn-xs"
+                                onClick={() => handleExportRoundCSV(round)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 600 }}
+                                title="ดาวน์โหลดไฟล์ CSV (Excel)"
+                              >
+                                <FileSpreadsheet size={12} /> ส่งออก CSV
+                              </button>
+
+                              <button 
+                                type="button" 
                                 className="btn btn-secondary btn-xs"
                                 onClick={() => setPrintingRound(round)}
                                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
@@ -1567,7 +1667,16 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               <h4 style={{ fontWeight: 800, color: 'var(--primary)' }}>🖨️ ตัวอย่างก่อนพิมพ์รายงานราชการ (A4 Preview)</h4>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>เอกสารทางการจัดรูปแบบตามมาตรฐาน สำหรับเสนอรายงานผู้บริหารหรือพิมพ์ลงกระดาษ A4</p>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button 
+                type="button" 
+                className="btn btn-success" 
+                onClick={() => handleExportRoundCSV(printingRound)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                title="ส่งออกรายงานรอบนี้เป็นไฟล์ CSV (Excel)"
+              >
+                <FileSpreadsheet size={16} /> ส่งออก CSV (Excel)
+              </button>
               <button 
                 type="button" 
                 className="btn btn-secondary" 
@@ -2644,36 +2753,43 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
         /* GOVERNMENT A4 DOCUMENT PRINT STYLES */
         @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          #root, #root * {
-            visibility: hidden !important;
-          }
-          .print-preview-overlay, .print-preview-overlay * {
-            visibility: visible !important;
-          }
-          .print-preview-overlay {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
+          html, body {
+            background: #ffffff !important;
+            color: #000000 !important;
             height: auto !important;
-            background: white !important;
-            padding: 0 !important;
-            margin: 0 !important;
             overflow: visible !important;
           }
-          .print-actions-bar {
+          /* Hide surrounding app elements */
+          .sidebar-container,
+          .header-bar,
+          .survey-setup-bar,
+          .checklist-progress-panel,
+          .survey-layout-grid,
+          .rounds-manager-card,
+          .print-actions-bar,
+          .inapp-camera-modal-overlay {
             display: none !important;
+          }
+          .print-preview-overlay {
+            position: static !important;
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+            z-index: auto !important;
           }
           .printable-a4-document {
             box-shadow: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
+            margin: 0 auto !important;
+            padding: 1.5rem !important;
             border: none !important;
             width: 100% !important;
             max-width: 100% !important;
+            background: #ffffff !important;
+            color: #000000 !important;
           }
         }
 
