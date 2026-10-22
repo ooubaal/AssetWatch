@@ -33,7 +33,7 @@ import {
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
-import { uploadImage, compressFileOrPdf } from '../services/dbService';
+import { uploadImage, compressFileOrPdf, isDefaultPlaceholder } from '../services/dbService';
 import { InAppCameraModal } from '../components/InAppCameraModal';
 
 interface Module2ScanSurveyProps {
@@ -107,6 +107,17 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
   const [scannedId, setScannedId] = useState<string | null>(() => initialDraft?.assetId || null);
   const [scannedAsset, setScannedAsset] = useState<Asset | null>(null);
+
+  const effectiveScannedImage = useMemo(() => {
+    if (!scannedAsset) return '';
+    if (scannedAsset.imageUrl && !isDefaultPlaceholder(scannedAsset.imageUrl)) {
+      return scannedAsset.imageUrl;
+    }
+    const withPhoto = surveys
+      .filter(s => s.assetId === scannedAsset.id && s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return withPhoto[0]?.imageUrl || scannedAsset.imageUrl || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+  }, [scannedAsset, surveys]);
   
   // Survey Form States
   const [selectedStatus, setSelectedStatus] = useState<Asset['status']>(() => initialDraft?.selectedStatus || 'ใช้งานได้');
@@ -1044,7 +1055,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
               <div className="survey-asset-brief">
                 <img 
-                  src={scannedAsset.imageUrl || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60'} 
+                  src={effectiveScannedImage} 
                   alt={scannedAsset.name} 
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement;

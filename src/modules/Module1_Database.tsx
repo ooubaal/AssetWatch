@@ -10,7 +10,7 @@ import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule, S
 import { AssetModal } from '../components/AssetModal';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
-import { deleteAsset } from '../services/dbService';
+import { deleteAsset, isDefaultPlaceholder, cleanAssetNote } from '../services/dbService';
 
 const FALLBACK_ASSET_IMG = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
 
@@ -72,6 +72,26 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   
   // Selected asset for viewing details in modal
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+
+  // Map of latest survey photos per asset for instant live display
+  const latestSurveyImageMap = useMemo(() => {
+    const map = new Map<string, string>();
+    const sorted = [...surveys].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    for (const s of sorted) {
+      if (s.assetId && s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl)) {
+        map.set(s.assetId, s.imageUrl);
+      }
+    }
+    return map;
+  }, [surveys]);
+
+  const getEffectiveAssetImage = (asset: Asset) => {
+    if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) {
+      return asset.imageUrl;
+    }
+    const surveyImg = latestSurveyImageMap.get(asset.id);
+    return surveyImg || asset.imageUrl || FALLBACK_ASSET_IMG;
+  };
   
   // State for Report Print Modal & Scanner Modal
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -924,7 +944,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
             <div key={asset.id} className="asset-card glass-panel" onClick={() => setSelectedAsset(asset)}>
               <div className="asset-card-image-box">
                 <img 
-                  src={asset.imageUrl || FALLBACK_ASSET_IMG} 
+                  src={getEffectiveAssetImage(asset)} 
                   alt={asset.name || 'ครุภัณฑ์'}
                   loading="lazy"
                   decoding="async"
@@ -941,10 +961,10 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
               <div className="asset-card-body">
                 <span className="asset-card-id">{asset.id}</span>
                 <h3 className="asset-card-title">{asset.name}</h3>
-                {asset.note && (
+                {cleanAssetNote(asset.note) && (
                   <div style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', padding: '0.15rem 0.4rem', borderRadius: '4px', margin: '0.2rem 0 0.35rem 0', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', maxWidth: '100%' }}>
                     <span>🏷️</span>
-                    <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{asset.note}</span>
+                    <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cleanAssetNote(asset.note)}</span>
                   </div>
                 )}
                 <div className="asset-card-meta">
@@ -1041,9 +1061,9 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                   <td><code>{asset.id}</code></td>
                   <td>
                     <strong style={{ color: 'var(--text-primary)' }}>{asset.name}</strong>
-                    {asset.note && (
+                    {cleanAssetNote(asset.note) && (
                       <div style={{ fontSize: '0.725rem', color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '2px' }}>
-                        🏷️ {asset.note}
+                        🏷️ {cleanAssetNote(asset.note)}
                       </div>
                     )}
                   </td>

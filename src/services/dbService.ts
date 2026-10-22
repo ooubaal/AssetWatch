@@ -449,6 +449,16 @@ export const uploadImage = async (file: File, path: string = 'assets'): Promise<
 };
 
 // --- ASSET SERVICES ---
+export const isDefaultPlaceholder = (url?: string): boolean => {
+  if (!url || typeof url !== 'string' || !url.trim()) return true;
+  return url.includes('photo-1531403009284-440f080d1e12') || url.includes('photo-1518455027359-f3f8164ba6bd');
+};
+
+export const cleanAssetNote = (note?: string): string => {
+  if (!note || typeof note !== 'string') return '';
+  return note.replace(/\s*\(สำรวจล่าสุด:[^)]+\)\s*/g, '').trim();
+};
+
 // Helper to ensure all Blood Bag assets from PDF are synced into LocalStorage and Firestore
 const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: any): Promise<Asset[]> => {
   // Normalize all incoming assets in the list first
@@ -457,6 +467,7 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
     let changed = false;
     let dept = a.department;
     let resp = a.responsiblePerson;
+    let note = a.note;
     
     // Normalize both variants of the department name to the correct longer name
     if (dept === "ฝ่ายผลิตถุงบรรจุโลหิต" || dept === "ฝ่ายผลิตถุงบรรจุโลหิต ") {
@@ -467,10 +478,16 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
       resp = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา";
       changed = true;
     }
+
+    // Clean legacy "(สำรวจล่าสุด: ...)" debug strings from asset note
+    if (note && note.includes('สำรวจล่าสุด:')) {
+      note = cleanAssetNote(note);
+      changed = true;
+    }
     
     if (changed) {
       listHasChanged = true;
-      return { ...a, department: dept, responsiblePerson: resp };
+      return { ...a, department: dept, responsiblePerson: resp, note };
     }
     return a;
   });
@@ -494,12 +511,11 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
         // Also update any normalized/migrated/missing assets in Firestore
         const changedAssets = updatedList.filter(a => {
           const original = assetsList.find(orig => orig.id === a.id);
-          // Update in Firestore if it was missing or had the old value
+          // Update in Firestore if it was missing or had the old values
           return !original || 
-                 original.department === "ฝ่ายผลิตถุงบรรจุโลหิต" || 
-                 original.department === "ฝ่ายผลิตถุงบรรจุโลหิต " ||
-                 original.responsiblePerson === "ฝ่ายผลิตถุงบรรจุโลหิต" ||
-                 original.responsiblePerson === "ฝ่ายผลิตถุงบรรจุโลหิต ";
+                 original.department !== a.department ||
+                 original.responsiblePerson !== a.responsiblePerson ||
+                 original.note !== a.note;
         });
 
         for (const asset of changedAssets) {
@@ -551,6 +567,76 @@ export const getAssets = async (): Promise<Asset[]> => {
   const localList: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
   const syncedLocal = await syncBloodBagAssets(localList, false, null);
   return syncedLocal;
+};
+
+/**
+ * Automatically sync all assets that have surveys with attached photos:
+ * If an asset has no real photo or only has a default placeholder image,
+ * update its imageUrl to the latest survey photo in both memory, localStorage, and Firestore.
+ */
+export const syncAssetsWithSurveyPhotos = async (
+  assetsList: Asset[], 
+  surveysList: SurveyRecord[]
+): Promise<{ syncedAssets: Asset[]; updatedCount: number }> => {
+  if (!assetsList.length || !surveysList.length) {
+    return { syncedAssets: assetsList, updatedCount: 0 };
+  }
+
+  // 1. Map each asset to its latest survey photo
+  const latestPhotoMap = new Map<string, string>();
+  const sortedSurveys = [...surveysList].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  for (const s of sortedSurveys) {
+    if (s.assetId && s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl)) {
+      latestPhotoMap.set(s.assetId, s.imageUrl);
+    }
+  }
+
+  if (latestPhotoMap.size === 0) {
+    return { syncedAssets: assetsList, updatedCount: 0 };
+  }
+
+  // 2. Identify assets needing photo update
+  const toUpdate: Asset[] = [];
+  const syncedAssets = assetsList.map(asset => {
+    const surveyPhoto = latestPhotoMap.get(asset.id);
+    if (surveyPhoto && isDefaultPlaceholder(asset.imageUrl)) {
+      const updatedAsset = { ...asset, imageUrl: surveyPhoto };
+      toUpdate.push(updatedAsset);
+      return updatedAsset;
+    }
+    return asset;
+  });
+
+  if (toUpdate.length === 0) {
+    return { syncedAssets: assetsList, updatedCount: 0 };
+  }
+
+  console.log(`Auto-syncing ${toUpdate.length} asset photos from survey records...`);
+
+  // 3. Update localStorage
+  try {
+    safeSetItem('assetwatch_assets', JSON.stringify(syncedAssets));
+  } catch (err) {
+    console.warn('Failed to update localStorage with synced photos:', err);
+  }
+
+  // 4. Update Firestore in the background
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    (async () => {
+      try {
+        for (const asset of toUpdate) {
+          const docRef = doc(db, 'assets', asset.id);
+          await updateDoc(docRef, { imageUrl: asset.imageUrl, updatedAt: new Date().toISOString() });
+        }
+        console.log(`Successfully updated ${toUpdate.length} assets with latest survey photos in Firestore.`);
+      } catch (e) {
+        console.warn('Failed updating asset photos in Firestore:', e);
+      }
+    })();
+  }
+
+  return { syncedAssets, updatedCount: toUpdate.length };
 };
 
 export const getAsset = async (id: string): Promise<Asset | null> => {
@@ -624,15 +710,20 @@ export const addAssetsBulk = async (newAssets: Asset[]): Promise<void> => {
 
 
 export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<void> => {
+  const sanitizedUpdates = { ...updates };
+  if (sanitizedUpdates.note && sanitizedUpdates.note.includes('สำรวจล่าสุด:')) {
+    sanitizedUpdates.note = cleanAssetNote(sanitizedUpdates.note);
+  }
+
   // 1. Update LocalStorage first to guarantee immediate success locally
   initLocalStorageIfNeeded();
   const assets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
   const index = assets.findIndex(a => a.id === id);
   if (index !== -1) {
-    assets[index] = { ...assets[index], ...updates, updatedAt: new Date().toISOString() };
+    assets[index] = { ...assets[index], ...sanitizedUpdates, updatedAt: new Date().toISOString() };
     safeSetItem('assetwatch_assets', JSON.stringify(assets));
   } else {
-    const newAsset = { id, ...updates, updatedAt: new Date().toISOString() } as Asset;
+    const newAsset = { id, ...sanitizedUpdates, updatedAt: new Date().toISOString() } as Asset;
     assets.push(newAsset);
     safeSetItem('assetwatch_assets', JSON.stringify(assets));
   }
@@ -828,6 +919,15 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
       await setDoc(docRef, sanitizeForFirestore(fullSurvey as any));
     } catch (e) {
       console.error('Firebase addSurvey failed, but saved locally:', e);
+    }
+  }
+
+  // 3. If survey has an attached photo, automatically sync it as the asset's current photo
+  if (survey.imageUrl && survey.imageUrl.trim() && !isDefaultPlaceholder(survey.imageUrl)) {
+    try {
+      await updateAsset(survey.assetId, { imageUrl: survey.imageUrl });
+    } catch (imgErr) {
+      console.warn('Failed to auto-update asset image from survey:', imgErr);
     }
   }
 };

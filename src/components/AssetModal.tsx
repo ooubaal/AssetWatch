@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import JsBarcode from 'jsbarcode';
 import { 
   X, 
@@ -745,9 +745,29 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     }
   }, [asset.id, activeTab]);
 
+  const cleanedAssetNote = useMemo(() => {
+    if (!asset.note || typeof asset.note !== 'string') return '';
+    return asset.note.replace(/\s*\(สำรวจล่าสุด:[^)]+\)\s*/g, '').trim();
+  }, [asset.note]);
+
+  const isDefaultPlaceholder = (url?: string): boolean => {
+    if (!url || typeof url !== 'string' || !url.trim()) return true;
+    return url.includes('photo-1531403009284-440f080d1e12') || url.includes('photo-1518455027359-f3f8164ba6bd');
+  };
+
+  const latestSurveyPhoto = useMemo(() => {
+    const withImg = assetSurveys
+      .filter(s => s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return withImg[0]?.imageUrl;
+  }, [assetSurveys]);
+
+  const displayImageUrl = (!isDefaultPlaceholder(asset.imageUrl) ? asset.imageUrl : latestSurveyPhoto) || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+  const isImageFromSurvey = isDefaultPlaceholder(asset.imageUrl) && Boolean(latestSurveyPhoto);
+
   useEffect(() => {
-    setNoteText(asset.note || '');
-  }, [asset.note, asset.id]);
+    setNoteText(cleanedAssetNote);
+  }, [cleanedAssetNote, asset.id]);
 
   const handleSaveNote = async () => {
     setIsSavingNote(true);
@@ -786,9 +806,9 @@ export const AssetModal: React.FC<AssetModalProps> = ({
               {asset.status}
             </span>
             <h2>{asset.name}</h2>
-            {asset.note && (
+            {cleanedAssetNote && (
               <span className="badge badge-primary" style={{ fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem', width: 'fit-content' }}>
-                🏷️ {asset.note}
+                🏷️ {cleanedAssetNote}
               </span>
             )}
             <span className="modal-asset-id">รหัส: <code>{asset.id}</code></span>
@@ -854,7 +874,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
               <div className="info-visuals-panel">
                 <div className="info-image-container" style={{ position: 'relative' }}>
                   <img 
-                    src={asset.imageUrl || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60'} 
+                    src={displayImageUrl} 
                     alt={asset.name} 
                     className="info-asset-img"
                     onError={(e) => {
@@ -863,7 +883,31 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                       target.src = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
                     }}
                   />
-                  {asset.imageUrl && isAllowedToDeleteImage(asset) && (
+                  {isImageFromSurvey && (
+                    <span 
+                      style={{
+                        position: 'absolute',
+                        bottom: '8px',
+                        left: '8px',
+                        background: 'rgba(16, 185, 129, 0.92)',
+                        color: '#ffffff',
+                        borderRadius: '6px',
+                        padding: '0.2rem 0.5rem',
+                        fontSize: '0.675rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        backdropFilter: 'blur(4px)',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                        zIndex: 4
+                      }}
+                      title="ภาพถ่ายจริงจากการตรวจนับสภาพล่าสุด"
+                    >
+                      📷 ภาพจากการตรวจนับล่าสุด
+                    </span>
+                  )}
+                  {asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl) && isAllowedToDeleteImage(asset) && (
                     <button
                       type="button"
                       className="btn btn-danger btn-xs"
@@ -1007,10 +1051,10 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                   </div>
                 </div>
 
-                {asset.note && (
+                {cleanedAssetNote && (
                   <div className="detail-note-box">
                     <h4>📝 หมายเหตุคำอธิบาย:</h4>
-                    <p>{asset.note}</p>
+                    <p>{cleanedAssetNote}</p>
                   </div>
                 )}
 

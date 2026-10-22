@@ -10,7 +10,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 19/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -24,7 +24,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 91 Plasma Building Storage Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "เครื่องเก่า สํารองไว้ (สำรวจล่าสุด: 16/10/2568)",
+    "note": "เครื่องเก่า สํารองไว้",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -38,7 +38,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 52 Female restroom 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -52,7 +52,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 72 Solution Preparation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -66,7 +66,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "No. 1 (สำรวจล่าสุด: 22/9/2568)",
+    "note": "No. 1",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -80,7 +80,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 11 Tube printing and cutting room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -94,7 +94,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "G4 - SN- 82893-01-1 (สำรวจล่าสุด: 22/9/2568)",
+    "note": "G4 - SN- 82893-01-1",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -108,7 +108,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 64 Equpment Preparation Room 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "เครื่องขั่ง cpd เดิม เอาไปใช้งาน Copper แทน (สำรวจล่าสุด: 16/10/2568)",
+    "note": "เครื่องขั่ง cpd เดิม เอาไปใช้งาน Copper แทน",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -122,7 +122,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 11 Tube printing and cutting room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -136,7 +136,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "No. 2 (สำรวจล่าสุด: 22/9/2568)",
+    "note": "No. 2",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -150,7 +150,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "G5 - SN 5500001-140-01 (สำรวจล่าสุด: 22/9/2568)",
+    "note": "G5 - SN 5500001-140-01",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -164,7 +164,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -178,7 +178,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 21 Equipment cleaning room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -192,7 +192,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -206,7 +206,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ช่างเบียร์ 29/9/25 (สำรวจล่าสุด: 26/9/2568)",
+    "note": "ช่างเบียร์ 29/9/25",
     "status": "ชำรุด",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -220,7 +220,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -234,7 +234,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 20 Equipment sterilizing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -248,7 +248,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Roomปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "23/6/25 จําหน่าย เครื่องกลั่น HAFER และถังผสมกรด-ด่าง (สำรวจล่าสุด: 26/9/2568)",
+    "note": "23/6/25 จําหน่าย เครื่องกลั่น HAFER และถังผสมกรด-ด่าง",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -262,7 +262,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 43 Air compressor room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -276,7 +276,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -290,7 +290,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 64 Equpment Preparation Room 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -304,7 +304,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 20 Equipment sterilizing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -318,7 +318,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 23 Weighing room ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -332,7 +332,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 3/10/2568)",
+    "note": "",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -346,7 +346,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 72 Solution Preparation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -360,7 +360,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -374,7 +374,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -388,7 +388,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -402,7 +402,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -416,7 +416,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 64 Equpment Preparation Room 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -430,7 +430,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 64 Equpment Preparation Room 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -444,7 +444,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 72 Solution Preparation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -458,7 +458,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -472,7 +472,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 21 Equipment cleaning room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -486,7 +486,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -500,7 +500,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 63 Equipment Cleaning Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -514,7 +514,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 20 Equipment sterilizing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -528,7 +528,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 19/9/2568)",
+    "note": "",
     "status": "ชำรุด",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -542,7 +542,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -556,7 +556,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 43 Air compressor room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "Spare อะไหล่ (สำรวจล่าสุด: 17/10/2568)",
+    "note": "Spare อะไหล่",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -570,7 +570,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 23 Weighing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -584,7 +584,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ช่างเบียร์ (สำรวจล่าสุด: 26/9/2568)",
+    "note": "ช่างเบียร์",
     "status": "ชำรุด",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -598,7 +598,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -612,7 +612,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -626,7 +626,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -640,7 +640,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "เก็บสํารองไว้บนชั้นห้องพาสเจอไรส์ (สำรวจล่าสุด: 22/9/2568)",
+    "note": "เก็บสํารองไว้บนชั้นห้องพาสเจอไรส์",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -654,7 +654,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -668,7 +668,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 75 Staff room 3",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 3/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -682,7 +682,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 91 Plasma Building Storage Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -696,7 +696,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 91 Plasma Building Storage Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -710,7 +710,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 63 Equipment Cleaning Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -724,7 +724,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -738,7 +738,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 41 Final packing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ขากว้าง (สำรวจล่าสุด: 4/10/2568)",
+    "note": "ขากว้าง",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -752,7 +752,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -766,7 +766,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 19/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -780,7 +780,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 72 Solution Preparation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -794,7 +794,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 20 Equipment sterilizing room ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -808,7 +808,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -822,7 +822,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 58 Entrance",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -836,7 +836,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 58 Entrance",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -850,7 +850,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 9 Raw material entrance 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -864,7 +864,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 10 Raw material entrance 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -878,7 +878,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -892,7 +892,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -906,7 +906,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -920,7 +920,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -934,7 +934,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 38 Air lock 8",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -948,7 +948,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 18 Laundry 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -962,7 +962,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -976,7 +976,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -990,7 +990,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1004,7 +1004,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 74 Retain, Reject, and Recall Product Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1018,7 +1018,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 74 Retain, Reject, and Recall Product Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1032,7 +1032,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1046,7 +1046,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 41 Final packing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1060,7 +1060,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 49 AHU-F room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ให้แม่บ้านใช้งาน (สำรวจล่าสุด: 17/10/2568)",
+    "note": "ให้แม่บ้านใช้งาน",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1074,7 +1074,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1088,7 +1088,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1102,7 +1102,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 21 Equipment cleaning room ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1116,7 +1116,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1130,7 +1130,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ล้อเอียง เข็นไม่ค่อยดี (สำรวจล่าสุด: 17/9/2568)",
+    "note": "ล้อเอียง เข็นไม่ค่อยดี",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1144,7 +1144,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1158,7 +1158,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 1 Air lock 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1172,7 +1172,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 1 Air lock 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1186,7 +1186,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 10 Raw material entrance 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1200,7 +1200,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1214,7 +1214,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 64 Equpment Preparation Room 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1228,7 +1228,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1242,7 +1242,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1256,7 +1256,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 63 Equipment Cleaning Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1270,7 +1270,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 63 Equipment Cleaning Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1284,7 +1284,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 4 Changing room 1 (men)",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1298,7 +1298,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 2 Changing room 1 (women)",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1312,7 +1312,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1326,7 +1326,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 43 Air compressor room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ตู้อะไหล่ 5 เก็บไว้เปีนอะไหล่ (สำรวจล่าสุด: 4/10/2568)",
+    "note": "ตู้อะไหล่ 5 เก็บไว้เปีนอะไหล่",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1340,7 +1340,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 48 Cleanroom surrounding",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ตู้คอลโทรล boiler หลังเครื่องนึ่ง (สำรวจล่าสุด: 17/10/2568)",
+    "note": "ตู้คอลโทรล boiler หลังเครื่องนึ่ง",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1354,7 +1354,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ห้องส่องผงติดประตูไปห้องแพ็ค (สำรวจล่าสุด: 22/9/2568)",
+    "note": "ห้องส่องผงติดประตูไปห้องแพ็ค",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1368,7 +1368,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ติดเครื่อง Thermoform ฝัึงหน้าเครื่อง (สำรวจล่าสุด: 22/9/2568)",
+    "note": "ติดเครื่อง Thermoform ฝัึงหน้าเครื่อง",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1382,7 +1382,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ติดโทรศัพท์ห้องแพ็ค (สำรวจล่าสุด: 22/9/2568)",
+    "note": "ติดโทรศัพท์ห้องแพ็ค",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1396,7 +1396,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ติดท้ายเครื่อง Thermoform (สำรวจล่าสุด: 22/9/2568)",
+    "note": "ติดท้ายเครื่อง Thermoform",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1410,7 +1410,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ติดห้องพิมพ์ฉลาก (สำรวจล่าสุด: 24/9/2568)",
+    "note": "ติดห้องพิมพ์ฉลาก",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1424,7 +1424,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ติดแพ็คติดกระจกฝัึงวางกล่อง (สำรวจล่าสุด: 22/9/2568)",
+    "note": "ติดแพ็คติดกระจกฝัึงวางกล่อง",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1438,7 +1438,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ห้องแพ็คตรงทางเข้าห้องส่องผง (สำรวจล่าสุด: 24/9/2568)",
+    "note": "ห้องแพ็คตรงทางเข้าห้องส่องผง",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1452,7 +1452,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ห้องส่องผงติดกระจก (สำรวจล่าสุด: 22/9/2568)",
+    "note": "ห้องส่องผงติดกระจก",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1466,7 +1466,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 42 Equipment maintenace storage room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1480,7 +1480,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 30 Changing room (men)",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1494,7 +1494,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 48 Cleanroom surrounding",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1508,7 +1508,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 8 Corridor 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1522,7 +1522,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 5 Changing room 2 (men)",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1536,7 +1536,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 3 Changing room 2 (women)",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1550,7 +1550,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 25 Air lock 4",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1564,7 +1564,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 44 Pharmacist room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1578,7 +1578,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 31 Changing room (women)",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1592,7 +1592,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1606,7 +1606,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "BDT12 (สำรวจล่าสุด: 18/10/2568)",
+    "note": "BDT12",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1620,7 +1620,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "BDT13 (สำรวจล่าสุด: 16/10/2568)",
+    "note": "BDT13",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1634,7 +1634,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "Index",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "TDLV1R12-39 ของสอบเทียบ โอนให้ฝัายจ่ายแล้วใน camp 3/8/ (สำรวจล่าสุด: 17/10/2568)",
+    "note": "TDLV1R12-39 ของสอบเทียบ โอนให้ฝัายจ่ายแล้วใน camp 3/8/",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1648,7 +1648,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 25 Air lock 4",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1662,7 +1662,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1676,7 +1676,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1690,7 +1690,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1704,7 +1704,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1718,7 +1718,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 15 Completed empty set storage",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1732,7 +1732,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 15 Completed empty set storage",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1746,7 +1746,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1760,7 +1760,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1774,7 +1774,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 19/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1788,7 +1788,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "อยู่โต๊ะพี่นาย (สำรวจล่าสุด: 16/10/2568)",
+    "note": "อยู่โต๊ะพี่นาย",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1802,7 +1802,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "หลังตู้พาส (สำรวจล่าสุด: 22/9/2568)",
+    "note": "หลังตู้พาส",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1816,7 +1816,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "หลังตู้พาส (สำรวจล่าสุด: 22/9/2568)",
+    "note": "หลังตู้พาส",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1830,7 +1830,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "หลังตู้พาส (สำรวจล่าสุด: 22/9/2568)",
+    "note": "หลังตู้พาส",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1844,7 +1844,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1858,7 +1858,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 63 Equipment Cleaning Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1872,7 +1872,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1886,7 +1886,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1900,7 +1900,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1914,7 +1914,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1928,7 +1928,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1942,7 +1942,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "อยู่หลังตู้พาส (สำรวจล่าสุด: 22/9/2568)",
+    "note": "อยู่หลังตู้พาส",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1956,7 +1956,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 11 Tube printing and cutting room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1970,7 +1970,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "อยู่หลังตู้พาส (สำรวจล่าสุด: 22/9/2568)",
+    "note": "อยู่หลังตู้พาส",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1984,7 +1984,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -1998,7 +1998,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2012,7 +2012,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2026,7 +2026,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2040,7 +2040,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "อยู่หลังตู้พาส (สำรวจล่าสุด: 22/9/2568)",
+    "note": "อยู่หลังตู้พาส",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2054,7 +2054,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2068,7 +2068,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2082,7 +2082,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 64 Equpment Preparation Room 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2096,7 +2096,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 19 Laundry 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2110,7 +2110,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2124,7 +2124,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2138,7 +2138,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2152,7 +2152,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2166,7 +2166,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "อยู่หลังตู้พาส (สำรวจล่าสุด: 18/10/2568)",
+    "note": "อยู่หลังตู้พาส",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2180,7 +2180,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 90 Water Treatment floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2194,7 +2194,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 90 Water Treatment floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2208,7 +2208,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 67 Repaire & Maintenance Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2222,7 +2222,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 41 Final packing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2236,7 +2236,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 73 Finished Product Room 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2250,7 +2250,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 72 Solution Preparation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2264,7 +2264,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2278,7 +2278,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 67 Repaire & Maintenance Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2292,7 +2292,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2306,7 +2306,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 11 Tube printing and cutting room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2320,7 +2320,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2334,7 +2334,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2348,7 +2348,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 8 Corridor 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2362,7 +2362,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 48 Cleanroom surrounding",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2376,7 +2376,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2390,7 +2390,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2404,7 +2404,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2418,7 +2418,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 11 Tube printing and cutting room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2432,7 +2432,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2446,7 +2446,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2460,7 +2460,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2474,7 +2474,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2488,7 +2488,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 20 Equipment sterilizing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2502,7 +2502,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 3/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2516,7 +2516,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2530,7 +2530,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "Weld3 (สำรวจล่าสุด: 19/9/2568)",
+    "note": "Weld3",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2544,7 +2544,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 11 Tube printing and cutting room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2558,7 +2558,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2572,7 +2572,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2586,7 +2586,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 19/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2600,7 +2600,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ทําราง 2 ข้างแล้ว (สำรวจล่าสุด: 17/9/2568)",
+    "note": "ทําราง 2 ข้างแล้ว",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2614,7 +2614,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2628,7 +2628,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2642,7 +2642,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 42 Equipment maintenace storage room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2656,7 +2656,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 42 Equipment maintenace storage room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2670,7 +2670,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 42 Equipment maintenace storage room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2684,7 +2684,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 42 Equipment maintenace storage room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2698,7 +2698,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 20 Equipment sterilizing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2712,7 +2712,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2726,7 +2726,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2740,7 +2740,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 40 Corridor 3",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2754,7 +2754,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 47 Staff room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2768,7 +2768,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 47 Staff room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2782,7 +2782,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 78 Staff room 4",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 3/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2796,7 +2796,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 47 Staff room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2810,7 +2810,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 47 Staff room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2824,7 +2824,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 58 Entrance",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2838,7 +2838,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 56 Corridor 4",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2852,7 +2852,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 56 Corridor 4",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2866,7 +2866,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 56 Corridor 4",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2880,7 +2880,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2894,7 +2894,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2908,7 +2908,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2922,7 +2922,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 63 Equipment Cleaning Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2936,7 +2936,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 78 Staff room 4",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "Qc ใช้งาน รอโอนย้าย (สำรวจล่าสุด: 3/10/2568)",
+    "note": "Qc ใช้งาน รอโอนย้าย",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2950,7 +2950,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2964,7 +2964,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 19 Laundry 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2978,7 +2978,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 15 Completed empty set storage",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -2992,7 +2992,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3006,7 +3006,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "Bee (สำรวจล่าสุด: 16/10/2568)",
+    "note": "Bee",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3020,7 +3020,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "Bee (สำรวจล่าสุด: 4/10/2568)",
+    "note": "Bee",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3034,7 +3034,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3048,7 +3048,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3062,7 +3062,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3076,7 +3076,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3090,7 +3090,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "Bee office mornitor (สำรวจล่าสุด: 4/10/2568)",
+    "note": "Bee office mornitor",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3104,7 +3104,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 19 Laundry 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 19/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3118,7 +3118,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 30 Changing room (men)",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3132,7 +3132,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 44 Pharmacist room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3146,7 +3146,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3160,7 +3160,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3174,7 +3174,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 47 Staff room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3188,7 +3188,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 58 Entrance",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3202,7 +3202,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 41 Final packing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3216,7 +3216,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 40 Corridor 3",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3230,7 +3230,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 59 Maintenance floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3244,7 +3244,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 59 Maintenance floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3258,7 +3258,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 59 Maintenance floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3272,7 +3272,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 59 Maintenance floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3286,7 +3286,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 59 Maintenance floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3300,7 +3300,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 49 AHU-F room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3314,7 +3314,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 51 Storage area 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3328,7 +3328,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 59 Maintenance floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3342,7 +3342,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 59 Maintenance floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3356,7 +3356,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 20 Equipment sterilizing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "สํารอง (สำรวจล่าสุด: 18/9/2568)",
+    "note": "สํารอง",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3370,7 +3370,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 42 Equipment maintenace storage room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3384,7 +3384,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3398,7 +3398,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "Pipatpong table (สำรวจล่าสุด: 4/10/2568)",
+    "note": "Pipatpong table",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3412,7 +3412,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3426,7 +3426,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 44 Pharmacist room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3440,7 +3440,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 8 Corridor 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3454,7 +3454,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3468,7 +3468,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3482,7 +3482,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3496,7 +3496,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3510,7 +3510,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3524,7 +3524,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3538,7 +3538,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3552,7 +3552,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3566,7 +3566,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3580,7 +3580,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3594,7 +3594,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3608,7 +3608,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3622,7 +3622,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3636,7 +3636,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3650,7 +3650,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3664,7 +3664,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3678,7 +3678,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3692,7 +3692,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3706,7 +3706,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3720,7 +3720,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3734,7 +3734,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3748,7 +3748,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3762,7 +3762,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3776,7 +3776,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3790,7 +3790,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3804,7 +3804,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3818,7 +3818,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3832,7 +3832,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3846,7 +3846,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3860,7 +3860,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3874,7 +3874,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3888,7 +3888,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3902,7 +3902,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3916,7 +3916,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3930,7 +3930,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3944,7 +3944,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3958,7 +3958,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3972,7 +3972,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 00 Cleanroom",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -3986,7 +3986,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4000,7 +4000,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4014,7 +4014,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 90 Water Treatment floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4028,7 +4028,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4042,7 +4042,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4056,7 +4056,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 74 Retain, Reject, and Recall Product Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4070,7 +4070,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 74 Retain, Reject, and Recall Product Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4084,7 +4084,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 74 Retain, Reject, and Recall Product Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4098,7 +4098,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 74 Retain, Reject, and Recall Product Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4112,7 +4112,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "เครื่องพิมพ์ SAGM (สำรวจล่าสุด: 17/9/2568)",
+    "note": "เครื่องพิมพ์ SAGM",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4126,7 +4126,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 41 Final packing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4140,7 +4140,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4154,7 +4154,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 41 Final packing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4168,7 +4168,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 41 Final packing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4182,7 +4182,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 19/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4196,7 +4196,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4210,7 +4210,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4224,7 +4224,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "SN 8NUT0837 No.3 กดแล้วไม่งับ ต้องซํ้าบ่อยๆ 23/6/25 ซ่อมแล้วแต่เครื่องก็เสื่อมแล้วใช้ตามสภาพ (สำรวจล่าสุด: 17/9/2568)",
+    "note": "SN 8NUT0837 No.3 กดแล้วไม่งับ ต้องซํ้าบ่อยๆ 23/6/25 ซ่อมแล้วแต่เครื่องก็เสื่อมแล้วใช้ตามสภาพ",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4238,7 +4238,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "No.2 S/N 8NUT0885 19/6/25 รอรวมกับเบอร์ 5 23/6/25 ซ่อมแล้วเอาอะไหล่จากเครื่อง 5 มาใส่ (สำรวจล่าสุด: 17/9/2568)",
+    "note": "No.2 S/N 8NUT0885 19/6/25 รอรวมกับเบอร์ 5 23/6/25 ซ่อมแล้วเอาอะไหล่จากเครื่อง 5 มาใส่",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4252,7 +4252,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4266,7 +4266,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โต๊ะพี่ปัจ (สำรวจล่าสุด: 17/10/2568)",
+    "note": "โต๊ะพี่ปัจ",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4280,7 +4280,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4294,7 +4294,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4308,7 +4308,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room ชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง (สำรวจล่าสุด: 22/9/2568)",
+    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4322,7 +4322,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4336,7 +4336,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4350,7 +4350,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room ชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง (สำรวจล่าสุด: 22/9/2568)",
+    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4364,7 +4364,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4378,7 +4378,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4392,7 +4392,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room ชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง (สำรวจล่าสุด: 22/9/2568)",
+    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4406,7 +4406,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4420,7 +4420,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4434,7 +4434,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "No.26 3.เปลี่ยนโช้ค 01/68 grade C ปัจจุบันโช้คตาย (สำรวจล่าสุด: 17/9/2568)",
+    "note": "No.26 3.เปลี่ยนโช้ค 01/68 grade C ปัจจุบันโช้คตาย",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4448,7 +4448,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room ชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง (สำรวจล่าสุด: 29/9/2568)",
+    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4462,7 +4462,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room ชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง (สำรวจล่าสุด: 22/9/2568)",
+    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4476,7 +4476,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4490,7 +4490,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "No.42 6.เปลี่ยนโช้ค 01/68 grade C ใช้งานปกติ (สำรวจล่าสุด: 17/9/2568)",
+    "note": "No.42 6.เปลี่ยนโช้ค 01/68 grade C ใช้งานปกติ",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4504,7 +4504,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4518,7 +4518,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room ชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง (สำรวจล่าสุด: 22/9/2568)",
+    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4532,7 +4532,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room ชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "เก้าอี้้ปรับขึ้นไม่ได้ (สำรวจล่าสุด: 22/9/2568)",
+    "note": "เก้าอี้้ปรับขึ้นไม่ได้",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4546,7 +4546,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 32 Autoclave room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4560,7 +4560,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "No.54 4.เปลี่ยนโช้ค 01/68 grade C (สำรวจล่าสุด: 17/9/2568)",
+    "note": "No.54 4.เปลี่ยนโช้ค 01/68 grade C",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4574,7 +4574,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 3/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4588,7 +4588,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 63 Equipment Cleaning Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4602,7 +4602,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 98 Cleanroom C",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "No.53 2.เปลี่ยนโช้ค 01/68 grade C (สำรวจล่าสุด: 17/9/2568)",
+    "note": "No.53 2.เปลี่ยนโช้ค 01/68 grade C",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4616,7 +4616,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 20 Equipment sterilizing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4630,7 +4630,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 72 Solution Preparation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4644,7 +4644,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 73 Finished Product Room 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4658,7 +4658,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 3/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4672,7 +4672,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 19 Laundry 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4686,7 +4686,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โช้คไม่ขึ้น (สำรวจล่าสุด: 18/9/2568)",
+    "note": "โช้คไม่ขึ้น",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4700,7 +4700,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4714,7 +4714,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4728,7 +4728,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 3/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4742,7 +4742,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 64 Equpment Preparation Room 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4756,7 +4756,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room ชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง (สำรวจล่าสุด: 22/9/2568)",
+    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4770,7 +4770,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 23 Weighing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4784,7 +4784,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4798,7 +4798,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4812,7 +4812,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 11 Tube printing and cutting room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4826,7 +4826,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room ชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง (สำรวจล่าสุด: 22/9/2568)",
+    "note": "โช๊คใช้งานไม่ได้วางของหนักแล้วที่นั่งไหลลง",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4840,7 +4840,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4854,7 +4854,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "No.21 1.เปลี่ยนโช้ค 01/68 grade C (สำรวจล่าสุด: 17/9/2568)",
+    "note": "No.21 1.เปลี่ยนโช้ค 01/68 grade C",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4868,7 +4868,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "อยู่หลังตู้พาส (สำรวจล่าสุด: 22/9/2568)",
+    "note": "อยู่หลังตู้พาส",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4882,7 +4882,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 25 Air lock 4 ชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/10/2568)",
+    "note": "",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4896,7 +4896,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4910,7 +4910,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ที่ปิดฉลาก (สำรวจล่าสุด: 18/10/2568)",
+    "note": "ที่ปิดฉลาก",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4924,7 +4924,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4938,7 +4938,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4952,7 +4952,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4966,7 +4966,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4980,7 +4980,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "หลังตู้ pas (สำรวจล่าสุด: 22/9/2568)",
+    "note": "หลังตู้ pas",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -4994,7 +4994,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5008,7 +5008,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5022,7 +5022,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5036,7 +5036,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 23 Weighing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5050,7 +5050,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "หลังตู้พาส (สำรวจล่าสุด: 22/9/2568)",
+    "note": "หลังตู้พาส",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5064,7 +5064,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 44 Pharmacist room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5078,7 +5078,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5092,7 +5092,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5106,7 +5106,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5120,7 +5120,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5134,7 +5134,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 63 Equipment Cleaning Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5148,7 +5148,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5162,7 +5162,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5176,7 +5176,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5190,7 +5190,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5204,7 +5204,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 37 Air lock 7",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5218,7 +5218,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5232,7 +5232,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5246,7 +5246,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 91 Plasma Building Storage Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5260,7 +5260,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5274,7 +5274,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 35 Label printing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5288,7 +5288,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซ่อมแล้ว update เมื่อ 27/3/26 (สำรวจล่าสุด: 27/3/2569)",
+    "note": "ซ่อมแล้ว update เมื่อ 27/3/26",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5302,7 +5302,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5316,7 +5316,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5330,7 +5330,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 41 Final packing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5344,7 +5344,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 41 Final packing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5358,7 +5358,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 47 Staff room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5372,7 +5372,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 31 Changing room (women)",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5386,7 +5386,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 43 Air compressor room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5400,7 +5400,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 43 Air compressor room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5414,7 +5414,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 43 Air compressor room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5428,7 +5428,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 90 Water Treatment floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5442,7 +5442,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5456,7 +5456,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5470,7 +5470,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5484,7 +5484,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5498,7 +5498,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5512,7 +5512,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5526,7 +5526,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5540,7 +5540,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "พี่ปู (สำรวจล่าสุด: 17/9/2568)",
+    "note": "พี่ปู",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5554,7 +5554,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซ่อมมาปิดรูท่อข้าง ปกติใช้งานได้แล้ว (สำรวจล่าสุด: 17/9/2568)",
+    "note": "ซ่อมมาปิดรูท่อข้าง ปกติใช้งานได้แล้ว",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5568,7 +5568,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5582,7 +5582,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "เครื่องชั่ง600kg (สำรวจล่าสุด: 17/9/2568)",
+    "note": "เครื่องชั่ง600kg",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5596,7 +5596,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 64 Equpment Preparation Room 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 3/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5610,7 +5610,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 47 Staff room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5624,7 +5624,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5638,7 +5638,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 37 Air lock 7",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5652,7 +5652,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 37 Air lock 7",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5666,7 +5666,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 38 Air lock 8",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5680,7 +5680,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 38 Air lock 8",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5694,7 +5694,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 37 Air lock 7",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5708,7 +5708,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 8 Corridor 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5722,7 +5722,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 38 Air lock 8",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5736,7 +5736,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 8 Corridor 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5750,7 +5750,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 47 Staff room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5764,7 +5764,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "พี่นาย ตัว CPU ไม่ได้ใช้ ใช้โน๊ตบุ๊คต่อกับจอแทน (สำรวจล่าสุด: 17/10/2568)",
+    "note": "พี่นาย ตัว CPU ไม่ได้ใช้ ใช้โน๊ตบุ๊คต่อกับจอแทน",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5778,7 +5778,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 44 Pharmacist room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5792,7 +5792,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "เครื่องพิมพ์ cpd ปัจจุบันใช้กับเครื่องชั่งถังผสม (สำรวจล่าสุด: 17/9/2568)",
+    "note": "เครื่องพิมพ์ cpd ปัจจุบันใช้กับเครื่องชั่งถังผสม",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5806,7 +5806,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ลิ้นชักข้างโต๊ะพี่กระแต (สำรวจล่าสุด: 17/10/2568)",
+    "note": "ลิ้นชักข้างโต๊ะพี่กระแต",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5820,7 +5820,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5834,7 +5834,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5848,7 +5848,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 33 Inspection room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5862,7 +5862,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5876,7 +5876,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5890,7 +5890,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5904,7 +5904,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "Galaxy test (สำรวจล่าสุด: 18/9/2568)",
+    "note": "Galaxy test",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5918,7 +5918,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5932,7 +5932,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "บาร์โค้ดแสกนไม่ได้ อยู่ในตู้ยา (สำรวจล่าสุด: 17/10/2568)",
+    "note": "บาร์โค้ดแสกนไม่ได้ อยู่ในตู้ยา",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5946,7 +5946,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5960,7 +5960,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "SN 8NUT0820 NO.4 19/6/25 ซีลแล้วควันขึ้น สายไฟขาดใน 2 (สำรวจล่าสุด: 17/10/2568)",
+    "note": "SN 8NUT0820 NO.4 19/6/25 ซีลแล้วควันขึ้น สายไฟขาดใน 2",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5974,7 +5974,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 4 Changing room 1 (men) ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "แปะไว้ที่สมุดเขียวจดบันทึก T RH of CR (สำรวจล่าสุด: 17/9/2568)",
+    "note": "แปะไว้ที่สมุดเขียวจดบันทึก T RH of CR",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -5988,7 +5988,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "BDT15 สำรอง (สำรวจล่าสุด: 17/9/2568)",
+    "note": "BDT15 สำรอง",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6002,7 +6002,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 61 Entrance 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6016,7 +6016,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 47 Staff room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6030,7 +6030,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6044,7 +6044,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6058,7 +6058,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 18 Laundry 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6072,7 +6072,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 8 Corridor 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6086,7 +6086,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 8 Corridor 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6100,7 +6100,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 20 Equipment sterilizing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6114,7 +6114,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 91 Plasma Building Storage Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 16/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6128,7 +6128,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 90 Water Treatment floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6142,7 +6142,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6156,7 +6156,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 20 Equipment sterilizing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6170,7 +6170,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 63 Equipment Cleaning Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6184,7 +6184,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 90 Water Treatment floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6198,7 +6198,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 3/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6212,7 +6212,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "1513 (สำรวจล่าสุด: 17/9/2568)",
+    "note": "1513",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6226,7 +6226,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 41 Final packing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6240,7 +6240,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 73 Finished Product Room 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6254,7 +6254,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 74 Retain, Reject, and Recall Product Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ห้อง retain (สำรวจล่าสุด: 26/9/2568)",
+    "note": "ห้อง retain",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6268,7 +6268,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 71 Finished Product Room 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 3/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6282,7 +6282,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 91 Plasma Building Storage Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6296,7 +6296,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 90 Water Treatment floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6310,7 +6310,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 90 Water Treatment floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6324,7 +6324,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room รอจําหน่าย",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "No.5 S/N 8NUT0840 19/6/25 รอรวมกับเบอร์ 2 และเมื่อวันที่ 23/6/25 ถอดออะไหล่ไปใส่ เบอร์ 2 ตัวมันต้องจำหน่าย (สำรวจล่าสุด: 17/10/2568)",
+    "note": "No.5 S/N 8NUT0840 19/6/25 รอรวมกับเบอร์ 2 และเมื่อวันที่ 23/6/25 ถอดออะไหล่ไปใส่ เบอร์ 2 ตัวมันต้องจำหน่าย",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6338,7 +6338,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "SN 8NUT0863 NO. 6 19/6/25 ใช้งานปกติ (สำรวจล่าสุด: 17/9/2568)",
+    "note": "SN 8NUT0863 NO. 6 19/6/25 ใช้งานปกติ",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6352,7 +6352,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "SN 8NUT0880 No.7 19/6/25 ใช้งานปกติ (สำรวจล่าสุด: 17/9/2568)",
+    "note": "SN 8NUT0880 No.7 19/6/25 ใช้งานปกติ",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6366,7 +6366,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 90 Water Treatment floor",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 1/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6380,7 +6380,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "BDT14 (สำรวจล่าสุด: 24/10/2568)",
+    "note": "BDT14",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6394,7 +6394,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6408,7 +6408,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6422,7 +6422,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6436,7 +6436,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6450,7 +6450,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6464,7 +6464,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6478,7 +6478,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6492,7 +6492,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6506,7 +6506,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6520,7 +6520,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6534,7 +6534,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6548,7 +6548,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6562,7 +6562,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6576,7 +6576,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6590,7 +6590,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6604,7 +6604,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6618,7 +6618,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6632,7 +6632,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6646,7 +6646,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6660,7 +6660,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 18 Laundry 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6674,7 +6674,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 64 Equpment Preparation Room 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6688,7 +6688,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 24 Mixing room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6702,7 +6702,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6716,7 +6716,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 14 Tube assembly room ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "พี่เอ็กนั่งเชื่อม (สำรวจล่าสุด: 19/9/2568)",
+    "note": "พี่เอ็กนั่งเชื่อม",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6730,7 +6730,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6744,7 +6744,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 13 Welding room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6758,7 +6758,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 40 Corridor 3",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6772,7 +6772,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 44 Pharmacist room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 18/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6786,7 +6786,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 9 Raw material entrance 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6800,7 +6800,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 9 Raw material entrance 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6814,7 +6814,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 10 Raw material entrance 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6828,7 +6828,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6842,7 +6842,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6856,7 +6856,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 36 Pasteurization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 22/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6870,7 +6870,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6884,7 +6884,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ต่อเครื่องชั่ง CPD (สำรวจล่าสุด: 17/9/2568)",
+    "note": "ต่อเครื่องชั่ง CPD",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6898,7 +6898,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "โอนมาจากฝ่ายจัดซื้อ 19/3/25 (สำรวจล่าสุด: 17/10/2568)",
+    "note": "โอนมาจากฝ่ายจัดซื้อ 19/3/25",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6912,7 +6912,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 51 Storage area 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "S/N D0106 (สำรวจล่าสุด: 17/10/2568)",
+    "note": "S/N D0106",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6926,7 +6926,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 76 Storage area 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "S/N D0107 (สำรวจล่าสุด: 3/10/2568)",
+    "note": "S/N D0107",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6940,7 +6940,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 52 Female restroom 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "TWH-38WTH(W) (สำรวจล่าสุด: 4/10/2568)",
+    "note": "TWH-38WTH(W)",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6954,7 +6954,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 54 Male restroom 1",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "TWH-38WTH(W) (สำรวจล่าสุด: 4/10/2568)",
+    "note": "TWH-38WTH(W)",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6968,7 +6968,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6982,7 +6982,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "MI C700 (สำรวจล่าสุด: 26/9/2568)",
+    "note": "MI C700",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -6996,7 +6996,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "No.1 Demo 23/6/25 ซ่อมอาการซีลแล้ว timeout (สำรวจล่าสุด: 17/10/2568)",
+    "note": "No.1 Demo 23/6/25 ซ่อมอาการซีลแล้ว timeout",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7010,7 +7010,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 69 Autoclave Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "Xiaomi C200 (สำรวจล่าสุด: 26/9/2568)",
+    "note": "Xiaomi C200",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7024,7 +7024,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7038,7 +7038,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 26 Filling room ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7052,7 +7052,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7066,7 +7066,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "กาชาด 11 ยืมไปเมื่อ 3/25 จะทำการโอน 10/25 (สำรวจล่าสุด: 18/10/2568)",
+    "note": "กาชาด 11 ยืมไปเมื่อ 3/25 จะทำการโอน 10/25",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7080,7 +7080,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 17/10/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7094,7 +7094,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office ปิายชํารุด",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 4/9/2568)",
+    "note": "",
     "status": "อื่นๆ",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7108,7 +7108,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 68 Water Distillation Room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7122,7 +7122,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ตุ้มส่วนกลางของกรรมการสอบเทียบ ตู้ชั้นล่างของสอบเทียบ (สำรวจล่าสุด: 18/10/2568)",
+    "note": "ตุ้มส่วนกลางของกรรมการสอบเทียบ ตู้ชั้นล่างของสอบเทียบ",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7136,7 +7136,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ตุ้มส่วนกลางของกรรมการสอบเทียบ ตู้ชั้นล่างของสอบเทียบ (สำรวจล่าสุด: 18/10/2568)",
+    "note": "ตุ้มส่วนกลางของกรรมการสอบเทียบ ตู้ชั้นล่างของสอบเทียบ",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7150,7 +7150,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ตุ้มส่วนกลางของกรรมการสอบเทียบ ตู้ชั้นล่างของสอบเทียบ (สำรวจล่าสุด: 18/10/2568)",
+    "note": "ตุ้มส่วนกลางของกรรมการสอบเทียบ ตู้ชั้นล่างของสอบเทียบ",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7164,7 +7164,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ตุ้มส่วนกลางของกรรมการสอบเทียบ ตู้ชั้นล่างของสอบเทียบ (สำรวจล่าสุด: 18/10/2568)",
+    "note": "ตุ้มส่วนกลางของกรรมการสอบเทียบ ตู้ชั้นล่างของสอบเทียบ",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7178,7 +7178,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "อยู่ในกระเป๋า projector (สำรวจล่าสุด: 11/9/2568)",
+    "note": "อยู่ในกระเป๋า projector",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7192,7 +7192,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 17 Corridor 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7206,7 +7206,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7220,7 +7220,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 61 Entrance 2",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 26/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7234,7 +7234,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "รับที่ 15773 11/9/2568 (สำรวจล่าสุด: 12/9/2568)",
+    "note": "รับที่ 15773 11/9/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7248,7 +7248,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 34 Packaging room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "(สำรวจล่าสุด: 25/9/2568)",
+    "note": "",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7262,7 +7262,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซื้อมารับวันที่ 23/12/2568 (สำรวจล่าสุด: 29/12/2025)",
+    "note": "ซื้อมารับวันที่ 23/12/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7276,7 +7276,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซื้อมารับวันที่ 23/12/2568 (สำรวจล่าสุด: 29/12/2025)",
+    "note": "ซื้อมารับวันที่ 23/12/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7290,7 +7290,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซื้อมารับวันที่ 23/12/2568 (สำรวจล่าสุด: 29/12/2025)",
+    "note": "ซื้อมารับวันที่ 23/12/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7304,7 +7304,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซื้อมารับวันที่ 23/12/2568 (สำรวจล่าสุด: 29/12/2025)",
+    "note": "ซื้อมารับวันที่ 23/12/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7318,7 +7318,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซื้อมารับวันที่ 23/12/2568 (สำรวจล่าสุด: 29/12/2025)",
+    "note": "ซื้อมารับวันที่ 23/12/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7332,7 +7332,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซื้อมารับวันที่ 23/12/2568 (สำรวจล่าสุด: 29/12/2025)",
+    "note": "ซื้อมารับวันที่ 23/12/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7346,7 +7346,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซื้อมารับวันที่ 23/12/2568 (สำรวจล่าสุด: 29/12/2025)",
+    "note": "ซื้อมารับวันที่ 23/12/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7360,7 +7360,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซื้อมารับวันที่ 23/12/2568 (สำรวจล่าสุด: 29/12/2025)",
+    "note": "ซื้อมารับวันที่ 23/12/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7374,7 +7374,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซื้อมารับวันที่ 23/12/2568 (สำรวจล่าสุด: 29/12/2025)",
+    "note": "ซื้อมารับวันที่ 23/12/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7388,7 +7388,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 27 Pre-sterilization room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "ซื้อมารับวันที่ 23/12/2568 (สำรวจล่าสุด: 29/12/2025)",
+    "note": "ซื้อมารับวันที่ 23/12/2568",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7402,7 +7402,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 46 Office",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "รับบริจาคจาก ไทเกอร์พาส (สำรวจล่าสุด: 19/1/2026)",
+    "note": "รับบริจาคจาก ไทเกอร์พาส",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7416,7 +7416,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 2 Changing room 1 (women)",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "รับบริจาค (สำรวจล่าสุด: 10/2/2026)",
+    "note": "รับบริจาค",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7430,7 +7430,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 4 Changing room 1 (men)",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "รับบริจาค (สำรวจล่าสุด: 10/2/2026)",
+    "note": "รับบริจาค",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7444,7 +7444,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "รับบริจาคจาก แอนตัน พาร์ (สำรวจล่าสุด: 28/5/2026)",
+    "note": "รับบริจาคจาก แอนตัน พาร์",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"
@@ -7458,7 +7458,7 @@ export const BLOOD_BAG_ASSETS: Asset[] = [
     "location": "BR 45 Chief's room",
     "department": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
     "responsiblePerson": "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา",
-    "note": "รับบริจาคจาก บริษัท แบงเทรดดิ้ง 1992 จํากัด (สำรวจล่าสุด: 25/6/2026)",
+    "note": "รับบริจาคจาก บริษัท แบงเทรดดิ้ง 1992 จํากัด",
     "status": "ใช้งานได้",
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2026-07-29T08:00:00.000Z"

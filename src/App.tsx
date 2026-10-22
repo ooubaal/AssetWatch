@@ -45,7 +45,9 @@ import {
   deletePMNotification,
   fetchSpareParts,
   saveSparePart,
-  deleteSparePart
+  deleteSparePart,
+  syncAssetsWithSurveyPhotos,
+  isDefaultPlaceholder
 } from './services/dbService';
 
 // Module Components (Lazy loaded for lean initial bundle and fast load)
@@ -311,7 +313,10 @@ function App() {
           fetchSpareParts()
         ]);
 
-        setAssets(allAssets);
+        // Auto-sync asset images with survey photos across all items
+        const { syncedAssets } = await syncAssetsWithSurveyPhotos(allAssets, allSurveys);
+
+        setAssets(syncedAssets);
         setAudits(allAudits);
         setRepairs(allRepairs);
         setSurveys(allSurveys);
@@ -679,6 +684,12 @@ function App() {
     // 1. Optimistically update local surveys state immediately (0 cloud reads)
     const nextSurveys = [surveyWithId, ...surveys.filter(s => s.id !== surveyWithId.id)];
     setSurveys(nextSurveys);
+
+    // If a photo was attached, optimistically update the asset's image immediately
+    if (survey.imageUrl && survey.imageUrl.trim() && !isDefaultPlaceholder(survey.imageUrl)) {
+      const newImg = survey.imageUrl;
+      setAssets(prev => prev.map(a => a.id === survey.assetId ? { ...a, imageUrl: newImg } : a));
+    }
 
     // 2. Dynamically calculate and update active round stats in DB and in local state (0 cloud reads)
     if (activeRound) {
