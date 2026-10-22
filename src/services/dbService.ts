@@ -451,12 +451,17 @@ export const uploadImage = async (file: File, path: string = 'assets'): Promise<
 // --- ASSET SERVICES ---
 export const isDefaultPlaceholder = (url?: string): boolean => {
   if (!url || typeof url !== 'string' || !url.trim()) return true;
-  return url.includes('photo-1531403009284-440f080d1e12') || url.includes('photo-1518455027359-f3f8164ba6bd');
+  return url.includes('images.unsplash.com') || 
+         url.includes('photo-1531403009284-440f080d1e12') || 
+         url.includes('photo-1518455027359-f3f8164ba6bd') ||
+         url.includes('placeholder') || 
+         url === '-';
 };
 
 export const cleanAssetNote = (note?: string): string => {
   if (!note || typeof note !== 'string') return '';
-  return note.replace(/\s*\(สำรวจล่าสุด:[^)]+\)\s*/g, '').trim();
+  // Strip any parenthesized text containing 'สำรวจ' e.g. (สำรวจล่าสุด: 19/9/2568)
+  return note.replace(/\s*\([^)]*สำรวจ[^)]*\)\s*/g, '').trim();
 };
 
 // Helper to ensure all Blood Bag assets from PDF are synced into LocalStorage and Firestore
@@ -480,9 +485,12 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
     }
 
     // Clean legacy "(สำรวจล่าสุด: ...)" debug strings from asset note
-    if (note && note.includes('สำรวจล่าสุด:')) {
-      note = cleanAssetNote(note);
-      changed = true;
+    if (note && (note.includes('สำรวจ') || note.includes('สำรวจล่าสุด'))) {
+      const cleaned = cleanAssetNote(note);
+      if (cleaned !== note) {
+        note = cleaned;
+        changed = true;
+      }
     }
     
     if (changed) {
@@ -501,31 +509,20 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
     console.log(`Syncing ${missingAssets.length} missing Blood Bag assets...`);
     updatedList = [...normalizedList, ...missingAssets];
     listHasChanged = true;
+
+    if (isFirebase && db) {
+      try {
+        for (const asset of missingAssets) {
+          await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
+        }
+      } catch (e) {
+        console.warn('Failed to sync missing assets to Firestore:', e);
+      }
+    }
   }
 
   if (listHasChanged) {
     localStorage.setItem('assetwatch_assets', JSON.stringify(updatedList));
-
-    if (isFirebase && db) {
-      try {
-        // Also update any normalized/migrated/missing assets in Firestore
-        const changedAssets = updatedList.filter(a => {
-          const original = assetsList.find(orig => orig.id === a.id);
-          // Update in Firestore if it was missing or had the old values
-          return !original || 
-                 original.department !== a.department ||
-                 original.responsiblePerson !== a.responsiblePerson ||
-                 original.note !== a.note;
-        });
-
-        for (const asset of changedAssets) {
-          await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
-        }
-        console.log(`Successfully migrated/synced ${changedAssets.length} assets to Firestore.`);
-      } catch (e) {
-        console.error('Failed to sync migrated/missing assets to Firestore:', e);
-      }
-    }
   }
 
   return updatedList;

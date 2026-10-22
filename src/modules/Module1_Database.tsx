@@ -86,11 +86,15 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   }, [surveys]);
 
   const getEffectiveAssetImage = (asset: Asset) => {
+    // 1. Survey photo always takes top priority
+    const surveyImg = latestSurveyImageMap.get(asset.id);
+    if (surveyImg) return surveyImg;
+    // 2. Custom asset image if not default placeholder
     if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) {
       return asset.imageUrl;
     }
-    const surveyImg = latestSurveyImageMap.get(asset.id);
-    return surveyImg || asset.imageUrl || FALLBACK_ASSET_IMG;
+    // 3. Fallback
+    return FALLBACK_ASSET_IMG;
   };
   
   // State for Report Print Modal & Scanner Modal

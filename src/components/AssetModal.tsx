@@ -747,12 +747,16 @@ export const AssetModal: React.FC<AssetModalProps> = ({
 
   const cleanedAssetNote = useMemo(() => {
     if (!asset.note || typeof asset.note !== 'string') return '';
-    return asset.note.replace(/\s*\(สำรวจล่าสุด:[^)]+\)\s*/g, '').trim();
+    return asset.note.replace(/\s*\([^)]*สำรวจ[^)]*\)\s*/g, '').trim();
   }, [asset.note]);
 
   const isDefaultPlaceholder = (url?: string): boolean => {
     if (!url || typeof url !== 'string' || !url.trim()) return true;
-    return url.includes('photo-1531403009284-440f080d1e12') || url.includes('photo-1518455027359-f3f8164ba6bd');
+    return url.includes('images.unsplash.com') || 
+           url.includes('photo-1531403009284-440f080d1e12') || 
+           url.includes('photo-1518455027359-f3f8164ba6bd') ||
+           url.includes('placeholder') || 
+           url === '-';
   };
 
   const latestSurveyPhoto = useMemo(() => {
@@ -762,8 +766,9 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     return withImg[0]?.imageUrl;
   }, [assetSurveys]);
 
-  const displayImageUrl = (!isDefaultPlaceholder(asset.imageUrl) ? asset.imageUrl : latestSurveyPhoto) || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
-  const isImageFromSurvey = isDefaultPlaceholder(asset.imageUrl) && Boolean(latestSurveyPhoto);
+  // Priority: 1. Latest physical survey photo -> 2. Registered asset photo -> 3. Fallback
+  const displayImageUrl = latestSurveyPhoto || (!isDefaultPlaceholder(asset.imageUrl) ? asset.imageUrl : undefined) || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+  const isImageFromSurvey = Boolean(latestSurveyPhoto);
 
   useEffect(() => {
     setNoteText(cleanedAssetNote);
