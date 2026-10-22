@@ -13,7 +13,6 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, PMContract, PMSchedule, PMNotification, SparePart, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS, INITIAL_USERS, INITIAL_CONTRACTS, INITIAL_SCHEDULES, INITIAL_NOTIFICATIONS, INITIAL_SPARE_PARTS } from '../utils/mockData';
-import { BLOOD_BAG_ASSETS } from '../utils/bloodBagAssetsData';
 
 // Helper to check if we are using Firebase
 const getServices = () => {
@@ -477,6 +476,7 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
   });
 
   const existingIdSet = new Set(normalizedList.map(a => a.id));
+  const { BLOOD_BAG_ASSETS } = await import('../utils/bloodBagAssetsData');
   const missingAssets = BLOOD_BAG_ASSETS.filter(a => !existingIdSet.has(a.id));
 
   let updatedList = normalizedList;
@@ -531,7 +531,8 @@ export const getAssets = async (): Promise<Asset[]> => {
       if (list.length === 0) {
         initLocalStorageIfNeeded();
         const localAssets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
-        const seedAssets = localAssets.length > 0 ? localAssets : INITIAL_ASSETS;
+        const { BLOOD_BAG_ASSETS } = await import('../utils/bloodBagAssetsData');
+        const seedAssets = localAssets.length > 0 ? localAssets : [...INITIAL_ASSETS, ...BLOOD_BAG_ASSETS];
         for (const asset of seedAssets) {
           await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
         }
@@ -1814,7 +1815,9 @@ export const factoryResetDatabase = async (): Promise<void> => {
 
     // 3. Write initial seed data back to Firestore
     try {
-      for (const asset of INITIAL_ASSETS) {
+      const { BLOOD_BAG_ASSETS } = await import('../utils/bloodBagAssetsData');
+      const seedAssets = [...INITIAL_ASSETS, ...BLOOD_BAG_ASSETS];
+      for (const asset of seedAssets) {
         await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
       }
       for (const audit of INITIAL_AUDITS) {
@@ -1848,7 +1851,7 @@ export const factoryResetDatabase = async (): Promise<void> => {
         name: 'รอบสำรวจประจำปีงบประมาณ 2569 (ปีปัจจุบัน)',
         dateCreated: new Date().toISOString(),
         status: 'active',
-        totalAssets: INITIAL_ASSETS.length,
+        totalAssets: seedAssets.length,
         surveyedAssets: 0,
         completionRate: 0,
         statusBreakdown: {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { SetupWizard } from './components/SetupWizard';
 import { Dashboard } from './components/Dashboard';
@@ -48,19 +48,26 @@ import {
   deleteSparePart
 } from './services/dbService';
 
-// Module Components
-import { Module1_Database } from './modules/Module1_Database';
-import { Module2_ScanSurvey } from './modules/Module2_ScanSurvey';
-import { Module3_AddAsset } from './modules/Module3_AddAsset';
-import { Module4_Dispose } from './modules/Module4_Dispose';
-import { Module5_Transfer } from './modules/Module5_Transfer';
-import { Module6_AuditTrail } from './modules/Module6_AuditTrail';
-import { Module7_Settings } from './modules/Module7_Settings';
-import { Module8_Departments } from './modules/Module8_Departments';
-import { Module9_AccessControl } from './modules/Module9_AccessControl';
-import { Module10_Maintenance } from './modules/Module10_Maintenance';
-import { Module11_QualityDocs } from './modules/Module11_QualityDocs';
-import { Module12_SpareParts } from './modules/Module12_SpareParts';
+// Module Components (Lazy loaded for lean initial bundle and fast load)
+const Module1_Database = lazy(() => import('./modules/Module1_Database').then(m => ({ default: m.Module1_Database })));
+const Module2_ScanSurvey = lazy(() => import('./modules/Module2_ScanSurvey').then(m => ({ default: m.Module2_ScanSurvey })));
+const Module3_AddAsset = lazy(() => import('./modules/Module3_AddAsset').then(m => ({ default: m.Module3_AddAsset })));
+const Module4_Dispose = lazy(() => import('./modules/Module4_Dispose').then(m => ({ default: m.Module4_Dispose })));
+const Module5_Transfer = lazy(() => import('./modules/Module5_Transfer').then(m => ({ default: m.Module5_Transfer })));
+const Module6_AuditTrail = lazy(() => import('./modules/Module6_AuditTrail').then(m => ({ default: m.Module6_AuditTrail })));
+const Module7_Settings = lazy(() => import('./modules/Module7_Settings').then(m => ({ default: m.Module7_Settings })));
+const Module8_Departments = lazy(() => import('./modules/Module8_Departments').then(m => ({ default: m.Module8_Departments })));
+const Module9_AccessControl = lazy(() => import('./modules/Module9_AccessControl').then(m => ({ default: m.Module9_AccessControl })));
+const Module10_Maintenance = lazy(() => import('./modules/Module10_Maintenance').then(m => ({ default: m.Module10_Maintenance })));
+const Module11_QualityDocs = lazy(() => import('./modules/Module11_QualityDocs').then(m => ({ default: m.Module11_QualityDocs })));
+const Module12_SpareParts = lazy(() => import('./modules/Module12_SpareParts').then(m => ({ default: m.Module12_SpareParts })));
+
+const ModuleLoadingFallback = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '1rem', color: '#64748b' }}>
+    <div style={{ width: '36px', height: '36px', border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    <span style={{ fontSize: '0.95rem', fontWeight: 500 }}>กำลังโหลดข้อมูลโมดูล...</span>
+  </div>
+);
 
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS, PMContract, PMSchedule, PMNotification, SparePart } from './utils/mockData';
 import { X, Camera, AlertCircle, Lock, Bell, MapPin, Building, Trash2, RotateCw, CheckCircle2 } from 'lucide-react';
@@ -1504,7 +1511,8 @@ function App() {
             </div>
 
             <ErrorBoundary fallbackTitle="เกิดข้อผิดพลาดในการแสดงผลหน้านี้">
-              {currentTab === 'dashboard' && (
+              <Suspense fallback={<ModuleLoadingFallback />}>
+                {currentTab === 'dashboard' && (
                 <Dashboard 
                   assets={assets} 
                   repairs={repairs} 
@@ -1657,6 +1665,7 @@ function App() {
                 currentUser={currentUser}
               />
             )}
+              </Suspense>
             </ErrorBoundary>
           </main>
         </>

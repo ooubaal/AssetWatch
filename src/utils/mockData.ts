@@ -1,5 +1,4 @@
 import { FirebaseConfig } from '../firebase';
-import { BLOOD_BAG_ASSETS } from './bloodBagAssetsData';
 
 export interface Asset {
   id: string;
@@ -226,8 +225,7 @@ export const INITIAL_ASSETS: Asset[] = [
     status: "รอจำหน่าย",
     createdAt: "2018-06-01T09:00:00.000Z",
     updatedAt: "2026-05-28T09:00:00.000Z"
-  },
-  ...BLOOD_BAG_ASSETS
+  }
 ];
 
 export const INITIAL_AUDITS: AuditTrail[] = [
