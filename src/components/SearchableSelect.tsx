@@ -14,6 +14,7 @@ interface SearchableSelectProps {
   clearable?: boolean;
   allowCustom?: boolean;
   containerStyle?: React.CSSProperties;
+  triggerStyle?: React.CSSProperties;
   className?: string;
   dropdownWidth?: string;
 }
@@ -31,6 +32,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   clearable = false,
   allowCustom = true,
   containerStyle,
+  triggerStyle,
   className = '',
   dropdownWidth
 }) => {
@@ -133,7 +135,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           height: compact ? '36px' : undefined,
           borderRadius: 'var(--radius-sm)',
           userSelect: 'none',
-          fontSize: compact ? '0.825rem' : undefined
+          fontSize: compact ? '0.825rem' : undefined,
+          ...triggerStyle
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', overflow: 'hidden', flex: 1 }}>

@@ -158,7 +158,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   // Checklist Searching, Filtering, and Sorting States
   const [checklistSearch, setChecklistSearch] = useState('');
   const [checklistLocationFilter, setChecklistLocationFilter] = useState('all');
-  const [checklistSortBy, setChecklistSortBy] = useState<'id' | 'name' | 'location'>('location');
+  const [checklistSortBy, setChecklistSortBy] = useState<'latest' | 'location' | 'id' | 'name'>('latest');
 
   // Reset filter/search on department change
   useEffect(() => {
@@ -203,6 +203,33 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     return Array.from(new Set(locs)).sort();
   }, [filteredChecklist]);
 
+  // Formatted options for searchable room filter
+  const locationFilterOptions = useMemo(() => {
+    return [
+      { value: 'all', label: 'ทุกห้อง/สถานที่' },
+      ...uniqueLocationsInList.map((loc: string) => ({
+        value: loc,
+        label: `📍 ${loc}`
+      }))
+    ];
+  }, [uniqueLocationsInList]);
+
+  // Map of assetId -> latest survey timestamp in active round for high-performance sorting
+  const surveyTimestampMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!activeRound) return map;
+    for (const s of surveys) {
+      if (s.roundId === activeRound.id) {
+        const time = new Date(s.timestamp).getTime();
+        const prev = map.get(s.assetId) || 0;
+        if (time > prev) {
+          map.set(s.assetId, time);
+        }
+      }
+    }
+    return map;
+  }, [surveys, activeRound]);
+
   // Helper to get survey information for scanned timestamp
   const getSurveyInfo = (assetId: string) => {
     if (!activeRound) return null;
@@ -228,8 +255,22 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       list = list.filter((item: Asset) => item.location === checklistLocationFilter);
     }
 
-    // 3. Apply sorting
+    // 3. Apply sorting (with 'latest' putting newly scanned items at top)
     list.sort((a: Asset, b: Asset) => {
+      if (checklistSortBy === 'latest') {
+        const timeA = surveyTimestampMap.get(a.id) || 0;
+        const timeB = surveyTimestampMap.get(b.id) || 0;
+        if (timeB !== timeA) {
+          return timeB - timeA; // Most recently surveyed first!
+        }
+        // If neither was surveyed in this round (e.g. pending items), sort by updatedAt
+        const upA = new Date(a.updatedAt || 0).getTime();
+        const upB = new Date(b.updatedAt || 0).getTime();
+        if (upB !== upA) {
+          return upB - upA;
+        }
+        return a.id.localeCompare(b.id, 'th');
+      }
       if (checklistSortBy === 'location') {
         const locA = a.location || '';
         const locB = b.location || '';
@@ -243,7 +284,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     });
 
     return list;
-  }, [filteredChecklist, checklistSearch, checklistLocationFilter, checklistSortBy]);
+  }, [filteredChecklist, checklistSearch, checklistLocationFilter, checklistSortBy, surveyTimestampMap]);
 
   const pendingList = useMemo(() => {
     return processedList.filter((asset: Asset) => !isAssetSurveyedInRound(asset.id));
@@ -886,31 +927,30 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 </div>
 
                 <div className="checklist-filter-group">
-                  {/* Filter by Room / Location */}
-                  <div className="checklist-filter-item">
-                    <select
-                      className="form-select"
-                      style={{
-                        width: '100%',
-                        padding: '0.35rem 0.5rem',
-                        fontSize: '0.75rem',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--bg-secondary)',
-                        height: '32px',
-                        cursor: 'pointer'
-                      }}
+                  {/* Filter by Room / Location (Searchable Dropdown) */}
+                  <div className="checklist-filter-item" style={{ minWidth: '135px' }}>
+                    <SearchableSelect
+                      options={locationFilterOptions}
                       value={checklistLocationFilter}
-                      onChange={(e) => setChecklistLocationFilter(e.target.value)}
-                    >
-                      <option value="all">ทุกห้อง/สถานที่</option>
-                      {uniqueLocationsInList.map((loc: string) => (
-                        <option key={loc} value={loc}>📍 {loc}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => setChecklistLocationFilter(val || 'all')}
+                      placeholder="ทุกห้อง/สถานที่"
+                      compact={true}
+                      allowCustom={false}
+                      clearable={checklistLocationFilter !== 'all'}
+                      containerStyle={{ width: '100%' }}
+                      triggerStyle={{
+                        height: '32px',
+                        padding: '0.2rem 0.5rem',
+                        fontSize: '0.75rem',
+                        background: 'var(--bg-secondary)',
+                        borderColor: checklistLocationFilter !== 'all' ? 'var(--primary)' : 'var(--border)'
+                      }}
+                      dropdownWidth="260px"
+                    />
                   </div>
 
                   {/* Sorting Select */}
-                  <div className="checklist-filter-item">
+                  <div className="checklist-filter-item" style={{ minWidth: '115px' }}>
                     <select
                       className="form-select"
                       style={{
@@ -925,6 +965,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                       value={checklistSortBy}
                       onChange={(e) => setChecklistSortBy(e.target.value as any)}
                     >
+                      <option value="latest">เรียง: ล่าสุด ⏱️</option>
                       <option value="location">เรียง: ห้อง 📍</option>
                       <option value="id">เรียง: รหัส 🔢</option>
                       <option value="name">เรียง: ชื่อ 🔤</option>
