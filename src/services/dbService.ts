@@ -47,6 +47,61 @@ const sanitizeForFirestore = (obj: any): any => {
   return obj;
 };
 
+// --- FIRESTORE CLOUD QUOTA EXCEEDED SENTINEL & NOTIFIER ---
+export const isFirestoreQuotaError = (error: any): boolean => {
+  if (!error) return false;
+  const code = String(error.code || '').toLowerCase();
+  const msg = String(error.message || '').toLowerCase();
+  return (
+    code.includes('resource-exhausted') ||
+    code.includes('quota') ||
+    msg.includes('resource_exhausted') ||
+    msg.includes('quota exceeded') ||
+    msg.includes('exceeded its quota') ||
+    msg.includes('quota metric') ||
+    msg.includes('quota limit')
+  );
+};
+
+export const notifyQuotaExceeded = (operationName?: string) => {
+  try {
+    sessionStorage.setItem('assetwatch_quota_exceeded', 'true');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('assetwatch-quota-exceeded', {
+        detail: { operation: operationName, timestamp: new Date().toISOString() }
+      }));
+    }
+  } catch {}
+};
+
+export const clearQuotaExceededState = (): void => {
+  try {
+    sessionStorage.removeItem('assetwatch_quota_exceeded');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('assetwatch-quota-resolved'));
+    }
+  } catch {}
+};
+
+export const checkAndNotifyQuotaError = (error: any, operationName?: string): boolean => {
+  if (!error) return false;
+  if (isFirestoreQuotaError(error)) {
+    console.warn(`[AssetWatch Quota Sentinel] Cloud quota exceeded during operation: ${operationName || 'unknown'}`);
+    notifyQuotaExceeded(operationName);
+    return true;
+  }
+  return false;
+};
+
+// Global unhandled promise rejection listener for Firestore quota errors
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason && checkAndNotifyQuotaError(event.reason, 'unhandled_rejection')) {
+      event.preventDefault();
+    }
+  });
+}
+
 // --- INITIALIZE LOCAL STORAGE MOCK DATA IF EMPTY ---
 const initLocalStorageIfNeeded = () => {
   if (!localStorage.getItem('assetwatch_assets')) {
@@ -597,6 +652,7 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
       safeSetItem('assetwatch_assets', JSON.stringify(syncedList));
       return syncedList;
     } catch (e) {
+      checkAndNotifyQuotaError(e, 'getAssets');
       console.error('Firebase getAssets failed, falling back to localStorage:', e);
     }
   }
@@ -702,6 +758,7 @@ export const addAsset = async (asset: Asset): Promise<void> => {
       await setDoc(docRef, sanitizeForFirestore(asset as any));
       return;
     } catch (e) {
+      checkAndNotifyQuotaError(e, 'addAsset');
       console.error('Firebase addAsset failed, saved to localStorage:', e);
     }
   }
@@ -784,6 +841,7 @@ export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<
       });
       await setDoc(doc(db, 'assets', id), firestorePayload, { merge: true });
     } catch (e) {
+      checkAndNotifyQuotaError(e, 'updateAsset');
       console.error('Firebase updateAsset failed:', e);
       throw e;
     }
@@ -837,6 +895,7 @@ export const getAuditTrails = async (): Promise<AuditTrail[]> => {
       safeSetItem('assetwatch_audits', JSON.stringify(list));
       return list;
     } catch (e) {
+      checkAndNotifyQuotaError(e, 'getAuditTrails');
       console.error('Firebase getAuditTrails failed, falling back to localStorage:', e);
     }
   }
@@ -869,6 +928,7 @@ export const addAuditTrail = async (trail: Omit<AuditTrail, 'id'>): Promise<void
       await setDoc(docRef, sanitizeForFirestore(fullTrail as any));
       return;
     } catch (e) {
+      checkAndNotifyQuotaError(e, 'addAuditTrail');
       console.error('Firebase addAuditTrail failed, saved to localStorage:', e);
     }
   }
@@ -945,6 +1005,7 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
       safeSetItem('assetwatch_surveys', JSON.stringify(mergedList));
       return mergedList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     } catch (e) {
+      checkAndNotifyQuotaError(e, 'getSurveys');
       console.error('Firebase getSurveys failed, returning local cache:', e);
     }
   }
@@ -978,6 +1039,7 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
       const docRef = doc(db, 'surveys', id);
       await setDoc(docRef, sanitizeForFirestore(fullSurvey as any));
     } catch (e) {
+      checkAndNotifyQuotaError(e, 'addSurvey');
       console.error('Firebase addSurvey failed, but saved locally:', e);
     }
   }

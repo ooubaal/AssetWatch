@@ -47,7 +47,9 @@ import {
   saveSparePart,
   deleteSparePart,
   syncAssetsWithSurveyPhotos,
-  isDefaultPlaceholder
+  isDefaultPlaceholder,
+  clearQuotaExceededState,
+  checkAndNotifyQuotaError
 } from './services/dbService';
 
 // Module Components (Lazy loaded for lean initial bundle and fast load)
@@ -72,7 +74,7 @@ const ModuleLoadingFallback = () => (
 );
 
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS, PMContract, PMSchedule, PMNotification, SparePart } from './utils/mockData';
-import { X, Camera, AlertCircle, Lock, Bell, MapPin, Building, Trash2, RotateCw, CheckCircle2 } from 'lucide-react';
+import { X, Camera, AlertCircle, AlertTriangle, Lock, Bell, MapPin, Building, Trash2, RotateCw, CheckCircle2 } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
 function App() {
@@ -426,6 +428,49 @@ function App() {
         });
     }
   }, [isSetupWizardNeeded]);
+
+  // --- CLOUD QUOTA EXCEEDED MONITORING & USER-FRIENDLY WARNING SYSTEM ---
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && sessionStorage.getItem('assetwatch_quota_exceeded') === 'true';
+  });
+  const [showQuotaModal, setShowQuotaModal] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && sessionStorage.getItem('assetwatch_quota_exceeded') === 'true';
+  });
+
+  useEffect(() => {
+    const handleQuotaExceeded = () => {
+      setIsQuotaExceeded(true);
+      setShowQuotaModal(true);
+    };
+    const handleQuotaResolved = () => {
+      setIsQuotaExceeded(false);
+      setShowQuotaModal(false);
+    };
+
+    window.addEventListener('assetwatch-quota-exceeded', handleQuotaExceeded);
+    window.addEventListener('assetwatch-quota-resolved', handleQuotaResolved);
+
+    return () => {
+      window.removeEventListener('assetwatch-quota-exceeded', handleQuotaExceeded);
+      window.removeEventListener('assetwatch-quota-resolved', handleQuotaResolved);
+    };
+  }, []);
+
+  const handleRetryQuotaCheck = async () => {
+    try {
+      clearQuotaExceededState();
+      await fetchAllData(true, false);
+      setIsQuotaExceeded(false);
+      setShowQuotaModal(false);
+      setRefreshToastMsg('✓ ตรวจสอบการเชื่อมต่อสำเร็จ โควตาพร้อมใช้งานแล้ว');
+      setTimeout(() => setRefreshToastMsg(null), 3000);
+    } catch (err: any) {
+      if (checkAndNotifyQuotaError(err, 'retryQuotaCheck')) {
+        setIsQuotaExceeded(true);
+        setShowQuotaModal(true);
+      }
+    }
+  };
 
   useEffect(() => {
     if (!currentUser && !isSetupWizardNeeded) {
@@ -1529,6 +1574,47 @@ function App() {
               </div>
             </div>
 
+            {/* ⚠️ Persistent Quota Exceeded Header Banner */}
+            {isQuotaExceeded && (
+              <div className="animate-fade-in" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+                padding: '0.75rem 1rem',
+                marginBottom: '1.25rem',
+                borderRadius: 'var(--radius-md)',
+                background: '#fef2f2',
+                border: '1.5px solid #f87171',
+                color: '#991b1b',
+                fontSize: '0.85rem',
+                boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.1)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontWeight: 650 }}>
+                  <AlertTriangle size={18} color="#dc2626" style={{ flexShrink: 0 }} />
+                  <span>⚠️ ระบบคลาวด์ติด Limit โควตาประจำวันชั่วคราว — ข้อมูลจะทำงานในโหมดออฟไลน์ กรุณาพักการสแกน/บันทึกไว้ก่อน</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowQuotaModal(true)}
+                  style={{
+                    flexShrink: 0,
+                    padding: '0.3rem 0.75rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    borderRadius: '6px',
+                    background: '#ffffff',
+                    color: '#dc2626',
+                    borderColor: '#fca5a5',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ดูคำแนะนำ ℹ️
+                </button>
+              </div>
+            )}
+
             <ErrorBoundary fallbackTitle="เกิดข้อผิดพลาดในการแสดงผลหน้านี้">
               <Suspense fallback={<ModuleLoadingFallback />}>
                 {currentTab === 'dashboard' && (
@@ -1890,6 +1976,88 @@ function App() {
                 ✕
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ⚠️ Daily Quota Exceeded Friendly Modal Alert */}
+      {showQuotaModal && (
+        <div className="modal-backdrop animate-fade-in" style={{ zIndex: 100000, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="modal-card animate-fade-in" style={{ maxWidth: '540px', width: '100%', borderRadius: '16px', border: '1.5px solid #ef4444', background: 'var(--bg-primary)', padding: '0', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.35)' }}>
+            
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', padding: '1.25rem 1.5rem', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '8px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertTriangle size={28} color="#ffffff" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#ffffff' }}>
+                    ระบบใช้งานเกินโควตาประจำวันชั่วคราว
+                  </h3>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
+                    (Cloud Database Daily Quota Reached)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.6 }}>
+              
+              <div style={{ padding: '0.75rem 1rem', background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: '10px', color: '#065f46' }}>
+                <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                  <CheckCircle2 size={16} color="#059669" />
+                  <span>ข้อมูลของคุณยังคงปลอดภัย (ไม่สูญหาย)</span>
+                </div>
+                <div style={{ fontSize: '0.82rem' }}>
+                  รายการที่คุณบันทึกไปก่อนหน้านี้ ได้ถูกจัดเก็บไว้ในเครื่องนี้ (Local Cache) เรียบร้อยแล้ว
+                </div>
+              </div>
+
+              <div>
+                <p style={{ margin: '0 0 0.5rem', fontWeight: 650, color: 'var(--text-main)' }}>
+                  🛑 สิ่งที่ผู้ใช้งานควรปฏิบัติในขณะนี้:
+                </p>
+                <ol style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.875rem' }}>
+                  <li>
+                    <strong>ขอให้หยุดการสแกนหรือบันทึกข้อมูลเพิ่มเติมชั่วคราว</strong> เพื่อป้องกันไม่ให้ข้อมูลค้างอยู่ในเครื่องเพียงเครื่องเดียว
+                  </li>
+                  <li>
+                    <strong>รอระบบเติมโควตารอบใหม่</strong>: ระบบ Cloud จะรีเซ็ตโควตาอัตโนมัติทุกวันเวลา <strong>14:00 น.</strong> หรือ <strong>เที่ยงคืน</strong>
+                  </li>
+                  <li>
+                    <strong>กรณีงานเร่งด่วน</strong>: กรุณาแจ้งผู้ดูแลระบบ (Admin) เพื่อทำการขยายขนาดโควตา Cloud (Blaze Plan)
+                  </li>
+                </ol>
+              </div>
+
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+                💡 <em>หมายเหตุ: เมื่อโควตากลับมาเติมแล้ว คุณสามารถกดปุ่ม "🔄 ซิงค์เครื่องนี้" เพื่อส่งข้อมูลขึ้นระบบกลางได้ตามปกติทันที</em>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div style={{ padding: '1rem 1.5rem', background: 'var(--bg-secondary)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleRetryQuotaCheck}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <RotateCw size={14} />
+                <span>ทดสอบเชื่อมต่อใหม่</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => setShowQuotaModal(false)}
+                style={{ background: '#dc2626', borderColor: '#b91c1c', color: '#fff', fontWeight: 600, padding: '0.5rem 1.25rem' }}
+              >
+                รับทราบ และพักการใช้งานชั่วคราว
+              </button>
+            </div>
+
           </div>
         </div>
       )}

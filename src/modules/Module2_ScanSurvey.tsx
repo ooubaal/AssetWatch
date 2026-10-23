@@ -33,7 +33,7 @@ import {
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
-import { uploadImage, compressFileOrPdf, isDefaultPlaceholder } from '../services/dbService';
+import { uploadImage, compressFileOrPdf, isDefaultPlaceholder, isFirestoreQuotaError } from '../services/dbService';
 import { InAppCameraModal } from '../components/InAppCameraModal';
 
 interface Module2ScanSurveyProps {
@@ -507,6 +507,10 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       clearSurveyDraft();
     } catch (e: any) {
       console.error('Survey submit error:', e);
+      if (isFirestoreQuotaError(e)) {
+        // Quota error! Handled by global quota sentinel popup
+        return;
+      }
       alert('เกิดข้อผิดพลาดในการบันทึกผลการสำรวจ: ' + (e?.message || 'กรุณาลองใหม่อีกครั้ง'));
     } finally {
       setSaving(false);
