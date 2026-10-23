@@ -279,8 +279,8 @@ function App() {
   const lastPMCheckRef = useRef<number>(0);
   const fetchAllDataPromiseRef = useRef<Promise<void> | null>(null);
 
-  // Load all data from Firestore/LocalStorage
-  const fetchAllData = async (forcePMCheck = false) => {
+  // Load data from Firestore/LocalStorage (Universal Delta Sync enabled)
+  const fetchAllData = async (forcePMCheck = false, forceFull = false) => {
     if (fetchAllDataPromiseRef.current) {
       return fetchAllDataPromiseRef.current;
     }
@@ -309,17 +309,17 @@ function App() {
           allPMNotifs,
           allSpareParts
         ] = await Promise.all([
-          safeFetch(getAssets, assets.length > 0 ? assets : []),
+          safeFetch(() => getAssets(forceFull), assets.length > 0 ? assets : []),
           safeFetch(getAuditTrails, audits),
-          safeFetch(getRepairs, repairs),
-          safeFetch(getSurveys, surveys),
+          safeFetch(() => getRepairs(forceFull), repairs),
+          safeFetch(() => getSurveys(forceFull), surveys),
           safeFetch(getSurveyRounds, rounds),
           safeFetch(getDepartments, departments),
           safeFetch(getUsers, users),
           safeFetch(getPMContracts, contracts),
           safeFetch(getPMSchedules, schedules),
           safeFetch(getPMNotifications, pmNotifications),
-          safeFetch(fetchSpareParts, spareParts)
+          safeFetch(() => fetchSpareParts(forceFull), spareParts)
         ]);
 
         // Auto-sync asset images with survey photos across all items
@@ -364,8 +364,16 @@ function App() {
   const [isInitialSyncing, setIsInitialSyncing] = useState(true);
   const [syncStatusSuccess, setSyncStatusSuccess] = useState(false);
   const [refreshToastMsg, setRefreshToastMsg] = useState<string | null>(null);
+  const lastRefreshClickRef = useRef<number>(0);
 
-  const handleDeviceRefresh = async () => {
+  const handleDeviceRefresh = async (forceFull: boolean | React.MouseEvent = false) => {
+    const isFull = typeof forceFull === 'boolean' ? forceFull : false;
+    const now = Date.now();
+    if (isDeviceRefreshing || now - lastRefreshClickRef.current < 4000) {
+      return;
+    }
+    lastRefreshClickRef.current = now;
+
     setIsDeviceRefreshing(true);
     setSyncStatusSuccess(false);
     setRefreshToastMsg('กำลังดึงข้อมูลอัปเดตและซิงค์เฉพาะเครื่องนี้...');
@@ -376,8 +384,8 @@ function App() {
         sessionStorage.removeItem('assetwatch_draft_survey_id');
       } catch {}
 
-      // 2. Pull fresh snapshot from database
-      await fetchAllData(true);
+      // 2. Pull delta snapshot from database
+      await fetchAllData(true, isFull);
 
       setSyncStatusSuccess(true);
       const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -404,7 +412,8 @@ function App() {
       setIsInitialSyncing(true);
       setSyncStatusSuccess(false);
 
-      fetchAllData(true)
+      // On app mount, perform Smart Delta Sync (0 full reads if cache is already present)
+      fetchAllData(true, false)
         .then(() => {
           setSyncStatusSuccess(true);
           setTimeout(() => {
@@ -415,19 +424,6 @@ function App() {
         .catch(() => {
           setIsInitialSyncing(false);
         });
-
-      // Conservative background refresh: sync at most once every 15 minutes if tab is active
-      const lastBackgroundSyncRef = { current: Date.now() };
-      const intervalId = setInterval(() => {
-        if (!document.hidden && Date.now() - lastBackgroundSyncRef.current >= 15 * 60 * 1000) {
-          lastBackgroundSyncRef.current = Date.now();
-          fetchAllData(false);
-        }
-      }, 60000); // Check once a minute if 15 mins passed
-
-      return () => {
-        clearInterval(intervalId);
-      };
     }
   }, [isSetupWizardNeeded]);
 

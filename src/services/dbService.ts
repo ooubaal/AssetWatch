@@ -3,13 +3,15 @@ import {
   collection, 
   doc, 
   getDocs, 
-  getDoc,
+  getDoc, 
   setDoc, 
   updateDoc, 
   deleteDoc, 
   query, 
-  orderBy,
-  addDoc
+  orderBy, 
+  where, 
+  limit, 
+  addDoc 
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, PMContract, PMSchedule, PMNotification, SparePart, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS, INITIAL_USERS, INITIAL_CONTRACTS, INITIAL_SCHEDULES, INITIAL_NOTIFICATIONS, INITIAL_SPARE_PARTS } from '../utils/mockData';
@@ -528,11 +530,51 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
   return updatedList;
 };
 
-export const getAssets = async (): Promise<Asset[]> => {
+export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> => {
+  initLocalStorageIfNeeded();
+  const localList: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+
   const { isFirebase, db } = getServices();
   
   if (isFirebase && db) {
     try {
+      // 1. Smart Delta Sync: If we have existing assets cached, only fetch modified items
+      if (!forceFull && localList.length >= 500) {
+        let maxUpdatedAt = '';
+        for (const a of localList) {
+          if (a.updatedAt && a.updatedAt > maxUpdatedAt) {
+            maxUpdatedAt = a.updatedAt;
+          }
+        }
+
+        if (maxUpdatedAt) {
+          const deltaQuery = query(
+            collection(db, 'assets'),
+            where('updatedAt', '>', maxUpdatedAt)
+          );
+          const deltaSnapshot = await getDocs(deltaQuery);
+
+          if (deltaSnapshot.empty) {
+            // Zero assets changed on cloud! Direct return from local cache with 0 read penalty
+            const syncedLocal = await syncBloodBagAssets(localList, false, null);
+            return syncedLocal;
+          }
+
+          // Merge delta updates into existing local cache
+          const assetMap = new Map<string, Asset>();
+          localList.forEach(a => assetMap.set(a.id, a));
+          deltaSnapshot.forEach(docSnap => {
+            assetMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() } as Asset);
+          });
+
+          const mergedAssets = Array.from(assetMap.values());
+          const syncedList = await syncBloodBagAssets(mergedAssets, isFirebase, db);
+          safeSetItem('assetwatch_assets', JSON.stringify(syncedList));
+          return syncedList;
+        }
+      }
+
+      // 2. Full Sync (Only on empty local cache or forced full sync)
       const q = query(collection(db, 'assets'));
       const snapshot = await getDocs(q);
       const list: Asset[] = [];
@@ -542,17 +584,17 @@ export const getAssets = async (): Promise<Asset[]> => {
 
       // Seeding Firestore if completely empty
       if (list.length === 0) {
-        initLocalStorageIfNeeded();
-        const localAssets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
         const { BLOOD_BAG_ASSETS } = await import('../utils/bloodBagAssetsData');
-        const seedAssets = localAssets.length > 0 ? localAssets : [...INITIAL_ASSETS, ...BLOOD_BAG_ASSETS];
+        const seedAssets = localList.length > 0 ? localList : [...INITIAL_ASSETS, ...BLOOD_BAG_ASSETS];
         for (const asset of seedAssets) {
           await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
         }
+        safeSetItem('assetwatch_assets', JSON.stringify(seedAssets));
         return seedAssets;
       }
 
       const syncedList = await syncBloodBagAssets(list, isFirebase, db);
+      safeSetItem('assetwatch_assets', JSON.stringify(syncedList));
       return syncedList;
     } catch (e) {
       console.error('Firebase getAssets failed, falling back to localStorage:', e);
@@ -560,8 +602,6 @@ export const getAssets = async (): Promise<Asset[]> => {
   }
 
   // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const localList: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
   const syncedLocal = await syncBloodBagAssets(localList, false, null);
   return syncedLocal;
 };
@@ -737,7 +777,12 @@ export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'assets', id), sanitizeForFirestore(updates), { merge: true });
+      const nowIso = new Date().toISOString();
+      const firestorePayload = sanitizeForFirestore({
+        ...sanitizedUpdates,
+        updatedAt: sanitizedUpdates.updatedAt || nowIso
+      });
+      await setDoc(doc(db, 'assets', id), firestorePayload, { merge: true });
     } catch (e) {
       console.error('Firebase updateAsset failed:', e);
       throw e;
@@ -771,7 +816,8 @@ export const getAuditTrails = async (): Promise<AuditTrail[]> => {
   
   if (isFirebase && db) {
     try {
-      const q = query(collection(db, 'audit_trails'), orderBy('timestamp', 'desc'));
+      // Hard cap to latest 100 entries to prevent reading unbounded thousands of audit logs
+      const q = query(collection(db, 'audit_trails'), orderBy('timestamp', 'desc'), limit(100));
       const snapshot = await getDocs(q);
       const list: AuditTrail[] = [];
       snapshot.forEach((doc) => {
@@ -785,19 +831,19 @@ export const getAuditTrails = async (): Promise<AuditTrail[]> => {
         for (const audit of localAudits) {
           await setDoc(doc(db, 'audit_trails', audit.id), audit);
         }
-        return localAudits.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        return localAudits.slice(0, 100).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       }
 
+      safeSetItem('assetwatch_audits', JSON.stringify(list));
       return list;
     } catch (e) {
       console.error('Firebase getAuditTrails failed, falling back to localStorage:', e);
     }
   }
 
-  // LocalStorage Fallback
   initLocalStorageIfNeeded();
-  const audits: AuditTrail[] = JSON.parse(localStorage.getItem('assetwatch_audits') || '[]');
-  return audits.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const localAudits: AuditTrail[] = JSON.parse(localStorage.getItem('assetwatch_audits') || '[]');
+  return localAudits.slice(0, 100).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
 export const addAuditTrail = async (trail: Omit<AuditTrail, 'id'>): Promise<void> => {
@@ -843,7 +889,7 @@ const deduplicateSurveys = (surveys: SurveyRecord[]): SurveyRecord[] => {
   return Array.from(map.values());
 };
 
-export const getSurveys = async (): Promise<SurveyRecord[]> => {
+export const getSurveys = async (forceFull: boolean = false): Promise<SurveyRecord[]> => {
   // Read local cache first
   initLocalStorageIfNeeded();
   const localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
@@ -851,12 +897,43 @@ export const getSurveys = async (): Promise<SurveyRecord[]> => {
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
-      const q = query(collection(db, 'surveys'));
-      const snapshot = await getDocs(q);
-      const fbList: SurveyRecord[] = [];
-      snapshot.forEach((docSnap) => {
-        fbList.push({ id: docSnap.id, ...docSnap.data() } as SurveyRecord);
-      });
+      let fbList: SurveyRecord[] = [];
+
+      // 1. Smart Delta Sync: Only fetch new surveys if cache exists
+      if (!forceFull && localSurveys.length > 0) {
+        let maxTimestamp = '';
+        for (const s of localSurveys) {
+          if (s.timestamp && s.timestamp > maxTimestamp) {
+            maxTimestamp = s.timestamp;
+          }
+        }
+
+        if (maxTimestamp) {
+          const deltaQuery = query(
+            collection(db, 'surveys'),
+            where('timestamp', '>', maxTimestamp)
+          );
+          const deltaSnapshot = await getDocs(deltaQuery);
+          deltaSnapshot.forEach((docSnap) => {
+            fbList.push({ id: docSnap.id, ...docSnap.data() } as SurveyRecord);
+          });
+
+          if (fbList.length === 0) {
+            // No new surveys submitted on Cloud! Return local cache directly (0 reads penalty)
+            const deduped = deduplicateSurveys(localSurveys);
+            return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          }
+        }
+      }
+
+      // 2. Full Fetch (if local cache is empty or full sync requested)
+      if (fbList.length === 0 && (forceFull || localSurveys.length === 0)) {
+        const q = query(collection(db, 'surveys'));
+        const snapshot = await getDocs(q);
+        snapshot.forEach((docSnap) => {
+          fbList.push({ id: docSnap.id, ...docSnap.data() } as SurveyRecord);
+        });
+      }
 
       // Merge local and remote avoiding ID duplicates
       const mergedMap = new Map<string, SurveyRecord>();
@@ -935,7 +1012,7 @@ export const updateSurvey = async (id: string, updates: Partial<SurveyRecord>): 
 };
 
 // --- REPAIR SERVICES ---
-export const getRepairs = async (): Promise<RepairCase[]> => {
+export const getRepairs = async (forceFull: boolean = false): Promise<RepairCase[]> => {
   initLocalStorageIfNeeded();
   const localRepairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
 
@@ -943,37 +1020,50 @@ export const getRepairs = async (): Promise<RepairCase[]> => {
   
   if (isFirebase && db) {
     try {
-      const q = query(collection(db, 'repairs'), orderBy('updatedAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const list: RepairCase[] = [];
-      snapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as RepairCase);
-      });
+      let fbList: RepairCase[] = [];
 
-      // Auto-heal: Sync any local repairs not yet present in Firestore
-      const firestoreIds = new Set(list.map(r => r.id));
-      for (const localR of localRepairs) {
-        if (!firestoreIds.has(localR.id)) {
-          list.push(localR);
-          try {
-            await setDoc(doc(db, 'repairs', localR.id), sanitizeForFirestore(localR as any));
-          } catch (syncErr) {
-            console.error('Auto-sync local repair to Firestore failed:', syncErr);
+      // 1. Smart Delta Sync: Only fetch repairs modified after our latest local update
+      if (!forceFull && localRepairs.length > 0) {
+        let maxUpdatedAt = '';
+        for (const r of localRepairs) {
+          if (r.updatedAt && r.updatedAt > maxUpdatedAt) {
+            maxUpdatedAt = r.updatedAt;
+          }
+        }
+
+        if (maxUpdatedAt) {
+          const deltaQuery = query(
+            collection(db, 'repairs'),
+            where('updatedAt', '>', maxUpdatedAt)
+          );
+          const deltaSnapshot = await getDocs(deltaQuery);
+          deltaSnapshot.forEach((doc) => {
+            fbList.push({ id: doc.id, ...doc.data() } as RepairCase);
+          });
+
+          if (fbList.length === 0) {
+            // No new or modified repairs! 0 reads!
+            return localRepairs.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
           }
         }
       }
 
-      // Seeding Firestore if completely empty
-      if (list.length === 0 && localRepairs.length > 0) {
-        for (const repair of localRepairs) {
-          await setDoc(doc(db, 'repairs', repair.id), sanitizeForFirestore(repair as any));
-        }
-        return localRepairs.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+      // 2. Full Sync (if cache is empty or full sync requested)
+      if (fbList.length === 0 && (forceFull || localRepairs.length === 0)) {
+        const q = query(collection(db, 'repairs'), orderBy('updatedAt', 'desc'));
+        const snapshot = await getDocs(q);
+        snapshot.forEach((doc) => {
+          fbList.push({ id: doc.id, ...doc.data() } as RepairCase);
+        });
       }
 
-      const sortedList = list.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
-      safeSetItem('assetwatch_repairs', JSON.stringify(sortedList));
-      return sortedList;
+      // Merge local and remote
+      const map = new Map<string, RepairCase>();
+      localRepairs.forEach(r => map.set(r.id, r));
+      fbList.forEach(r => map.set(r.id, r));
+      const merged = Array.from(map.values()).sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+      safeSetItem('assetwatch_repairs', JSON.stringify(merged));
+      return merged;
     } catch (e) {
       console.error('Firebase getRepairs failed, falling back to localStorage:', e);
     }
@@ -1682,7 +1772,7 @@ export const getPMNotifications = async (): Promise<PMNotification[]> => {
   
   if (isFirebase && db) {
     try {
-      const q = query(collection(db, 'pm_notifications'));
+      const q = query(collection(db, 'pm_notifications'), limit(100));
       const snapshot = await getDocs(q);
       const list: PMNotification[] = [];
       snapshot.forEach((doc) => {
@@ -1788,38 +1878,75 @@ export const deletePMSchedule = async (id: string): Promise<void> => {
 };
 
 // --- SPARE PARTS (คลังอะไหล่) DATABASE OPERATIONS ---
-export const fetchSpareParts = async (): Promise<SparePart[]> => {
+export const fetchSpareParts = async (forceFull: boolean = false): Promise<SparePart[]> => {
+  initLocalStorageIfNeeded();
+  const localParts: SparePart[] = JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
   const { isFirebase, db } = getServices();
+
   if (isFirebase && db) {
     try {
-      const q = query(collection(db, 'spare_parts'));
-      const snapshot = await getDocs(q);
-      const parts: SparePart[] = [];
-      snapshot.forEach((docSnap) => {
-        parts.push(docSnap.data() as SparePart);
-      });
-      
-      if (parts.length === 0) {
-        // If Firestore is empty, seed from LocalStorage
-        const localParts: SparePart[] = JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
-        for (const part of localParts) {
-          await setDoc(doc(db, 'spare_parts', part.id), sanitizeForFirestore(part));
+      let fbList: SparePart[] = [];
+
+      // 1. Smart Delta Sync: Only query spare parts modified after our latest local update
+      if (!forceFull && localParts.length > 0) {
+        let maxUpdatedAt = '';
+        for (const p of localParts) {
+          if (p.updatedAt && p.updatedAt > maxUpdatedAt) {
+            maxUpdatedAt = p.updatedAt;
+          }
         }
+
+        if (maxUpdatedAt) {
+          const deltaQuery = query(
+            collection(db, 'spare_parts'),
+            where('updatedAt', '>', maxUpdatedAt)
+          );
+          const deltaSnapshot = await getDocs(deltaQuery);
+          deltaSnapshot.forEach((docSnap) => {
+            fbList.push(docSnap.data() as SparePart);
+          });
+
+          if (fbList.length === 0) {
+            return localParts;
+          }
+        }
+      }
+
+      // 2. Full Sync if cache empty or forceFull
+      if (fbList.length === 0 && (forceFull || localParts.length === 0)) {
+        const q = query(collection(db, 'spare_parts'));
+        const snapshot = await getDocs(q);
+        snapshot.forEach((docSnap) => {
+          fbList.push(docSnap.data() as SparePart);
+        });
+      }
+
+      if (fbList.length === 0 && localParts.length === 0) {
         return localParts;
       }
-      return parts;
+
+      const map = new Map<string, SparePart>();
+      localParts.forEach(p => map.set(p.id, p));
+      fbList.forEach(p => map.set(p.id, p));
+      const merged = Array.from(map.values());
+      safeSetItem('assetwatch_spare_parts', JSON.stringify(merged));
+      return merged;
     } catch (err) {
       console.error('Failed to fetch spare parts from Firestore, falling back to LocalStorage:', err);
     }
   }
-  return JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
+  return localParts;
 };
 
 export const saveSparePart = async (part: SparePart): Promise<void> => {
+  const partWithTime = {
+    ...part,
+    updatedAt: part.updatedAt || new Date().toISOString()
+  };
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
-      await setDoc(doc(db, 'spare_parts', part.id), sanitizeForFirestore(part));
+      await setDoc(doc(db, 'spare_parts', part.id), sanitizeForFirestore(partWithTime));
     } catch (err) {
       console.error('Failed to save spare part to Firestore, falling back to LocalStorage:', err);
     }
@@ -1827,11 +1954,11 @@ export const saveSparePart = async (part: SparePart): Promise<void> => {
   const parts: SparePart[] = JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
   const index = parts.findIndex(p => p.id === part.id);
   if (index !== -1) {
-    parts[index] = part;
+    parts[index] = partWithTime;
   } else {
-    parts.push(part);
+    parts.push(partWithTime);
   }
-  localStorage.setItem('assetwatch_spare_parts', JSON.stringify(parts));
+  safeSetItem('assetwatch_spare_parts', JSON.stringify(parts));
 };
 
 export const deleteSparePart = async (id: string): Promise<void> => {
