@@ -959,6 +959,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                   }}
                 />
                 <span className={`badge ${statusColors[asset.status] || 'badge-muted'} asset-status-badge`}>
+                  <span className="status-dot"></span>
                   {asset.status || 'ใช้งานได้'}
                 </span>
               </div>
@@ -1375,9 +1376,78 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
 
         .asset-status-badge {
           position: absolute;
-          top: 0.75rem;
-          right: 0.75rem;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+          top: 0.65rem;
+          right: 0.65rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.25rem 0.65rem;
+          font-size: 0.75rem;
+          font-weight: 750;
+          border-radius: 9999px;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          letter-spacing: 0.02em;
+          z-index: 2;
+          transition: transform 0.15s ease;
+        }
+
+        .asset-card:hover .asset-status-badge {
+          transform: translateY(-1px) scale(1.03);
+        }
+
+        .asset-status-badge .status-dot {
+          width: 6.5px;
+          height: 6.5px;
+          border-radius: 50%;
+          background: #ffffff;
+          display: inline-block;
+          box-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
+          flex-shrink: 0;
+        }
+
+        /* High-Contrast Solid Badges over Image Cards */
+        .asset-status-badge.badge-success {
+          background: #15803d !important;
+          color: #ffffff !important;
+          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+        }
+
+        .asset-status-badge.badge-danger {
+          background: #dc2626 !important;
+          color: #ffffff !important;
+          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+        }
+
+        .asset-status-badge.badge-warning {
+          background: #d97706 !important;
+          color: #ffffff !important;
+          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+        }
+
+        .asset-status-badge.badge-info {
+          background: #0284c7 !important;
+          color: #ffffff !important;
+          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+        }
+
+        .asset-status-badge.badge-primary {
+          background: #4f46e5 !important;
+          color: #ffffff !important;
+          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+        }
+
+        .asset-status-badge.badge-muted {
+          background: #475569 !important;
+          color: #ffffff !important;
+          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
         }
 
         .asset-card-body {
