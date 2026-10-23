@@ -1,73 +1,110 @@
-# React + TypeScript + Vite
+# 📦 AssetWatch - ระบบบริหารและสำรวจครุภัณฑ์พัสดุอัจฉริยะ (Smart Asset Management & Tracking)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> ระบบบริหารจัดการ ติดตาม ตรวจนับครุภัณฑ์พัสดุ และงานบำรุงรักษาเชิงป้องกัน (PM) พร้อมระบบสแกน QR Code / บาร์โค้ดผ่านมือถือ และการซิงค์ข้อมูลคลาวด์แบบประหยัดโควตา (Smart Delta Sync)
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🌟 จุดเด่นของระบบ (Key Features)
 
-## React Compiler
+1. **📸 สแกนสำรวจตรวจนับครุภัณฑ์รวดเร็ว (Module 2: Scan Survey)**
+   - สแกน QR Code / บาร์โค้ดผ่านกล้องมือถือหรือแท็บเล็ตได้ทันที
+   - ค้นหาห้องที่ตั้งแบบพิมพ์ค้นหาได้ (Searchable Location)
+   - แถบสถานะครุภัณฑ์เน้นสีพื้นหลัง (Highlight Status) ชัดเจน อ่านง่าย
+   - ตรวจสอบรายการที่สำรวจแล้วในแท็บ **"ตรวจแล้ว"** พร้อมระบบจัดเรียงแบบ **"เรียงล่าสุด (Recently Scanned)"**
+   - แนบรูปถ่ายสภาพจริงของครุภัณฑ์ขณะตรวจนับได้ทันที
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+2. **➕ ลงทะเบียนครุภัณฑ์และพิมพ์ฉลาก (Module 3: Add Asset & Label Printing)**
+   - เพิ่มครุภัณฑ์เดี่ยว หรือนำเข้าพร้อมกันหลายร้อยรายการผ่านไฟล์ **Excel (.xlsx)**
+   - ระบบสร้างรหัสอัตโนมัติ และพิมพ์สติกเกอร์บาร์โค้ด / QR Code ติดบนพัสดุ
 
-## Expanding the ESLint configuration
+3. **🔧 แจ้งซ่อมและงานบำรุงรักษาเชิงป้องกัน (Module 10 & 12: Maintenance, PM & Spare Parts)**
+   - เปิดเคสแจ้งชำรุด ติดตามสถานะงานซ่อม และตรวจรับคืนพัสดุ
+   - แผนตรวจเช็ค PM รอบ 3 เดือน / 6 เดือน / 1 ปี พร้อมระบบแจ้งเตือนอัตโนมัติล่วงหน้า
+   - จัดการสต็อกและเบิกจ่ายอะไหล่สำรอง (Spare Parts)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+4. **💾 สำรองและกู้คืนฐานข้อมูล (Module 7: Backup & Restore with Progress Bar)**
+   - ส่งออกข้อมูลสำรองทั้งระบบเป็นไฟล์ JSON (`.json`)
+   - ระบบกู้คืนฐานข้อมูลแบบ **Staged Preview** แสดงจำนวนครุภัณฑ์และผลสำรวจให้ตรวจสอบก่อนกู้คืนจริง
+   - **แถบแสดงความคืบหน้า (Progress Bar)** แสดงเปอร์เซ็นต์แบบ Real-time `0% - 100%` พร้อมตัวนับรายการสด
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+5. **⚡ สถาปัตยกรรมประหยัดโควตาคลาวด์ (Smart Delta Sync & Quota Sentinel)**
+   - เทคโนโลยี **Smart Delta Sync** อ่านเฉพาะข้อมูลที่มีการแก้ไขใหม่บนคลาวด์ ทำให้การเปิดโปรแกรมกินโควตา Read เพียง **~45 - 80 ครั้ง/ครั้ง** (จากโควตาฟรีวันละ 50,000 Reads)
+   - การค้นหา กรองข้อมูล ดูรายละเอียด หรือพิมพ์สติกเกอร์ ทำงานบนหน่วยความจำของเครื่อง (**0 Read / 0 Write**)
+   - ระบบแจ้งเตือนเมื่อโควตาคลาวด์เต็ม (**Quota Sentinel**) พร้อมข้อความแนะนำที่เข้าใจง่าย และทำงานออฟไลน์ได้ต่อเนื่อง
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+6. **🛡️ ความปลอดภัยและการแบ่งสิทธิ์ (Access Control & Security)**
+   - **Admin (ผู้ดูแลระบบ):** สิทธิ์สูงสุด จัดการระบบ กู้คืนข้อมูล และตัดจำหน่ายพัสดุ
+   - **Manager (ผู้บริหาร):** ดูรายงาน สถิติ ผลสำรวจทุกแผนก (Read-Only)
+   - **Operator (เจ้าหน้าที่สำรวจ):** สแกนสำรวจ ตรวจนับ แนบรูป และแจ้งซ่อมพัสดุในแผนกที่รับผิดชอบ
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📖 คู่มือการปฏิบัติงานสำหรับเจ้าหน้าที่ (User Guide)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 1. วิธีสแกนสำรวจตรวจนับครุภัณฑ์ (โมดูล 2)
+1. เปิดโปรแกรมผ่านเบราว์เซอร์บนมือถือหรือแท็บเล็ต และอนุญาตการใช้งานกล้อง
+2. หันกล้องไปที่ฉลาก QR Code หรือ บาร์โค้ดบนตัวครุภัณฑ์ ระบบจะแสดงข้อมูลพัสดุขึ้นมาทันที
+3. เลือกห้องที่ตั้งโดยพิมพ์ค้นหาชื่อห้องในช่อง **"ค้นหาห้อง/สถานที่"**
+4. ตรวจสอบสภาพ หากพบชำรุดหรือมีป้ายฉลากชำรุด ให้เลือกสถานะ และกดถ่ายภาพสภาพจริงแนบเป็นหลักฐาน
+5. กด **"บันทึกผลการสำรวจ"**
+6. สามารถตรวจสอบรายการที่เพิ่งสแกนได้ที่แท็บ **"ตรวจแล้ว"** โดยเลือกลำดับเป็น **"เรียงล่าสุด"** รายการที่เพิ่งสแกนจะอยู่บนสุดเสมอ
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. วิธีนำเข้าครุภัณฑ์แบบกลุ่มจาก Excel (โมดูล 3)
+1. ไปที่โมดูล **"ลงทะเบียนใหม่ (Add Asset)"** เลือกแท็บ **"นำเข้าจากไฟล์ Excel"**
+2. กดดาวน์โหลดไฟล์เทมเพลตตัวอย่าง และกรอกข้อมูลครุภัณฑ์ตามคอลัมน์ที่กำหนด
+3. อัปโหลดไฟล์ `.xlsx` ระบบจะตรวจสอบความถูกต้องและนำเข้าฐานข้อมูลพร้อมกันทั้งหมด
+
+### 3. วิธีการสำรองและกู้คืนฐานข้อมูล (โมดูล 7)
+* **การส่งออกข้อมูลสำรอง (Export):**
+  - ไปที่เมนู **"ตั้งค่าระบบ (Settings)"** > แท็บ **"สำรอง & กู้คืน (Backup)"**
+  - กดปุ่ม **"ส่งออกข้อมูลแบคอัพทั้งหมด"** เพื่อบันทึกไฟล์ `.json` เก็บไว้ในคอมพิวเตอร์
+* **การกู้คืนข้อมูล (Restore):**
+  - กดปุ่ม **"เลือกไฟล์แบคอัพ JSON เพื่อกู้คืน"**
+  - ตรวจสอบยอดข้อมูลที่ตรวจพบในการ์ดพรีวิว (จำนวนครุภัณฑ์, ผลสำรวจ, เคสซ่อม ฯลฯ)
+  - กดปุ่ม **"กู้คืนข้อมูลเข้าสู่ระบบทันที"**
+  - ระบบจะแสดงแถบเปอร์เซ็นต์ความคืบหน้า **0% -> 100%** พร้อมแจ้งเตือนเมื่อเสร็จสิ้น
+
+---
+
+## 📊 ตารางการใช้โควตา Firebase (Quota Usage Breakdown)
+
+| การกระทำ (Action) | Quota Read | Quota Write |
+| :--- | :---: | :---: |
+| เปิดเบราว์เซอร์เข้าโปรแกรม (เครื่องเดิมที่เคยเปิดแล้ว) | ~45 – 80 | 0 |
+| ค้นหา / กรองข้อมูล / เปลี่ยนหน้า / พิมพ์สติกเกอร์ | **0** | **0** |
+| บันทึกผลสำรวจ 1 รายการ (พร้อมถ่ายรูป) | 0 | 1 – 3 |
+| เพิ่ม / แก้ไข / ลบ ครุภัณฑ์ 1 รายการ | 0 | 2 |
+| แจ้งซ่อมครุภัณฑ์ 1 รายการ | 0 | 3 |
+| ส่งออกไฟล์แบคอัพ (Export JSON) | ~45 – 80 | 0 |
+| กู้คืนข้อมูล (Restore JSON - $N$ รายการ) | 0 | เท่ากับ $N$ รายการ |
+
+*โควตาฟรี Firebase Spark Plan: อ่านได้วันละ **50,000 ครั้ง** / เขียนได้วันละ **20,000 ครั้ง***
+
+---
+
+## 🛠️ เทคโนโลยีที่ใช้ (Tech Stack)
+
+- **Frontend:** React 19, TypeScript, Vite
+- **UI & Styling:** Clean Glassmorphism Design System, Lucide Icons
+- **Database & Cloud:** Firebase Firestore, Firebase Storage
+- **Local Cache:** Web LocalStorage & IndexedDB
+- **Reporting & Tools:** ExcelJS, QRCode.react, Html5-QRCode Scanner
+- **Hosting:** GitHub Pages & Progressive Web App (PWA) Ready
+
+---
+
+## 💻 การติดตั้งและพัฒนา (Developer Setup)
+
+```bash
+# ติดตั้ง dependencies
+npm install
+
+# รันโหมด Development บนเครื่อง
+npm run dev
+
+# ทำการทดสอบ Build ตรวจสอบความถูกต้อง
+npm run build
+
+# Deploy ขึ้น GitHub Pages
+npx gh-pages -d dist
 ```

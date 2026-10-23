@@ -847,104 +847,128 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
           {activeSubTab === 'guide' && (
             <div className="setting-view-box animate-fade-in user-guide-panel">
               <div className="card-header" style={{ marginBottom: '1.5rem', paddingBottom: '0.5rem' }}>
-                <h3>คู่มือการใช้งานระบบ AssetWatch (User Manual)</h3>
-                <span className="card-header-sub">คำแนะนำและวิธีการทำงานสำหรับเจ้าหน้าที่พัสดุและฝ่ายสำรวจ</span>
+                <h3>คู่มือการใช้งานระบบ AssetWatch (User Manual v2.0)</h3>
+                <span className="card-header-sub">คำแนะนำและคู่มือการปฏิบัติงานฉบับสมบูรณ์สำหรับเจ้าหน้าที่พัสดุ ผู้ตรวจนับ และผู้ดูแลระบบ</span>
               </div>
 
+              {/* 1. SCAN SURVEY */}
               <div className="guide-section">
-                <h4>1. 📸 วิธีสแกนสำรวจครุภัณฑ์ผ่านมือถือ (โมดูล 2)</h4>
+                <h4>1. 📸 วิธีสแกนสำรวจตรวจนับครุภัณฑ์ (โมดูล 2: Scan Survey)</h4>
                 <div className="guide-steps-list">
                   <div className="guide-step-row">
                     <span className="step-num">1</span>
-                    <p>เปิดโปรแกรม <strong>AssetWatch</strong> ผ่านเบราว์เซอร์ของมือถือ โดยให้แอดมินเปิดสิทธิ์กล้อง</p>
+                    <p><strong>เปิดกล้องสแกน</strong>: ใช้งานผ่านมือถือหรือแท็บเล็ต อนุญาตการเข้าถึงกล้อง แล้วส่องไปที่ **QR Code** หรือ **บาร์โค้ด** บนตัวครุภัณฑ์ ระบบจะดึงข้อมูลพัสดุขึ้นมาแสดงผลทันที</p>
                   </div>
                   <div className="guide-step-row">
                     <span className="step-num">2</span>
-                    <p>หันกล้องมือถือไปที่ **ฉลากบาร์โค้ด** หรือ **QR Code** บนตัวครุภัณฑ์ ระบบจะทำการดึงข้อมูลมาแสดงผลใน 0.5 วินาที</p>
+                    <p><strong>เลือกห้องที่ตั้งพัสดุ (Searchable Room)</strong>: มีช่องค้นหาห้องที่ตั้ง สามารถพิมพ์ค้นหาชื่อห้อง เช่น <em>"BR 46"</em> หรือ <em>"ห้องหัวหน้า"</em> ได้สะดวกรวดเร็ว</p>
                   </div>
                   <div className="guide-step-row">
                     <span className="step-num">3</span>
-                    <p>ตรวจสอบความถูกต้องของสถานที่ตั้ง หากเจอชำรุด สามารถอัปเดตสถานะและกดถ่ายรูปบันทึกหลักฐานสภาพเครื่องเสียหายได้ทันที</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="guide-section">
-                <h4>2. ➕ วิธีลงทะเบียนทรัพย์สินใหม่และสั่งพิมพ์บาร์โค้ด (โมดูล 3)</h4>
-                <div className="guide-steps-list">
-                  <div className="guide-step-row">
-                    <span className="step-num">1</span>
-                    <p>เปิดไปที่หน้า **"ลงทะเบียนใหม่"** ป้อนรายละเอียด ถ่ายรูปอุปกรณ์แนบประวัติการรับ</p>
-                  </div>
-                  <div className="guide-step-row">
-                    <span className="step-num">2</span>
-                    <p>กรณีไม่มีเลขบาร์โค้ดเดิม ให้กด **"สุ่มสร้างรหัส"** เพื่อให้ระบบออกรหัสควบคุมให้เองแบบเป็นระเบียบ</p>
-                  </div>
-                  <div className="guide-step-row">
-                    <span className="step-num">3</span>
-                    <p>เมื่อลงทะเบียนสำเร็จ ให้ไปที่หน้ารายละเอียดครุภัณฑ์ชิ้นนั้น และคลิก **"ดาวน์โหลดฉลาก"** เพื่อเซฟภาพบาร์โค้ดและพิมพ์ไปติดบนทรัพย์สิน</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="guide-section">
-                <h4>3. 🔧 การติดตามความคืบหน้านำซ่อม (โมดูล 5)</h4>
-                <div className="guide-steps-list">
-                  <div className="guide-step-row">
-                    <span className="step-num">1</span>
-                    <p><strong>เปิดเคสแจ้งชำรุด</strong>: ค้นหาพัสดุ ระบุอาการ ถ่ายรูปอาการขัดข้องเพื่อเก็บประวัติและแจ้งเตือนให้เจ้าหน้าที่อื่นรับทราบ</p>
-                  </div>
-                  <div className="guide-step-row">
-                    <span className="step-num">2</span>
-                    <p><strong>ส่งไปร้านซ่อม</strong>: เมื่อส่งเครื่องให้ร้านค้าซ่อมแซม ให้กดปุ่ม **"นำส่งช่างซ่อม"** เพื่อระบุบริษัทและแนบรูปใบรับเครื่อง</p>
-                  </div>
-                  <div className="guide-step-row">
-                    <span className="step-num">3</span>
-                    <p><strong>รับกลับพัสดุคืน</strong>: เมื่อร้านซ่อมเสร็จส่งคืน ให้กดปุ่ม **"ตรวจรับคืน"** เพื่อตรวจสอบความถูกต้อง ถ่ายรูปยืนยันสภาพพร้อมใช้งาน และเปลี่ยนสถานะกลับเป็นปกติโดยอัตโนมัติ</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="guide-section">
-                <h4>4. 🔄 วิธีการย้ายฐานข้อมูลคลาวด์ ไปยังบัญชี Firebase ใหม่ (Data Migration)</h4>
-                <div className="guide-steps-list">
-                  <div className="guide-step-row">
-                    <span className="step-num">1</span>
-                    <p><strong>ส่งออกข้อมูลเดิม (Export JSON)</strong>: ไปที่หัวข้อ **"สำรอง & กู้คืนข้อมูล (Backup)"** บนแท็บด้านซ้าย แล้วกดปุ่ม **"ส่งออกข้อมูลแบคอัพทั้งหมด"** เพื่อเซฟไฟล์ <code>.json</code> ลงในเครื่องคอมพิวเตอร์</p>
-                  </div>
-                  <div className="guide-step-row">
-                    <span className="step-num">2</span>
-                    <p><strong>เชื่อมต่อบัญชีใหม่</strong>: ไปที่หัวข้อ **"ตั้งค่าฐานข้อมูลคลาวด์"** เลื่อนลงไปล่างสุดตรง Danger Zone แล้วกด **"ตัดการเชื่อมต่อฐานข้อมูลคลาวด์นี้"** จากนั้นป้อนรหัสคลาวด์ (Firebase Config) ตัวใหม่ที่ต้องการย้ายไป</p>
-                  </div>
-                  <div className="guide-step-row">
-                    <span className="step-num">3</span>
-                    <p><strong>นำเข้าข้อมูลสำเร็จรูป (Import Restore)</strong>: เข้าสู่ระบบฐานข้อมูลใหม่ ไปที่หัวข้อ **"สำรอง & กู้คืนข้อมูล (Backup)"** อีกครั้ง อัปโหลดไฟล์ <code>.json</code> ที่สำรองไว้ในขั้นแรก แล้วกด **"กู้คืนฐานข้อมูลจากไฟล์ JSON"** ข้อมูลและบัญชีทั้งหมดจะถูกกู้คืนออนไลน์ทันที</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="guide-section" style={{ borderBottom: 'none' }}>
-                <h4>5. 🛡️ ความปลอดภัยของระบบและการป้องกันข้อมูล (System Security & Data Protection)</h4>
-                <div className="guide-steps-list">
-                  <div className="guide-step-row">
-                    <span className="step-num">1</span>
-                    <p><strong>การเข้ารหัสข้อมูลขณะส่ง (HTTPS/SSL)</strong>: ข้อมูลและรูปภาพทั้งหมดที่วิ่งระหว่างระบบกับคลาวด์ Firebase จะถูกส่งผ่านโปรโตคอล HTTPS เสมอ ป้องกันการดักจับหรือดักฟังข้อมูลระหว่างทาง</p>
-                  </div>
-                  <div className="guide-step-row">
-                    <span className="step-num">2</span>
-                    <p><strong>กฎการเข้าถึงข้อมูล (Firestore Rules)</strong>: มีระบบตั้งค่าสิทธิ์ให้เฉพาะผู้ใช้ที่ผ่านการเข้าสู่ระบบอย่างถูกต้องเท่านั้นที่จะสามารถเข้าถึงหรือแก้ไขข้อมูลครุภัณฑ์ออนไลน์ได้ ป้องกันบุคคลภายนอกเดาคีย์แล้วเขียนข้อมูลทับ</p>
-                  </div>
-                  <div className="guide-step-row">
-                    <span className="step-num">3</span>
-                    <p><strong>ความปลอดภัยบน GitHub</strong>: ตัวโปรแกรมหลักเป็นเว็บแอปพลิเคชันฝั่งเครื่องผู้ใช้ (Client-side) ที่อยู่บน GitHub โดยจะไม่มีการเก็บประวัติ รหัสผ่าน หรือไฟล์ข้อมูลครุภัณฑ์ใดๆ ขององค์กรไว้บน GitHub ทั้งหมดจะเก็บอยู่ในคลาวด์ Firebase และเครื่องคอมพิวเตอร์ของคุณเท่านั้น จึงไม่เสี่ยงต่อการรั่วไหลผ่านซอร์สโค้ด</p>
+                    <p><strong>ระบุสถานะและถ่ายรูป</strong>: ตรวจสอบสถานะ (ใช้งานได้, ชำรุด, รอจำหน่าย ฯลฯ) ซึ่งมีแถบสีเน้นข้อความชัดเจน สามารถกดถ่ายภาพสภาพจริงของครุภัณฑ์เพื่อแนบเป็นหลักฐานการสำรวจได้</p>
                   </div>
                   <div className="guide-step-row">
                     <span className="step-num">4</span>
-                    <p><strong>ความปลอดภัยของรหัสผ่าน</strong>: รหัสผ่านของบัญชีผู้ใช้งานทั้งหมดที่เพิ่มในระบบ จะถูกตรวจสอบผ่านการเช็กสิทธิ์ระดับฐานข้อมูลและไม่สามารถดูเป็นข้อความรหัสผ่านตรงๆ ได้เพื่อรักษาความปลอดภัยขั้นสูงสุด</p>
+                    <p><strong>ตรวจสอบรายการ "ตรวจแล้ว" (เรียงล่าสุด)</strong>: สลับไปที่แถบ <strong>"ตรวจแล้ว"</strong> เพื่อดูรายการที่สำรวจไปแล้ว โดยมีตัวเลือกจัดเรียงแบบ <strong>"เรียงล่าสุด (Recently Scanned)"</strong> เพื่อให้รายการที่เพิ่งสแกนเสร็จแสดงอยู่บนสุดเสมอ</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. REGISTRATION */}
+              <div className="guide-section">
+                <h4>2. ➕ วิธีลงทะเบียนทรัพย์สินใหม่และพิมพ์ฉลาก (โมดูล 3: Add Asset)</h4>
+                <div className="guide-steps-list">
+                  <div className="guide-step-row">
+                    <span className="step-num">1</span>
+                    <p><strong>ลงทะเบียนครุภัณฑ์เดี่ยว</strong>: กรอกรหัสครุภัณฑ์, ชื่อพัสดุ, หมายเลขซีเรียล (S/N), หมวดหมู่, หน่วยงาน/ห้อง และแนบรูปภาพ จากนั้นกดบันทึกเข้าสู่ฐานข้อมูล</p>
                   </div>
                   <div className="guide-step-row">
-                    <span className="step-num">5</span>
-                    <p><strong>ระดับสิทธิ์การเข้าถึง 3 ระดับ (RBAC)</strong>: ระบบแบ่งขอบเขตหน้าที่อย่างชัดเจน: (1) **Admin** มีสิทธิ์สูงสุด จัดการระบบและทำเรื่องจำหน่ายได้, (2) **Manager** สำหรับผู้บริหารดูรายงานสถิติได้ทุกแผนกแบบอ่านอย่างเดียว (Read-Only), และ (3) **Operator** เจ้าหน้าที่ฝ่ายพัสดุ ลงทะเบียน/แก้ไขครุภัณฑ์ได้เฉพาะแผนกของตนเอง และห้ามกดจำหน่ายหรือลบข้อมูลออกเอง</p>
+                    <span className="step-num">2</span>
+                    <p><strong>นำเข้าแบบกลุ่มจาก Excel</strong>: สลับไปที่แท็บ <strong>"นำเข้าจากไฟล์ Excel"</strong> ดาวน์โหลดเทมเพลต กรอกข้อมูลแล้วอัปโหลดเข้าระบบพร้อมกันหลายร้อยรายการได้ในคลิกเดียว</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">3</span>
+                    <p><strong>พิมพ์ฉลากบาร์โค้ด / QR Code</strong>: ไปที่หน้ารายละเอียดครุภัณฑ์ในโมดูล 1 หรือ 3 เพื่อกดสั่งพิมพ์สติกเกอร์บาร์โค้ดนำไปติดบนตัวพัสดุ</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. MAINTENANCE & PM */}
+              <div className="guide-section">
+                <h4>3. 🔧 การแจ้งซ่อมและงานบำรุงรักษาเชิงป้องกัน (โมดูล 10: Maintenance & PM)</h4>
+                <div className="guide-steps-list">
+                  <div className="guide-step-row">
+                    <span className="step-num">1</span>
+                    <p><strong>เปิดเคสแจ้งชำรุด</strong>: ค้นหาพัสดุที่เสีย ระบุอาการขัดข้อง ถ่ายรูปแนบ และระบุระดับความเร่งด่วนเพื่อส่งเรื่องเข้าสู่กระบวนการซ่อมแซม</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">2</span>
+                    <p><strong>ติดตามสถานะงานซ่อม</strong>: อัปเดตสถานะ เช่น ส่งช่างซ่อมภายนอก, รออะไหล่ พร้อมแนบใบรับเครื่องหรือใบเสนอราคา</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">3</span>
+                    <p><strong>ตรวจรับเครื่องคืน</strong>: เมื่อซ่อมเสร็จ ให้กดตรวจรับคืน ระบุค่าใช้จ่าย และถ่ายรูปสภาพพร้อมใช้งาน ระบบจะปรับสถานะครุภัณฑ์กลับเป็น "ใช้งานได้" ให้อัตโนมัติ</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">4</span>
+                    <p><strong>แผนบำรุงรักษา PM & อะไหล่ (โมดูล 10 & 12)</strong>: จัดทำสัญญาบำรุงรักษา วางรอบตรวจเช็ค PM ล่วงหน้า โดยระบบจะแจ้งเตือนอัตโนมัติเมื่อใกล้ถึงกำหนดตรวจเช็ค และสามารถบันทึกเบิกจ่ายอะไหล่สำรองได้ในคลังอะไหล่</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. BACKUP & RESTORE */}
+              <div className="guide-section">
+                <h4>4. 💾 การสำรองและกู้คืนฐานข้อมูล (โมดูล 7: Backup & Restore)</h4>
+                <div className="guide-steps-list">
+                  <div className="guide-step-row">
+                    <span className="step-num">1</span>
+                    <p><strong>สำรองข้อมูล (Export JSON Backup)</strong>: ไปที่แท็บ <strong>"สำรอง & กู้คืน"</strong> แล้วกด <strong>"ส่งออกข้อมูลแบคอัพทั้งหมด"</strong> เพื่อดาวน์โหลดไฟล์สำรอง <code>.json</code> เก็บไว้ในคอมพิวเตอร์อย่างปลอดภัย</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">2</span>
+                    <p><strong>เลือกไฟล์กู้คืน (Staged Preview)</strong>: กด <strong>"เลือกไฟล์แบคอัพ JSON เพื่อกู้คืน"</strong> ระบบจะตรวจสอบโครงสร้างไฟล์และแสดงยอดสรุปจำนวนครุภัณฑ์, ผลการสำรวจ, เคสซ่อม ฯลฯ ให้ตรวจสอบความถูกต้องก่อนเริ่มกู้คืน</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">3</span>
+                    <p><strong>แถบเปอร์เซ็นต์ความคืบหน้า (Progress Bar)</strong>: เมื่อกด <strong>"กู้คืนข้อมูลเข้าสู่ระบบทันที"</strong> หน้าจอจะแสดงแถบเปอร์เซ็นต์ (0% - 100%) พร้อมชื่อขั้นตอนและจำนวนรายการที่กำลังนำเข้าแบบ Real-time จนเสร็จสมบูรณ์</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. QUOTA & PERFORMANCE */}
+              <div className="guide-section">
+                <h4>5. ⚡ การประหยัดโควตาคลาวด์และระบบแจ้งเตือน (Cloud Quota & Offline Sync)</h4>
+                <div className="guide-steps-list">
+                  <div className="guide-step-row">
+                    <span className="step-num">1</span>
+                    <p><strong>เทคโนโลยี Smart Delta Sync</strong>: ระบบจะอ่านเฉพาะข้อมูลที่ถูกแก้ไขใหม่บนคลาวด์เท่านั้น ทำให้การเปิดโปรแกรมในแต่ละวันกินโควตา Read เพียง <strong>~45 – 80 ครั้ง</strong> (จากโควตาฟรีวันละ 50,000 ครั้ง)</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">2</span>
+                    <p><strong>การค้นหาและกรองข้อมูลไม่เสียโควตา</strong>: การพิมพ์ค้นหาชื่อ, กรองห้อง, ดูรายละเอียด หรือพิมพ์สติกเกอร์ ทำงานบนหน่วยความจำของเครื่อง (0 Read / 0 Write)</p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">3</span>
+                    <p><strong>ระบบแจ้งเตือนเมื่อโควตาคลาวด์เต็ม (Quota Sentinel)</strong>: หากโควตาคลาวด์ Firebase เต็ม ระบบจะแสดงป้ายเตือนสีส้มด้านบนพร้อมคำแนะนำที่เข้าใจง่าย โดยผู้ใช้ยังคงทำงานและสำรวจต่อผ่านหน่วยความจำของเครื่องได้โดยข้อมูลไม่สูญหาย</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 6. SECURITY */}
+              <div className="guide-section" style={{ borderBottom: 'none' }}>
+                <h4>6. 🛡️ ความปลอดภัยของระบบและการแบ่งสิทธิ์ (Security & Access Control)</h4>
+                <div className="guide-steps-list">
+                  <div className="guide-step-row">
+                    <span className="step-num">1</span>
+                    <p><strong>ระดับสิทธิ์ 3 ระดับ (RBAC)</strong>: 
+                      <br />• <strong>Admin (ผู้ดูแลระบบ)</strong>: มีสิทธิ์สูงสุด จัดการระบบ กู้คืนข้อมูล นำเข้าไฟล์ และตัดจำหน่ายพัสดุ
+                      <br />• <strong>Manager (ผู้บริหาร)</strong>: ดูรายงาน สถิติ ผลการสำรวจ และข้อมูลพัสดุทุกแผนกแบบอ่านอย่างเดียว (Read-Only)
+                      <br />• <strong>Operator (เจ้าหน้าที่สำรวจ)</strong>: สแกนสำรวจ ตรวจนับ บันทึกรูปถ่าย และแจ้งซ่อมพัสดุในแผนกที่รับผิดชอบ
+                    </p>
+                  </div>
+                  <div className="guide-step-row">
+                    <span className="step-num">2</span>
+                    <p><strong>ความปลอดภัยของข้อมูล</strong>: ข้อมูลและภาพถ่ายส่งผ่านระบบความปลอดภัย HTTPS เสมอ และไม่มีการบันทึกข้อมูลครุภัณฑ์หรือรหัสผ่านไว้บน GitHub ข้อมูลทั้งหมดจะถูกเก็บอยู่ใน Firebase Cloud และคอมพิวเตอร์ของคุณเท่านั้น</p>
                   </div>
                 </div>
               </div>
