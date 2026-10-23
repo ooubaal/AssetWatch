@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, PMContract, PMSchedule, PMNotification, SparePart, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS, INITIAL_USERS, INITIAL_CONTRACTS, INITIAL_SCHEDULES, INITIAL_NOTIFICATIONS, INITIAL_SPARE_PARTS } from '../utils/mockData';
+import { RESTORED_FURNITURE_SURVEYS } from '../utils/restoredSurveysData';
 
 // Helper to check if we are using Firebase
 const getServices = () => {
@@ -949,10 +950,36 @@ const deduplicateSurveys = (surveys: SurveyRecord[]): SurveyRecord[] => {
   return Array.from(map.values());
 };
 
+const syncRestoredSurveys = async (surveys: SurveyRecord[], isFirebase: boolean, db: any): Promise<SurveyRecord[]> => {
+  const existingMap = new Map<string, SurveyRecord>();
+  surveys.forEach(s => existingMap.set(s.assetId, s));
+  
+  const missingSurveys = RESTORED_FURNITURE_SURVEYS.filter(s => !existingMap.has(s.assetId));
+  if (missingSurveys.length > 0) {
+    console.log(`Restoring ${missingSurveys.length} missing furniture surveys...`);
+    surveys = [...surveys, ...missingSurveys];
+    
+    // Save to local storage
+    safeSetItem('assetwatch_surveys', JSON.stringify(deduplicateSurveys(surveys)));
+    
+    // Also sync to Firestore if configured
+    if (isFirebase && db) {
+      try {
+        for (const s of missingSurveys) {
+          await setDoc(doc(db, 'surveys', s.id), sanitizeForFirestore(s));
+        }
+      } catch (e) {
+        console.warn('Failed to sync restored surveys to Firestore:', e);
+      }
+    }
+  }
+  return surveys;
+};
+
 export const getSurveys = async (forceFull: boolean = false): Promise<SurveyRecord[]> => {
   // Read local cache first
   initLocalStorageIfNeeded();
-  const localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
+  let localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
 
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
@@ -980,7 +1007,8 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
 
           if (fbList.length === 0) {
             // No new surveys submitted on Cloud! Return local cache directly (0 reads penalty)
-            const deduped = deduplicateSurveys(localSurveys);
+            const withRestored = await syncRestoredSurveys(localSurveys, isFirebase, db);
+            const deduped = deduplicateSurveys(withRestored);
             return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
           }
         }
@@ -1002,8 +1030,10 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
       
       // Deduplicate by (assetId + roundId) to prevent phantom count inflation
       const mergedList = deduplicateSurveys(Array.from(mergedMap.values()));
-      safeSetItem('assetwatch_surveys', JSON.stringify(mergedList));
-      return mergedList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const withRestored = await syncRestoredSurveys(mergedList, isFirebase, db);
+      const deduped = deduplicateSurveys(withRestored);
+      safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
+      return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     } catch (e) {
       checkAndNotifyQuotaError(e, 'getSurveys');
       console.error('Firebase getSurveys failed, returning local cache:', e);
@@ -1011,7 +1041,8 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
   }
 
   // Deduplicate local cache too
-  const deduped = deduplicateSurveys(localSurveys);
+  const withRestored = await syncRestoredSurveys(localSurveys, false, null);
+  const deduped = deduplicateSurveys(withRestored);
   safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
   return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
