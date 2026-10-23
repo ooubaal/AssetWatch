@@ -17,10 +17,12 @@ import {
   Copy,
   Check,
   FileCode,
-  X
+  X,
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { getStoredFirebaseConfig, clearFirebaseConfig, FirebaseConfig } from '../firebase';
-import { exportBackupData, importBackupData, factoryResetDatabase } from '../services/dbService';
+import { exportBackupData, importBackupData, factoryResetDatabase, RestoreProgress } from '../services/dbService';
 import { QRCodeSVG } from 'qrcode.react';
 import { Asset, AuditTrail, RepairCase, SurveyRecord, SurveyRound, DepartmentLocationConfig, UserAccount } from '../utils/mockData';
 
@@ -53,6 +55,23 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
   const [copied, setCopied] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [stagedBackup, setStagedBackup] = useState<{
+    fileName: string;
+    fileSizeFormatted: string;
+    jsonText: string;
+    counts: {
+      assets: number;
+      surveys: number;
+      repairs: number;
+      audits: number;
+      departments: number;
+      users: number;
+      rounds: number;
+      total: number;
+    };
+  } | null>(null);
+  const [restoreProgress, setRestoreProgress] = useState<RestoreProgress | null>(null);
+  const [readingFile, setReadingFile] = useState(false);
   const [hideDemoBypass, setHideDemoBypass] = useState(localStorage.getItem('assetwatch_hide_demo_bypass') === 'true');
   const [forceBase64, setForceBase64] = useState(localStorage.getItem('assetwatch_force_base64_images') !== 'false');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -154,25 +173,108 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImporting(true);
+      setReadingFile(true);
       setImportStatus(null);
-      
+      setRestoreProgress(null);
+
+      const sizeFormatted = file.size > 1024 * 1024 
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
+        : `${(file.size / 1024).toFixed(0)} KB`;
+
       const reader = new FileReader();
       reader.onload = async (event) => {
+        setReadingFile(false);
         const text = event.target?.result as string;
         try {
-          const res = await importBackupData(text);
-          setImportStatus(res);
-          if (res.success) {
-            onImportSuccess();
+          const parsed = JSON.parse(text);
+          if (!parsed.assets || !Array.isArray(parsed.assets)) {
+            setImportStatus({ 
+              success: false, 
+              message: 'ไฟล์ที่เลือกไม่ใช่ไฟล์สำรองข้อมูลที่ถูกต้องของระบบ AssetWatch (ไม่พบโครงสร้างข้อมูลครุภัณฑ์)' 
+            });
+            setStagedBackup(null);
+            return;
           }
+
+          const assetsCount = parsed.assets?.length || 0;
+          const surveysCount = parsed.surveys?.length || 0;
+          const repairsCount = parsed.repairs?.length || 0;
+          const auditsCount = parsed.audits?.length || 0;
+          const deptsCount = parsed.departments?.length || 0;
+          const usersCount = parsed.users?.length || 0;
+          const roundsCount = parsed.rounds?.length || 0;
+          const totalCount = assetsCount + surveysCount + repairsCount + auditsCount + deptsCount + usersCount + roundsCount;
+
+          setStagedBackup({
+            fileName: file.name,
+            fileSizeFormatted: sizeFormatted,
+            jsonText: text,
+            counts: {
+              assets: assetsCount,
+              surveys: surveysCount,
+              repairs: repairsCount,
+              audits: auditsCount,
+              departments: deptsCount,
+              users: usersCount,
+              rounds: roundsCount,
+              total: totalCount
+            }
+          });
         } catch (err: any) {
-          setImportStatus({ success: false, message: `การอ่านไฟล์ล้มเหลว: ${err.message}` });
-        } finally {
-          setImporting(false);
+          setImportStatus({ success: false, message: `ไฟล์ JSON เสียหายหรือไม่ถูกต้อง: ${err.message}` });
+          setStagedBackup(null);
         }
       };
+      reader.onerror = () => {
+        setReadingFile(false);
+        setImportStatus({ success: false, message: 'เกิดข้อผิดพลาดในการอ่านไฟล์จากอุปกรณ์' });
+        setStagedBackup(null);
+      };
       reader.readAsText(file);
+    }
+  };
+
+  const handleExecuteRestore = async () => {
+    if (!stagedBackup) return;
+    setImporting(true);
+    setImportStatus(null);
+    setRestoreProgress({
+      current: 0,
+      total: stagedBackup.counts.total,
+      percent: 0,
+      currentStep: 'เริ่มต้นการกู้คืนข้อมูล...',
+      detail: `กำลังเตรียมนำเข้า ${stagedBackup.counts.total.toLocaleString()} รายการ`
+    });
+
+    try {
+      const res = await importBackupData(stagedBackup.jsonText, (progress) => {
+        setRestoreProgress(progress);
+      });
+      setImportStatus(res);
+      if (res.success) {
+        onImportSuccess();
+        // Clear staged backup on success so UI returns to clean state
+        setTimeout(() => {
+          setStagedBackup(null);
+          setRestoreProgress(null);
+        }, 1500);
+      }
+    } catch (err: any) {
+      setImportStatus({ success: false, message: `การกู้คืนข้อมูลล้มเหลว: ${err.message}` });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleCancelStaged = () => {
+    setStagedBackup(null);
+    setImportStatus(null);
+    setRestoreProgress(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -479,10 +581,29 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
                   </button>
                 </div>
 
-                <div className="backup-action-card">
-                  <Upload size={32} color="var(--success)" />
-                  <h4>กู้คืนระบบจากไฟล์แบคอัพ (Import Restore)</h4>
-                  <p>อัปโหลดไฟล์สำรองข้อมูล JSON กลับเข้าสู่คลาวด์และหน่วยความจำเพื่อกู้ข้อมูลพัสดุเดิมของคุณ</p>
+                <div className="backup-action-card" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div style={{ 
+                      width: '42px', 
+                      height: '42px', 
+                      borderRadius: 'var(--radius-md)', 
+                      backgroundColor: 'var(--success-light)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Upload size={24} color="var(--success)" />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>กู้คืนระบบจากไฟล์แบคอัพ (Import Restore)</h4>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>นำเข้าไฟล์ JSON เพื่อกู้คืนฐานข้อมูลครุภัณฑ์และผลการสำรวจ</span>
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                    อัปโหลดไฟล์สำรองข้อมูล JSON กลับเข้าสู่ระบบ ระบบจะกู้คืนข้อมูลครุภัณฑ์ ผลการสำรวจ และข้อมูลการตั้งค่าเดิมของคุณอย่างครบถ้วน
+                  </p>
                   
                   {currentUser?.role === 'admin' ? (
                     <>
@@ -493,14 +614,174 @@ export const Module7_Settings: React.FC<Module7SettingsProps> = ({
                         onChange={handleFileImport} 
                         style={{ display: 'none' }} 
                       />
-                      <button 
-                        className="btn btn-success w-full" 
-                        onClick={handleImportClick} 
-                        disabled={importing}
-                        style={{ marginTop: 'auto' }}
-                      >
-                        <Upload size={14} /> {importing ? 'กำลังนำเข้าข้อมูล...' : 'กู้คืนฐานข้อมูลจากไฟล์ JSON'}
-                      </button>
+
+                      {/* File Reading Spinner */}
+                      {readingFile && (
+                        <div style={{ 
+                          padding: '1.25rem', 
+                          borderRadius: 'var(--radius-md)', 
+                          backgroundColor: 'var(--bg-tertiary)', 
+                          textAlign: 'center',
+                          margin: '0.75rem 0'
+                        }}>
+                          <Loader2 className="animate-spin" size={24} color="var(--primary)" style={{ margin: '0 auto 0.5rem' }} />
+                          <div style={{ fontSize: '0.875rem', fontWeight: 650 }}>กำลังโหลดและตรวจสอบไฟล์...</div>
+                        </div>
+                      )}
+
+                      {/* STAGED FILE PREVIEW & PROGRESS BOX */}
+                      {stagedBackup && !readingFile && (
+                        <div className="staged-restore-box animate-fade-in" style={{
+                          margin: '0.5rem 0 1rem',
+                          padding: '1rem',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1.5px solid rgba(16, 185, 129, 0.35)',
+                          backgroundColor: 'rgba(16, 185, 129, 0.04)'
+                        }}>
+                          {/* File Header */}
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                              <FileText size={20} color="var(--success)" style={{ flexShrink: 0 }} />
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                                  {stagedBackup.fileName}
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                  ขนาดไฟล์: {stagedBackup.fileSizeFormatted}
+                                </div>
+                              </div>
+                            </div>
+                            {!importing && (
+                              <button 
+                                onClick={handleCancelStaged}
+                                title="ยกเลิก / เลือกไฟล์ใหม่"
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  color: 'var(--text-muted)',
+                                  padding: '0.2rem',
+                                  borderRadius: 'var(--radius-sm)'
+                                }}
+                              >
+                                <X size={16} />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Data Summary Grid */}
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(2, 1fr)', 
+                            gap: '0.4rem', 
+                            fontSize: '0.775rem',
+                            backgroundColor: 'var(--bg-secondary)',
+                            padding: '0.65rem',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border)',
+                            marginBottom: '0.85rem'
+                          }}>
+                            <div>📦 ครุภัณฑ์: <strong style={{ color: 'var(--primary)' }}>{stagedBackup.counts.assets.toLocaleString()}</strong> รายการ</div>
+                            <div>📸 ผลสำรวจ: <strong style={{ color: 'var(--success)' }}>{stagedBackup.counts.surveys.toLocaleString()}</strong> รายการ</div>
+                            <div>🔧 เคสซ่อม: <strong>{stagedBackup.counts.repairs.toLocaleString()}</strong> รายการ</div>
+                            <div>🏢 หน่วยงาน: <strong>{stagedBackup.counts.departments}</strong> แห่ง</div>
+                            <div style={{ gridColumn: 'span 2', borderTop: '1px dashed var(--border)', paddingTop: '0.35rem', marginTop: '0.15rem' }}>
+                              รวมข้อมูลที่จะกู้คืน: <strong style={{ color: 'var(--text-primary)' }}>{stagedBackup.counts.total.toLocaleString()}</strong> รายการ
+                            </div>
+                          </div>
+
+                          {/* PROGRESS BAR WITH LIVE PERCENTAGE */}
+                          {importing && (
+                            <div className="restore-progress-section animate-fade-in" style={{ marginBottom: '0.85rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                                <span style={{ fontSize: '0.825rem', fontWeight: 650, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <Loader2 className="animate-spin" size={15} />
+                                  {restoreProgress?.currentStep || 'กำลังกู้คืนข้อมูล...'}
+                                </span>
+                                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--success)', letterSpacing: '-0.5px' }}>
+                                  {restoreProgress?.percent || 0}%
+                                </span>
+                              </div>
+
+                              {/* Progress Track */}
+                              <div style={{ 
+                                width: '100%', 
+                                height: '14px', 
+                                backgroundColor: 'var(--border)', 
+                                borderRadius: '999px', 
+                                overflow: 'hidden',
+                                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
+                              }}>
+                                <div 
+                                  className="restore-progress-bar-fill"
+                                  style={{ 
+                                    width: `${restoreProgress?.percent || 0}%`, 
+                                    height: '100%', 
+                                    transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                                  }} 
+                                />
+                              </div>
+
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.4rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                                <span>{restoreProgress?.detail || `${restoreProgress?.current || 0} / ${restoreProgress?.total || 0} รายการ`}</span>
+                                <span style={{ color: 'var(--primary)', fontWeight: 600 }}>⏳ กำลังดำเนินการ กรุณารอสักครู่...</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Action Buttons inside staged box */}
+                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                            <button
+                              className="btn btn-success"
+                              onClick={handleExecuteRestore}
+                              disabled={importing}
+                              style={{ 
+                                flex: 1, 
+                                fontWeight: 700, 
+                                fontSize: '0.875rem',
+                                padding: '0.65rem 1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem'
+                              }}
+                            >
+                              {importing ? (
+                                <>
+                                  <Loader2 className="animate-spin" size={16} />
+                                  กำลังกู้คืนข้อมูล ({restoreProgress?.percent || 0}%)...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload size={16} />
+                                  กู้คืนข้อมูลเข้าสู่ระบบทันที
+                                </>
+                              )}
+                            </button>
+                            {!importing && (
+                              <button
+                                className="btn btn-muted"
+                                onClick={handleCancelStaged}
+                                style={{ padding: '0.65rem 0.85rem' }}
+                              >
+                                ยกเลิก
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Default Button when no file staged yet */}
+                      {!stagedBackup && !readingFile && (
+                        <button 
+                          className="btn btn-success w-full" 
+                          onClick={handleImportClick} 
+                          disabled={importing}
+                          style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontWeight: 650 }}
+                        >
+                          <Upload size={16} /> เลือกไฟล์แบคอัพ JSON เพื่อกู้คืน
+                        </button>
+                      )}
                     </>
                   ) : (
                     <button 

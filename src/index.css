@@ -780,6 +780,17 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+@keyframes progressShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.restore-progress-bar-fill {
+  background: linear-gradient(90deg, #4f46e5 0%, #10b981 50%, #34d399 100%);
+  background-size: 200% 100%;
+  animation: progressShimmer 2s infinite linear;
+}
+
 /* Global Print Preview Overlay in Screen Mode - breakouts containment limits and sets front-most layer */
 .print-preview-overlay {
   position: fixed !important;

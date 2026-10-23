@@ -1545,64 +1545,160 @@ export const exportBackupData = async (): Promise<string> => {
   return JSON.stringify(backupObj, null, 2);
 };
 
-export const importBackupData = async (jsonString: string): Promise<{ success: boolean; message: string }> => {
+export interface RestoreProgress {
+  current: number;
+  total: number;
+  percent: number;
+  currentStep: string;
+  detail?: string;
+}
+
+export interface ImportResult {
+  success: boolean;
+  message: string;
+  stats?: {
+    assets: number;
+    surveys: number;
+    repairs: number;
+    audits: number;
+    departments: number;
+    users: number;
+    rounds: number;
+  };
+}
+
+export const importBackupData = async (
+  jsonString: string,
+  onProgress?: (progress: RestoreProgress) => void
+): Promise<ImportResult> => {
   try {
     const backupObj = JSON.parse(jsonString);
     if (!backupObj.assets || !Array.isArray(backupObj.assets)) {
-      return { success: false, message: 'โครงสร้างไฟล์สำรองข้อมูลไม่ถูกต้อง' };
+      return { success: false, message: 'โครงสร้างไฟล์สำรองข้อมูลไม่ถูกต้อง (ไม่พบข้อมูลครุภัณฑ์ assets)' };
     }
+
+    const assets = Array.isArray(backupObj.assets) ? backupObj.assets : [];
+    const audits = Array.isArray(backupObj.audits) ? backupObj.audits : [];
+    const repairs = Array.isArray(backupObj.repairs) ? backupObj.repairs : [];
+    const surveys = Array.isArray(backupObj.surveys) ? backupObj.surveys : [];
+    const rounds = Array.isArray(backupObj.rounds) ? backupObj.rounds : [];
+    const departments = Array.isArray(backupObj.departments) ? backupObj.departments : [];
+    const users = Array.isArray(backupObj.users) ? backupObj.users : [];
+
+    const totalRecords = assets.length + audits.length + repairs.length + surveys.length + rounds.length + departments.length + users.length;
+    let processedRecords = 0;
+
+    const reportProgress = (stepName: string, detailText?: string) => {
+      const percent = totalRecords > 0 
+        ? Math.min(95, Math.max(1, Math.round((processedRecords / totalRecords) * 95))) 
+        : 10;
+      onProgress?.({
+        current: processedRecords,
+        total: totalRecords,
+        percent,
+        currentStep: stepName,
+        detail: detailText || `${processedRecords} / ${totalRecords} รายการ (${percent}%)`
+      });
+    };
+
+    onProgress?.({
+      current: 0,
+      total: totalRecords,
+      percent: 2,
+      currentStep: 'กำลังเตรียมข้อมูลและโครงสร้าง...',
+      detail: `พบข้อมูลทั้งหมด ${totalRecords.toLocaleString()} รายการ`
+    });
 
     const { isFirebase, db } = getServices();
 
     if (isFirebase && db) {
-      // Restore to Firebase Firestore
-      for (const asset of backupObj.assets) {
-        await setDoc(doc(db, 'assets', asset.id), asset);
-      }
-      if (backupObj.audits) {
-        for (const audit of backupObj.audits) {
-          await setDoc(doc(db, 'audit_trails', audit.id), audit);
+      // Chunked writes to Firestore
+      const chunkAndWrite = async (collectionName: string, items: any[], label: string) => {
+        if (!items || items.length === 0) return;
+        const CHUNK_SIZE = 25;
+        for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+          const chunk = items.slice(i, i + CHUNK_SIZE);
+          await Promise.all(
+            chunk.map(async (item) => {
+              if (item && item.id) {
+                await setDoc(doc(db, collectionName, item.id), sanitizeForFirestore(item));
+              }
+            })
+          );
+          processedRecords += chunk.length;
+          reportProgress(`กำลังบันทึก${label} ขึ้นระบบคลาวด์...`, `${processedRecords} / ${totalRecords} รายการ (${label} ${Math.min(i + CHUNK_SIZE, items.length)}/${items.length})`);
         }
+      };
+
+      try {
+        await chunkAndWrite('assets', assets, 'ข้อมูลครุภัณฑ์');
+        await chunkAndWrite('surveys', surveys, 'ผลการสำรวจและรูปภาพ');
+        await chunkAndWrite('repairs', repairs, 'เคสแจ้งซ่อม');
+        await chunkAndWrite('audit_trails', audits, 'ประวัติกิจกรรม');
+        await chunkAndWrite('survey_rounds', rounds, 'รอบสำรวจ');
+        await chunkAndWrite('departments', departments, 'ข้อมูลหน่วยงาน');
+        await chunkAndWrite('users', users, 'บัญชีผู้ใช้งาน');
+      } catch (err: any) {
+        checkAndNotifyQuotaError(err, 'importBackupData');
+        console.warn('Firebase batch restore warning, continuing to local storage:', err);
       }
-      if (backupObj.repairs) {
-        for (const repair of backupObj.repairs) {
-          await setDoc(doc(db, 'repairs', repair.id), repair);
-        }
-      }
-      if (backupObj.surveys) {
-        for (const survey of backupObj.surveys) {
-          await setDoc(doc(db, 'surveys', survey.id), survey);
-        }
-      }
-      if (backupObj.rounds) {
-        for (const round of backupObj.rounds) {
-          await setDoc(doc(db, 'survey_rounds', round.id), round);
-        }
-      }
-      if (backupObj.departments) {
-        for (const dept of backupObj.departments) {
-          await setDoc(doc(db, 'departments', dept.id), dept);
-        }
-      }
-      if (backupObj.users) {
-        for (const user of backupObj.users) {
-          await setDoc(doc(db, 'users', user.id), user);
-        }
+    } else {
+      // Offline / LocalStorage only mode
+      const stages = [
+        { count: assets.length, label: 'ข้อมูลครุภัณฑ์' },
+        { count: surveys.length, label: 'ผลการสำรวจ' },
+        { count: repairs.length, label: 'เคสแจ้งซ่อม' },
+        { count: audits.length, label: 'ประวัติกิจกรรม' },
+        { count: rounds.length + departments.length + users.length, label: 'การตั้งค่าและผู้ใช้' },
+      ];
+
+      for (const stage of stages) {
+        processedRecords += stage.count;
+        reportProgress(`กำลังบันทึก ${stage.label}...`, `${processedRecords} / ${totalRecords} รายการ`);
+        await new Promise(resolve => setTimeout(resolve, 80));
       }
     }
 
-    // Always keep LocalStorage in sync or write to LocalStorage if offline
-    localStorage.setItem('assetwatch_assets', JSON.stringify(backupObj.assets));
-    localStorage.setItem('assetwatch_audits', JSON.stringify(backupObj.audits || []));
-    localStorage.setItem('assetwatch_repairs', JSON.stringify(backupObj.repairs || []));
-    localStorage.setItem('assetwatch_surveys', JSON.stringify(backupObj.surveys || []));
-    localStorage.setItem('assetwatch_survey_rounds', JSON.stringify(backupObj.rounds || []));
-    localStorage.setItem('assetwatch_departments', JSON.stringify(backupObj.departments || INITIAL_DEPARTMENTS));
-    if (backupObj.users) {
-      localStorage.setItem('assetwatch_users', JSON.stringify(backupObj.users));
+    // Always keep LocalStorage in sync or write to LocalStorage
+    onProgress?.({
+      current: totalRecords,
+      total: totalRecords,
+      percent: 98,
+      currentStep: 'กำลังอัปเดตระบบแคช LocalStorage...',
+      detail: 'บันทึกข้อมูลและรีเฟรชหน่วยความจำ'
+    });
+
+    safeSetItem('assetwatch_assets', JSON.stringify(assets));
+    safeSetItem('assetwatch_audits', JSON.stringify(audits));
+    safeSetItem('assetwatch_repairs', JSON.stringify(repairs));
+    safeSetItem('assetwatch_surveys', JSON.stringify(surveys));
+    safeSetItem('assetwatch_survey_rounds', JSON.stringify(rounds.length > 0 ? rounds : JSON.parse(localStorage.getItem('assetwatch_survey_rounds') || '[]')));
+    safeSetItem('assetwatch_departments', JSON.stringify(departments.length > 0 ? departments : INITIAL_DEPARTMENTS));
+    if (users.length > 0) {
+      safeSetItem('assetwatch_users', JSON.stringify(users));
     }
 
-    return { success: true, message: `นำเข้าข้อมูลครุภัณฑ์สำเร็จทั้งหมด ${backupObj.assets.length} รายการ` };
+    onProgress?.({
+      current: totalRecords,
+      total: totalRecords,
+      percent: 100,
+      currentStep: 'กู้คืนฐานข้อมูลเสร็จสมบูรณ์ 100%',
+      detail: `นำเข้าข้อมูลเรียบร้อยทั้งหมด ${totalRecords.toLocaleString()} รายการ`
+    });
+
+    return { 
+      success: true, 
+      message: `กู้คืนฐานข้อมูลสำเร็จเรียบร้อยทั้งหมด ${totalRecords.toLocaleString()} รายการ (ครุภัณฑ์ ${assets.length} รายการ, ผลสำรวจ ${surveys.length} รายการ)`,
+      stats: {
+        assets: assets.length,
+        surveys: surveys.length,
+        repairs: repairs.length,
+        audits: audits.length,
+        departments: departments.length,
+        users: users.length,
+        rounds: rounds.length
+      }
+    };
   } catch (e: any) {
     return { success: false, message: `การนำเข้าข้อมูลล้มเหลว: ${e.message}` };
   }
