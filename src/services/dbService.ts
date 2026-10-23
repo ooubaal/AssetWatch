@@ -617,22 +617,8 @@ export const syncAssetsWithSurveyPhotos = async (
     console.warn('Failed to update localStorage with synced photos:', err);
   }
 
-  // 4. Update Firestore in the background
-  const { isFirebase, db } = getServices();
-  if (isFirebase && db) {
-    (async () => {
-      try {
-        for (const asset of toUpdate) {
-          const docRef = doc(db, 'assets', asset.id);
-          await updateDoc(docRef, { imageUrl: asset.imageUrl, updatedAt: new Date().toISOString() });
-        }
-        console.log(`Successfully updated ${toUpdate.length} assets with latest survey photos in Firestore.`);
-      } catch (e) {
-        console.warn('Failed updating asset photos in Firestore:', e);
-      }
-    })();
-  }
-
+  // Note: Individual asset image is already persisted to Firestore upon survey submission (addSurvey).
+  // Omitting bulk Firestore write loop here saves hundreds of unnecessary Cloud Writes.
   return { syncedAssets, updatedCount: toUpdate.length };
 };
 

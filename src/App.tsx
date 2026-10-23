@@ -287,6 +287,15 @@ function App() {
 
     const fetchPromise = (async () => {
       try {
+        const safeFetch = async <T,>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+          try {
+            return await fn();
+          } catch (err) {
+            console.warn('Dataset fetch fallback to local:', err);
+            return fallback;
+          }
+        };
+
         const [
           allAssets,
           allAudits,
@@ -300,17 +309,17 @@ function App() {
           allPMNotifs,
           allSpareParts
         ] = await Promise.all([
-          getAssets(),
-          getAuditTrails(),
-          getRepairs(),
-          getSurveys(),
-          getSurveyRounds(),
-          getDepartments(),
-          getUsers(),
-          getPMContracts(),
-          getPMSchedules(),
-          getPMNotifications(),
-          fetchSpareParts()
+          safeFetch(getAssets, assets.length > 0 ? assets : []),
+          safeFetch(getAuditTrails, audits),
+          safeFetch(getRepairs, repairs),
+          safeFetch(getSurveys, surveys),
+          safeFetch(getSurveyRounds, rounds),
+          safeFetch(getDepartments, departments),
+          safeFetch(getUsers, users),
+          safeFetch(getPMContracts, contracts),
+          safeFetch(getPMSchedules, schedules),
+          safeFetch(getPMNotifications, pmNotifications),
+          safeFetch(fetchSpareParts, spareParts)
         ]);
 
         // Auto-sync asset images with survey photos across all items
@@ -407,27 +416,17 @@ function App() {
           setIsInitialSyncing(false);
         });
 
-      // Smart background polling: sync every 25s when tab is active
+      // Conservative background refresh: sync at most once every 15 minutes if tab is active
+      const lastBackgroundSyncRef = { current: Date.now() };
       const intervalId = setInterval(() => {
-        if (!document.hidden) {
+        if (!document.hidden && Date.now() - lastBackgroundSyncRef.current >= 15 * 60 * 1000) {
+          lastBackgroundSyncRef.current = Date.now();
           fetchAllData(false);
         }
-      }, 25000);
-
-      // Immediate sync when user focuses back to tab or unlocks phone
-      const handleVisibilityOrFocus = () => {
-        if (!document.hidden) {
-          fetchAllData(false);
-        }
-      };
-
-      window.addEventListener('visibilitychange', handleVisibilityOrFocus);
-      window.addEventListener('focus', handleVisibilityOrFocus);
+      }, 60000); // Check once a minute if 15 mins passed
 
       return () => {
         clearInterval(intervalId);
-        window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
-        window.removeEventListener('focus', handleVisibilityOrFocus);
       };
     }
   }, [isSetupWizardNeeded]);
@@ -1043,8 +1042,20 @@ function App() {
         changes
       });
 
+      // Optimistic local update (0 Cloud Reads)
+      const updatedAsset: Asset = {
+        ...editingAsset,
+        name: editName.trim(),
+        location: editLocation.trim(),
+        department: editDepartment.trim(),
+        responsiblePerson: editResponsible.trim(),
+        status: editStatus,
+        note: editNote.trim(),
+        imageUrl: finalUrl,
+        updatedAt: new Date().toISOString()
+      };
+      setAssets(prev => prev.map(a => a.id === editingAsset.id ? updatedAsset : a));
       setEditingAsset(null);
-      await fetchAllData();
     } catch (err) {
       console.error(err);
       alert('ไม่สามารถอัปเดตข้อมูลครุภัณฑ์ได้');
@@ -1084,7 +1095,8 @@ function App() {
         operator: currentUser?.name || 'ผู้ดูแลระบบ',
         details: `ลบข้อมูลครุภัณฑ์ถาวรออกจากระบบ (รหัส: ${asset.id}) โดย ${currentUser?.name || 'ผู้ใช้งาน'}`
       });
-      await fetchAllData();
+      // Optimistic local update (0 Cloud Reads)
+      setAssets(prev => prev.filter(a => a.id !== assetId));
     } catch (err) {
       console.error('Failed to delete asset:', err);
       alert('ไม่สามารถลบข้อมูลครุภัณฑ์ได้');
