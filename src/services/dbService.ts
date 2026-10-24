@@ -547,14 +547,59 @@ export const cleanAssetNote = (note?: string): string => {
 
 // Helper to ensure all Blood Bag assets from PDF are synced into LocalStorage and Firestore
 const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: any): Promise<Asset[]> => {
-  // Normalize all incoming assets in the list first
+  const { BLOOD_BAG_ASSETS } = await import('../utils/bloodBagAssetsData');
+  const bloodBagMasterMap = new Map<string, Asset>();
+  BLOOD_BAG_ASSETS.forEach(a => bloodBagMasterMap.set(a.id, a));
+
   let listHasChanged = false;
+  const changedAssetsToSync: Asset[] = [];
+
+  // Normalize all incoming assets and heal missing/broken fields
   const normalizedList = assetsList.map(a => {
     let changed = false;
+    let name = a.name;
     let dept = a.department;
     let resp = a.responsiblePerson;
+    let loc = a.location;
+    let status = a.status;
     let note = a.note;
-    
+    let imageUrl = a.imageUrl;
+    let source = a.source;
+
+    // If asset has a master record in BLOOD_BAG_ASSETS, hydrate missing/stub fields
+    if (bloodBagMasterMap.has(a.id)) {
+      const master = bloodBagMasterMap.get(a.id)!;
+      if (!name || name === 'undefined' || name === 'null' || name.includes('ผลิตถุงบรรจุโลหิต')) {
+        name = master.name;
+        changed = true;
+      }
+      if (!dept || dept === 'undefined' || dept === 'null' || dept === 'ฝ่ายผลิตถุงบรรจุโลหิต' || dept === 'ฝ่ายผลิตถุงบรรจุโลหิต ') {
+        dept = master.department;
+        changed = true;
+      }
+      if (!resp || resp === 'undefined' || resp === 'null' || resp === 'ฝ่ายผลิตถุงบรรจุโลหิต' || resp === 'ฝ่ายผลิตถุงบรรจุโลหิต ') {
+        resp = master.responsiblePerson;
+        changed = true;
+      }
+      // Hydrate or update location to master location (ensuring bilingual room name)
+      if (!loc || loc === 'undefined' || loc === 'null' || loc === '-' || (master.location && loc !== master.location)) {
+        loc = master.location;
+        changed = true;
+      }
+      if (!status || (status as any) === 'undefined' || (status as any) === 'null') {
+        status = master.status || 'ใช้งานได้';
+        changed = true;
+      }
+      if ((!imageUrl || imageUrl === '') && master.imageUrl) {
+        imageUrl = master.imageUrl;
+        changed = true;
+      }
+      if (!source && master.source) {
+        source = master.source;
+        changed = true;
+      }
+    }
+
     // Normalize both variants of the department name to the correct longer name
     if (dept === "ฝ่ายผลิตถุงบรรจุโลหิต" || dept === "ฝ่ายผลิตถุงบรรจุโลหิต ") {
       dept = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา";
@@ -576,13 +621,24 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
     
     if (changed) {
       listHasChanged = true;
-      return { ...a, department: dept, responsiblePerson: resp, note };
+      const updatedAsset = {
+        ...a,
+        name,
+        department: dept,
+        responsiblePerson: resp,
+        location: loc,
+        status,
+        imageUrl,
+        source,
+        note
+      };
+      changedAssetsToSync.push(updatedAsset);
+      return updatedAsset;
     }
     return a;
   });
 
   const existingIdSet = new Set(normalizedList.map(a => a.id));
-  const { BLOOD_BAG_ASSETS } = await import('../utils/bloodBagAssetsData');
   const missingAssets = BLOOD_BAG_ASSETS.filter(a => !existingIdSet.has(a.id));
 
   let updatedList = normalizedList;
@@ -590,21 +646,22 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
     console.log(`Syncing ${missingAssets.length} missing Blood Bag assets...`);
     updatedList = [...normalizedList, ...missingAssets];
     listHasChanged = true;
+    changedAssetsToSync.push(...missingAssets);
+  }
+
+  if (listHasChanged) {
+    safeSetItem('assetwatch_assets', JSON.stringify(updatedList));
 
     if (isFirebase && db) {
       try {
-        for (const asset of missingAssets) {
+        for (const asset of changedAssetsToSync) {
           await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
         }
         await saveAssetsManifestDoc(db, updatedList);
       } catch (e) {
-        console.warn('Failed to sync missing assets to Firestore:', e);
+        console.warn('Failed to sync missing/healed assets to Firestore:', e);
       }
     }
-  }
-
-  if (listHasChanged) {
-    localStorage.setItem('assetwatch_assets', JSON.stringify(updatedList));
   }
 
   return updatedList;
@@ -632,7 +689,7 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
 
         // If local cache is valid and up-to-date, return directly (0 further reads)
         if (!forceFull && localList.length >= manifestDoc.items.length && localMaxUpdatedAt >= cloudUpdatedAt) {
-          const syncedLocal = await syncBloodBagAssets(localList, false, null);
+          const syncedLocal = await syncBloodBagAssets(localList, isFirebase, db);
           return syncedLocal;
         }
 
@@ -1065,30 +1122,78 @@ const deduplicateSurveys = (surveys: SurveyRecord[]): SurveyRecord[] => {
 };
 
 const syncRestoredSurveys = async (surveys: SurveyRecord[], isFirebase: boolean, db: any): Promise<SurveyRecord[]> => {
+  let listHasChanged = false;
+  const masterSurveysMap = new Map<string, SurveyRecord>();
+  RESTORED_FURNITURE_SURVEYS.forEach(s => masterSurveysMap.set(s.assetId, s));
+
+  const changedSurveysToSync: SurveyRecord[] = [];
+
+  const normalizedSurveys = surveys.map(s => {
+    if (masterSurveysMap.has(s.assetId)) {
+      const master = masterSurveysMap.get(s.assetId)!;
+      let changed = false;
+      let operator = s.operator;
+      let status = s.status;
+      let imageUrl = s.imageUrl;
+      let roundId = s.roundId;
+
+      if (!operator || operator === 'undefined' || operator === 'null') {
+        operator = master.operator;
+        changed = true;
+      }
+      if (!status || status === 'undefined') {
+        status = master.status;
+        changed = true;
+      }
+      if ((!imageUrl || imageUrl === '') && master.imageUrl) {
+        imageUrl = master.imageUrl;
+        changed = true;
+      }
+      if (!roundId || roundId === 'undefined') {
+        roundId = master.roundId;
+        changed = true;
+      }
+
+      if (changed) {
+        listHasChanged = true;
+        const updated = { ...s, operator, status, imageUrl, roundId };
+        changedSurveysToSync.push(updated);
+        return updated;
+      }
+    }
+    return s;
+  });
+
   const existingMap = new Map<string, SurveyRecord>();
-  surveys.forEach(s => existingMap.set(s.assetId, s));
+  normalizedSurveys.forEach(s => existingMap.set(s.assetId, s));
   
   const missingSurveys = RESTORED_FURNITURE_SURVEYS.filter(s => !existingMap.has(s.assetId));
+  let updatedSurveys = normalizedSurveys;
   if (missingSurveys.length > 0) {
     console.log(`Restoring ${missingSurveys.length} missing furniture surveys...`);
-    surveys = [...surveys, ...missingSurveys];
-    
-    // Save to local storage
-    safeSetItem('assetwatch_surveys', JSON.stringify(deduplicateSurveys(surveys)));
+    updatedSurveys = [...normalizedSurveys, ...missingSurveys];
+    listHasChanged = true;
+    changedSurveysToSync.push(...missingSurveys);
+  }
+
+  if (listHasChanged) {
+    const deduped = deduplicateSurveys(updatedSurveys);
+    safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
     
     // Also sync to Firestore if configured
     if (isFirebase && db) {
       try {
-        for (const s of missingSurveys) {
+        for (const s of changedSurveysToSync) {
           await setDoc(doc(db, 'surveys', s.id), sanitizeForFirestore(s));
         }
-        await saveSurveysManifestDoc(db, surveys);
+        await saveSurveysManifestDoc(db, deduped);
       } catch (e) {
         console.warn('Failed to sync restored surveys to Firestore:', e);
       }
     }
+    return deduped;
   }
-  return surveys;
+  return updatedSurveys;
 };
 
 export const getSurveys = async (forceFull: boolean = false): Promise<SurveyRecord[]> => {
@@ -1152,7 +1257,7 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
   }
 
   // Deduplicate local cache too
-  const withRestored = await syncRestoredSurveys(localSurveys, false, null);
+  const withRestored = await syncRestoredSurveys(localSurveys, isFirebase, db);
   const deduped = deduplicateSurveys(withRestored);
   safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
   return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
