@@ -596,6 +596,7 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
         for (const asset of missingAssets) {
           await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
         }
+        await saveAssetsManifestDoc(db, updatedList);
       } catch (e) {
         console.warn('Failed to sync missing assets to Firestore:', e);
       }
@@ -994,6 +995,7 @@ const syncRestoredSurveys = async (surveys: SurveyRecord[], isFirebase: boolean,
         for (const s of missingSurveys) {
           await setDoc(doc(db, 'surveys', s.id), sanitizeForFirestore(s));
         }
+        await saveSurveysManifestDoc(db, surveys);
       } catch (e) {
         console.warn('Failed to sync restored surveys to Firestore:', e);
       }
@@ -1159,7 +1161,10 @@ export const getRepairs = async (forceFull: boolean = false): Promise<RepairCase
         console.log(`[Manifest Engine] Loaded ${manifestDoc.items.length} repairs from manifest (1 Read)!`);
         const localMap = new Map<string, RepairCase>();
         localRepairs.forEach(r => localMap.set(r.id, r));
+        const manifestIds = new Set<string>();
+
         const mergedRepairs = manifestDoc.items.map(m => {
+          manifestIds.add(m.id);
           const loc = localMap.get(m.id);
           if (loc) {
             return {
@@ -1174,6 +1179,13 @@ export const getRepairs = async (forceFull: boolean = false): Promise<RepairCase
           }
           return m;
         });
+
+        // Preserve offline-created repairs that have not yet synced to cloud manifest
+        for (const local of localRepairs) {
+          if (!manifestIds.has(local.id)) {
+            mergedRepairs.push(local);
+          }
+        }
 
         safeSetItem('assetwatch_repairs', JSON.stringify(mergedRepairs));
         return mergedRepairs.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());

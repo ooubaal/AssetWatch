@@ -99,21 +99,18 @@ export const sanitizeForFirestore = (obj: any): any => {
 
 // --- PAYLOAD DECOUPLING HELPER ---
 // Decouples massive Base64 strings and PDF blobs from the lightweight manifest index.
-// Cloud URLs (https://firebasestorage...) are lightweight (~80 bytes) and preserved.
+// Cloud URLs (https://firebasestorage...) or static paths are lightweight and preserved.
 export const stripHeavyPayload = (url?: string): { cleanUrl: string; hasHeavyPayload: boolean } => {
   if (!url || typeof url !== 'string' || !url.trim()) {
     return { cleanUrl: '', hasHeavyPayload: false };
   }
   const trimmed = url.trim();
-  // Standard web or cloud CDN URLs (e.g. Firebase Storage, Google Cloud, Unsplash)
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return { cleanUrl: trimmed, hasHeavyPayload: false };
-  }
   // Heavy Base64 data URI (data:image/... or data:application/pdf...)
   if (trimmed.startsWith('data:')) {
     return { cleanUrl: '', hasHeavyPayload: true };
   }
-  return { cleanUrl: '', hasHeavyPayload: false };
+  // Standard web URLs, cloud CDN, or relative assets
+  return { cleanUrl: trimmed, hasHeavyPayload: false };
 };
 
 // --- TRANSFORMERS ---
@@ -180,18 +177,20 @@ export const toRepairManifestItem = (repair: RepairCase): RepairCase => {
   };
 };
 
-// --- MERGE WITH LOCAL IMAGES (PRESERVES EXISTING CLIENT CACHE) ---
+// --- MERGE WITH LOCAL IMAGES (PRESERVES EXISTING CLIENT CACHE & OFFLINE RECORDS) ---
 
 export const mergeAssetsWithLocalCache = (manifestItems: AssetManifestItem[], localAssets: Asset[]): Asset[] => {
   const localMap = new Map<string, Asset>();
   localAssets.forEach(a => localMap.set(a.id, a));
+  const manifestIds = new Set<string>();
 
-  return manifestItems.map(item => {
+  const merged: Asset[] = manifestItems.map(item => {
+    manifestIds.add(item.id);
     const local = localMap.get(item.id);
     let finalImageUrl = item.imageUrl || '';
     
     // If manifest stripped heavy base64, but local machine already has the image cached, keep the local image!
-    if (!finalImageUrl && local && local.imageUrl && local.imageUrl.startsWith('data:image/')) {
+    if (!finalImageUrl && local && local.imageUrl) {
       finalImageUrl = local.imageUrl;
     }
 
@@ -210,17 +209,28 @@ export const mergeAssetsWithLocalCache = (manifestItems: AssetManifestItem[], lo
       updatedAt: item.updatedAt || ''
     };
   });
+
+  // Preserve offline-created assets that have not yet synced to cloud manifest
+  for (const local of localAssets) {
+    if (!manifestIds.has(local.id)) {
+      merged.push(local);
+    }
+  }
+
+  return merged;
 };
 
 export const mergeSurveysWithLocalCache = (manifestItems: SurveyManifestItem[], localSurveys: SurveyRecord[]): SurveyRecord[] => {
   const localMap = new Map<string, SurveyRecord>();
   localSurveys.forEach(s => localMap.set(s.id, s));
+  const manifestIds = new Set<string>();
 
-  return manifestItems.map(item => {
+  const merged: SurveyRecord[] = manifestItems.map(item => {
+    manifestIds.add(item.id);
     const local = localMap.get(item.id);
     let finalImageUrl = item.imageUrl || '';
     
-    if (!finalImageUrl && local && local.imageUrl && local.imageUrl.startsWith('data:image/')) {
+    if (!finalImageUrl && local && local.imageUrl) {
       finalImageUrl = local.imageUrl;
     }
 
@@ -234,6 +244,15 @@ export const mergeSurveysWithLocalCache = (manifestItems: SurveyManifestItem[], 
       imageUrl: finalImageUrl || undefined
     };
   });
+
+  // Preserve offline-created surveys that have not yet synced to cloud manifest
+  for (const local of localSurveys) {
+    if (!manifestIds.has(local.id)) {
+      merged.push(local);
+    }
+  }
+
+  return merged;
 };
 
 // --- FIRESTORE MANIFEST CRUD HELPERS ---
