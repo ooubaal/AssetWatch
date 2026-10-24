@@ -16,6 +16,29 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, PMContract, PMSchedule, PMNotification, SparePart, INITIAL_ASSETS, INITIAL_AUDITS, INITIAL_REPAIRS, INITIAL_DEPARTMENTS, INITIAL_USERS, INITIAL_CONTRACTS, INITIAL_SCHEDULES, INITIAL_NOTIFICATIONS, INITIAL_SPARE_PARTS } from '../utils/mockData';
 import { RESTORED_FURNITURE_SURVEYS } from '../utils/restoredSurveysData';
+import {
+  fetchAssetsManifestDoc,
+  saveAssetsManifestDoc,
+  fetchSurveysManifestDoc,
+  saveSurveysManifestDoc,
+  fetchRepairsManifestDoc,
+  saveRepairsManifestDoc,
+  fetchPMManifestDoc,
+  savePMManifestDoc,
+  fetchSparePartsManifestDoc,
+  saveSparePartsManifestDoc,
+  mergeAssetsWithLocalCache,
+  mergeSurveysWithLocalCache,
+  fetchAssetDeepDetail,
+  fetchSurveyDeepDetail,
+  fetchRepairDeepDetail
+} from './manifestService';
+
+export {
+  fetchAssetDeepDetail,
+  fetchSurveyDeepDetail,
+  fetchRepairDeepDetail
+};
 
 // Helper to check if we are using Firebase
 const getServices = () => {
@@ -471,7 +494,7 @@ export const uploadImage = async (file: File, path: string = 'assets'): Promise<
     console.error('File compression failed, using original file:', err);
   }
 
-  const forceBase64 = localStorage.getItem('assetwatch_force_base64_images') !== 'false';
+  const forceBase64 = localStorage.getItem('assetwatch_force_base64_images') === 'true';
 
   if (isFirebase && storage && !forceBase64) {
     try {
@@ -594,43 +617,36 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
   
   if (isFirebase && db) {
     try {
-      // 1. Smart Delta Sync: If we have existing assets cached, only fetch modified items
-      if (!forceFull && localList.length >= 500) {
-        let maxUpdatedAt = '';
+      // 1. MANIFEST-FIRST STRATEGY (1 READ ONLY!)
+      const manifestDoc = await fetchAssetsManifestDoc(db);
+      
+      if (manifestDoc && manifestDoc.items && manifestDoc.items.length > 0) {
+        const cloudUpdatedAt = manifestDoc.updatedAt || '';
+        let localMaxUpdatedAt = '';
         for (const a of localList) {
-          if (a.updatedAt && a.updatedAt > maxUpdatedAt) {
-            maxUpdatedAt = a.updatedAt;
+          if (a.updatedAt && a.updatedAt > localMaxUpdatedAt) {
+            localMaxUpdatedAt = a.updatedAt;
           }
         }
 
-        if (maxUpdatedAt) {
-          const deltaQuery = query(
-            collection(db, 'assets'),
-            where('updatedAt', '>', maxUpdatedAt)
-          );
-          const deltaSnapshot = await getDocs(deltaQuery);
-
-          if (deltaSnapshot.empty) {
-            // Zero assets changed on cloud! Direct return from local cache with 0 read penalty
-            const syncedLocal = await syncBloodBagAssets(localList, false, null);
-            return syncedLocal;
-          }
-
-          // Merge delta updates into existing local cache
-          const assetMap = new Map<string, Asset>();
-          localList.forEach(a => assetMap.set(a.id, a));
-          deltaSnapshot.forEach(docSnap => {
-            assetMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() } as Asset);
-          });
-
-          const mergedAssets = Array.from(assetMap.values());
-          const syncedList = await syncBloodBagAssets(mergedAssets, isFirebase, db);
-          safeSetItem('assetwatch_assets', JSON.stringify(syncedList));
-          return syncedList;
+        // If local cache is valid and up-to-date, return directly (0 further reads)
+        if (!forceFull && localList.length >= manifestDoc.items.length && localMaxUpdatedAt >= cloudUpdatedAt) {
+          const syncedLocal = await syncBloodBagAssets(localList, false, null);
+          return syncedLocal;
         }
+
+        // Cloud manifest is newer or local cache is empty:
+        // Merge manifest with local cache preserving any locally cached images!
+        console.log(`[Manifest Engine] Loaded ${manifestDoc.items.length} assets from manifest (1 Read)!`);
+        const mergedAssets = mergeAssetsWithLocalCache(manifestDoc.items, localList);
+        const syncedList = await syncBloodBagAssets(mergedAssets, isFirebase, db);
+        safeSetItem('assetwatch_assets', JSON.stringify(syncedList));
+        return syncedList;
       }
 
-      // 2. Full Sync (Only on empty local cache or forced full sync)
+      // 2. FALLBACK & AUTO-SEED MANIFEST:
+      // If manifests/assets does not exist on cloud yet, query once and generate the manifest!
+      console.log('[Manifest Engine] manifests/assets not found on cloud. Auto-generating manifest...');
       const q = query(collection(db, 'assets'));
       const snapshot = await getDocs(q);
       const list: Asset[] = [];
@@ -645,11 +661,13 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
         for (const asset of seedAssets) {
           await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
         }
+        await saveAssetsManifestDoc(db, seedAssets);
         safeSetItem('assetwatch_assets', JSON.stringify(seedAssets));
         return seedAssets;
       }
 
       const syncedList = await syncBloodBagAssets(list, isFirebase, db);
+      await saveAssetsManifestDoc(db, syncedList);
       safeSetItem('assetwatch_assets', JSON.stringify(syncedList));
       return syncedList;
     } catch (e) {
@@ -757,6 +775,8 @@ export const addAsset = async (asset: Asset): Promise<void> => {
     try {
       const docRef = doc(db, 'assets', asset.id);
       await setDoc(docRef, sanitizeForFirestore(asset as any));
+      // Auto-update manifest (1 write)
+      await saveAssetsManifestDoc(db, assets);
       return;
     } catch (e) {
       checkAndNotifyQuotaError(e, 'addAsset');
@@ -782,6 +802,8 @@ export const addAssetsBulk = async (newAssets: Asset[]): Promise<void> => {
         const docRef = doc(db, 'assets', asset.id);
         await setDoc(docRef, sanitizeForFirestore(asset as any));
       }));
+      // Auto-update manifest
+      await saveAssetsManifestDoc(db, assets);
       return;
     } catch (e) {
       console.error('Firebase addAssetsBulk failed, saved to localStorage:', e);
@@ -841,6 +863,8 @@ export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<
         updatedAt: sanitizedUpdates.updatedAt || nowIso
       });
       await setDoc(doc(db, 'assets', id), firestorePayload, { merge: true });
+      // Auto-update manifest in background
+      saveAssetsManifestDoc(db, assets);
     } catch (e) {
       checkAndNotifyQuotaError(e, 'updateAsset');
       console.error('Firebase updateAsset failed:', e);
@@ -850,23 +874,25 @@ export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<
 };
 
 export const deleteAsset = async (id: string): Promise<void> => {
+  // 1. LocalStorage update first
+  initLocalStorageIfNeeded();
+  const assets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+  const filtered = assets.filter(a => a.id !== id);
+  localStorage.setItem('assetwatch_assets', JSON.stringify(filtered));
+
   const { isFirebase, db } = getServices();
   
   if (isFirebase && db) {
     try {
       const docRef = doc(db, 'assets', id);
       await deleteDoc(docRef);
+      // Auto-update manifest
+      await saveAssetsManifestDoc(db, filtered);
       return;
     } catch (e) {
       console.error('Firebase deleteAsset failed, falling back to localStorage:', e);
     }
   }
-
-  // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const assets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
-  const filtered = assets.filter(a => a.id !== id);
-  localStorage.setItem('assetwatch_assets', JSON.stringify(filtered));
 };
 
 // --- AUDIT TRAIL SERVICES ---
@@ -984,54 +1010,50 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
-      let fbList: SurveyRecord[] = [];
-
-      // 1. Smart Delta Sync: Only fetch new surveys if cache exists
-      if (!forceFull && localSurveys.length > 0) {
-        let maxTimestamp = '';
+      // 1. MANIFEST-FIRST STRATEGY (1 READ ONLY!)
+      const manifestDoc = await fetchSurveysManifestDoc(db);
+      if (manifestDoc && manifestDoc.items && manifestDoc.items.length > 0) {
+        const cloudUpdatedAt = manifestDoc.updatedAt || '';
+        let localMaxTimestamp = '';
         for (const s of localSurveys) {
-          if (s.timestamp && s.timestamp > maxTimestamp) {
-            maxTimestamp = s.timestamp;
+          if (s.timestamp && s.timestamp > localMaxTimestamp) {
+            localMaxTimestamp = s.timestamp;
           }
         }
 
-        if (maxTimestamp) {
-          const deltaQuery = query(
-            collection(db, 'surveys'),
-            where('timestamp', '>', maxTimestamp)
-          );
-          const deltaSnapshot = await getDocs(deltaQuery);
-          deltaSnapshot.forEach((docSnap) => {
-            fbList.push({ id: docSnap.id, ...docSnap.data() } as SurveyRecord);
-          });
-
-          if (fbList.length === 0) {
-            // No new surveys submitted on Cloud! Return local cache directly (0 reads penalty)
-            const withRestored = await syncRestoredSurveys(localSurveys, isFirebase, db);
-            const deduped = deduplicateSurveys(withRestored);
-            return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          }
+        // If local cache is valid and up-to-date, return directly (0 further reads)
+        if (!forceFull && localSurveys.length >= manifestDoc.items.length && localMaxTimestamp >= cloudUpdatedAt) {
+          const withRestored = await syncRestoredSurveys(localSurveys, isFirebase, db);
+          const deduped = deduplicateSurveys(withRestored);
+          return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         }
+
+        console.log(`[Manifest Engine] Loaded ${manifestDoc.items.length} surveys from manifest (1 Read)!`);
+        const mergedSurveys = mergeSurveysWithLocalCache(manifestDoc.items, localSurveys);
+        const withRestored = await syncRestoredSurveys(mergedSurveys, isFirebase, db);
+        const deduped = deduplicateSurveys(withRestored);
+        safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
+        return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       }
 
-      // 2. Full Fetch (if local cache is empty or full sync requested)
-      if (fbList.length === 0 && (forceFull || localSurveys.length === 0)) {
-        const q = query(collection(db, 'surveys'));
-        const snapshot = await getDocs(q);
-        snapshot.forEach((docSnap) => {
-          fbList.push({ id: docSnap.id, ...docSnap.data() } as SurveyRecord);
-        });
-      }
+      // 2. FALLBACK & AUTO-SEED MANIFEST:
+      console.log('[Manifest Engine] manifests/surveys not found on cloud. Auto-generating manifest...');
+      const q = query(collection(db, 'surveys'));
+      const snapshot = await getDocs(q);
+      const fbList: SurveyRecord[] = [];
+      snapshot.forEach((docSnap) => {
+        fbList.push({ id: docSnap.id, ...docSnap.data() } as SurveyRecord);
+      });
 
       // Merge local and remote avoiding ID duplicates
       const mergedMap = new Map<string, SurveyRecord>();
       localSurveys.forEach(s => mergedMap.set(s.id, s));
       fbList.forEach(s => mergedMap.set(s.id, s));
       
-      // Deduplicate by (assetId + roundId) to prevent phantom count inflation
       const mergedList = deduplicateSurveys(Array.from(mergedMap.values()));
       const withRestored = await syncRestoredSurveys(mergedList, isFirebase, db);
       const deduped = deduplicateSurveys(withRestored);
+      await saveSurveysManifestDoc(db, deduped);
       safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
       return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     } catch (e) {
@@ -1053,12 +1075,13 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
   
   // 1. Always write to local storage first as a secure offline cache
   initLocalStorageIfNeeded();
+  let dedupedList: SurveyRecord[] = [];
   try {
     const localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
     localSurveys.push(fullSurvey);
     // Deduplicate immediately to prevent phantom count growth
-    const deduped = deduplicateSurveys(localSurveys);
-    safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
+    dedupedList = deduplicateSurveys(localSurveys);
+    safeSetItem('assetwatch_surveys', JSON.stringify(dedupedList));
   } catch (err) {
     console.warn('LocalStorage survey cache update failed:', err);
   }
@@ -1069,6 +1092,10 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
     try {
       const docRef = doc(db, 'surveys', id);
       await setDoc(docRef, sanitizeForFirestore(fullSurvey as any));
+      // Auto-update manifest in background (1 write)
+      if (dedupedList.length > 0) {
+        await saveSurveysManifestDoc(db, dedupedList);
+      }
     } catch (e) {
       checkAndNotifyQuotaError(e, 'addSurvey');
       console.error('Firebase addSurvey failed, but saved locally:', e);
@@ -1098,6 +1125,7 @@ export const updateSurvey = async (id: string, updates: Partial<SurveyRecord>): 
     try {
       const docRef = doc(db, 'surveys', id);
       await setDoc(docRef, sanitizeForFirestore(updates as any), { merge: true });
+      await saveSurveysManifestDoc(db, surveys);
     } catch (e) {
       console.error('Firebase updateSurvey failed:', e);
     }
@@ -1113,51 +1141,63 @@ export const getRepairs = async (forceFull: boolean = false): Promise<RepairCase
   
   if (isFirebase && db) {
     try {
-      let fbList: RepairCase[] = [];
-
-      // 1. Smart Delta Sync: Only fetch repairs modified after our latest local update
-      if (!forceFull && localRepairs.length > 0) {
-        let maxUpdatedAt = '';
+      // 1. MANIFEST-FIRST STRATEGY (1 READ ONLY!)
+      const manifestDoc = await fetchRepairsManifestDoc(db);
+      if (manifestDoc && manifestDoc.items) {
+        const cloudUpdatedAt = manifestDoc.updatedAt || '';
+        let localMaxUpdatedAt = '';
         for (const r of localRepairs) {
-          if (r.updatedAt && r.updatedAt > maxUpdatedAt) {
-            maxUpdatedAt = r.updatedAt;
+          if (r.updatedAt && r.updatedAt > localMaxUpdatedAt) {
+            localMaxUpdatedAt = r.updatedAt;
           }
         }
 
-        if (maxUpdatedAt) {
-          const deltaQuery = query(
-            collection(db, 'repairs'),
-            where('updatedAt', '>', maxUpdatedAt)
-          );
-          const deltaSnapshot = await getDocs(deltaQuery);
-          deltaSnapshot.forEach((doc) => {
-            fbList.push({ id: doc.id, ...doc.data() } as RepairCase);
-          });
-
-          if (fbList.length === 0) {
-            // No new or modified repairs! 0 reads!
-            return localRepairs.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
-          }
+        if (!forceFull && localRepairs.length >= manifestDoc.items.length && localMaxUpdatedAt >= cloudUpdatedAt) {
+          return localRepairs.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
         }
-      }
 
-      // 2. Full Sync (if cache is empty or full sync requested)
-      if (fbList.length === 0 && (forceFull || localRepairs.length === 0)) {
-        const q = query(collection(db, 'repairs'), orderBy('updatedAt', 'desc'));
-        const snapshot = await getDocs(q);
-        snapshot.forEach((doc) => {
-          fbList.push({ id: doc.id, ...doc.data() } as RepairCase);
+        console.log(`[Manifest Engine] Loaded ${manifestDoc.items.length} repairs from manifest (1 Read)!`);
+        const localMap = new Map<string, RepairCase>();
+        localRepairs.forEach(r => localMap.set(r.id, r));
+        const mergedRepairs = manifestDoc.items.map(m => {
+          const loc = localMap.get(m.id);
+          if (loc) {
+            return {
+              ...m,
+              symptomImageUrl: m.symptomImageUrl || loc.symptomImageUrl,
+              sentProofUrl: m.sentProofUrl || loc.sentProofUrl,
+              receivedProofUrl: m.receivedProofUrl || loc.receivedProofUrl,
+              symptomImages: (m.symptomImages && m.symptomImages.length > 0) ? m.symptomImages : loc.symptomImages,
+              sentProofImages: (m.sentProofImages && m.sentProofImages.length > 0) ? m.sentProofImages : loc.sentProofImages,
+              receivedProofImages: (m.receivedProofImages && m.receivedProofImages.length > 0) ? m.receivedProofImages : loc.receivedProofImages
+            };
+          }
+          return m;
         });
+
+        safeSetItem('assetwatch_repairs', JSON.stringify(mergedRepairs));
+        return mergedRepairs.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
       }
 
-      // Merge local and remote
+      // 2. FALLBACK & AUTO-SEED MANIFEST:
+      console.log('[Manifest Engine] manifests/repairs not found on cloud. Auto-generating manifest...');
+      const q = query(collection(db, 'repairs'), orderBy('updatedAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const fbList: RepairCase[] = [];
+      snapshot.forEach((doc) => {
+        fbList.push({ id: doc.id, ...doc.data() } as RepairCase);
+      });
+
       const map = new Map<string, RepairCase>();
       localRepairs.forEach(r => map.set(r.id, r));
       fbList.forEach(r => map.set(r.id, r));
       const merged = Array.from(map.values()).sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+      
+      await saveRepairsManifestDoc(db, merged);
       safeSetItem('assetwatch_repairs', JSON.stringify(merged));
       return merged;
     } catch (e) {
+      checkAndNotifyQuotaError(e, 'getRepairs');
       console.error('Firebase getRepairs failed, falling back to localStorage:', e);
     }
   }
@@ -1172,6 +1212,7 @@ export const addRepair = async (repair: Omit<RepairCase, 'id'>): Promise<string>
   
   // 1. Update LocalStorage first
   initLocalStorageIfNeeded();
+  let updatedRepairs: RepairCase[] = [];
   try {
     const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
     const index = repairs.findIndex(r => r.id === id);
@@ -1180,6 +1221,7 @@ export const addRepair = async (repair: Omit<RepairCase, 'id'>): Promise<string>
     } else {
       repairs.push(fullRepair);
     }
+    updatedRepairs = repairs;
     safeSetItem('assetwatch_repairs', JSON.stringify(repairs));
   } catch (err) {
     console.warn('LocalStorage addRepair cache failed:', err);
@@ -1191,6 +1233,9 @@ export const addRepair = async (repair: Omit<RepairCase, 'id'>): Promise<string>
     try {
       const docRef = doc(db, 'repairs', id);
       await setDoc(docRef, sanitizeForFirestore(fullRepair as any));
+      if (updatedRepairs.length > 0) {
+        await saveRepairsManifestDoc(db, updatedRepairs);
+      }
       return id;
     } catch (e) {
       console.error('Firebase addRepair failed, saved to localStorage:', e);
@@ -1203,6 +1248,7 @@ export const addRepair = async (repair: Omit<RepairCase, 'id'>): Promise<string>
 export const updateRepair = async (id: string, updates: Partial<RepairCase>): Promise<void> => {
   // 1. Update LocalStorage first
   initLocalStorageIfNeeded();
+  let updatedRepairs: RepairCase[] = [];
   try {
     const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
     const index = repairs.findIndex(r => r.id === id);
@@ -1214,6 +1260,7 @@ export const updateRepair = async (id: string, updates: Partial<RepairCase>): Pr
       repairs.push(newRepair);
       safeSetItem('assetwatch_repairs', JSON.stringify(repairs));
     }
+    updatedRepairs = repairs;
   } catch (err) {
     console.warn('LocalStorage updateRepair cache failed:', err);
   }
@@ -1223,6 +1270,9 @@ export const updateRepair = async (id: string, updates: Partial<RepairCase>): Pr
   if (isFirebase && db) {
     try {
       await setDoc(doc(db, 'repairs', id), sanitizeForFirestore(updates), { merge: true });
+      if (updatedRepairs.length > 0) {
+        saveRepairsManifestDoc(db, updatedRepairs);
+      }
     } catch (e) {
       console.error('Firebase updateRepair failed:', e);
       throw e;
@@ -1233,9 +1283,10 @@ export const updateRepair = async (id: string, updates: Partial<RepairCase>): Pr
 export const deleteRepair = async (id: string): Promise<void> => {
   // 1. Remove from LocalStorage
   initLocalStorageIfNeeded();
+  let filtered: RepairCase[] = [];
   try {
     const repairs: RepairCase[] = JSON.parse(localStorage.getItem('assetwatch_repairs') || '[]');
-    const filtered = repairs.filter(r => r.id !== id);
+    filtered = repairs.filter(r => r.id !== id);
     safeSetItem('assetwatch_repairs', JSON.stringify(filtered));
   } catch (err) {
     console.warn('LocalStorage deleteRepair cache failed:', err);
@@ -1246,6 +1297,7 @@ export const deleteRepair = async (id: string): Promise<void> => {
   if (isFirebase && db) {
     try {
       await deleteDoc(doc(db, 'repairs', id));
+      await saveRepairsManifestDoc(db, filtered);
     } catch (e) {
       console.error('Firebase deleteRepair failed:', e);
       throw e;
@@ -1529,9 +1581,12 @@ export const exportBackupData = async (): Promise<string> => {
   const rounds = await getSurveyRounds();
   const departments = await getDepartments();
   const users = await getUsers();
+  const contracts = await getPMContracts();
+  const schedules = await getPMSchedules();
+  const spareParts = await fetchSpareParts();
 
   const backupObj = {
-    version: '1.1.0',
+    version: '1.2.0',
     exportedAt: new Date().toISOString(),
     assets,
     audits,
@@ -1539,7 +1594,10 @@ export const exportBackupData = async (): Promise<string> => {
     surveys,
     rounds,
     departments,
-    users
+    users,
+    contracts,
+    schedules,
+    spareParts
   };
 
   return JSON.stringify(backupObj, null, 2);
@@ -1564,6 +1622,9 @@ export interface ImportResult {
     departments: number;
     users: number;
     rounds: number;
+    contracts?: number;
+    schedules?: number;
+    spareParts?: number;
   };
 }
 
@@ -1584,8 +1645,11 @@ export const importBackupData = async (
     const rounds = Array.isArray(backupObj.rounds) ? backupObj.rounds : [];
     const departments = Array.isArray(backupObj.departments) ? backupObj.departments : [];
     const users = Array.isArray(backupObj.users) ? backupObj.users : [];
+    const contracts = Array.isArray(backupObj.contracts) ? backupObj.contracts : [];
+    const schedules = Array.isArray(backupObj.schedules) ? backupObj.schedules : [];
+    const spareParts = Array.isArray(backupObj.spareParts) ? backupObj.spareParts : [];
 
-    const totalRecords = assets.length + audits.length + repairs.length + surveys.length + rounds.length + departments.length + users.length;
+    const totalRecords = assets.length + audits.length + repairs.length + surveys.length + rounds.length + departments.length + users.length + contracts.length + schedules.length + spareParts.length;
     let processedRecords = 0;
 
     const reportProgress = (stepName: string, detailText?: string) => {
@@ -1638,6 +1702,20 @@ export const importBackupData = async (
         await chunkAndWrite('survey_rounds', rounds, 'รอบสำรวจ');
         await chunkAndWrite('departments', departments, 'ข้อมูลหน่วยงาน');
         await chunkAndWrite('users', users, 'บัญชีผู้ใช้งาน');
+        if (contracts.length > 0) await chunkAndWrite('pm_contracts', contracts, 'สัญญา PM');
+        if (schedules.length > 0) await chunkAndWrite('pm_schedules', schedules, 'แผนบำรุงรักษา PM');
+        if (spareParts.length > 0) await chunkAndWrite('spare_parts', spareParts, 'คลังอะไหล่');
+
+        // Regenerate Cloud Manifest Indexes for All Modules
+        reportProgress('กำลังสร้างไฟล์สารบัญคลาวด์ Manifest Index...', 'บันทึกสารบัญครุภัณฑ์, สำรวจ, แจ้งซ่อม, PM และอะไหล่');
+        if (assets.length > 0) await saveAssetsManifestDoc(db, assets);
+        if (surveys.length > 0) await saveSurveysManifestDoc(db, surveys);
+        if (repairs.length > 0) await saveRepairsManifestDoc(db, repairs);
+        const finalContracts = contracts.length > 0 ? contracts : JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+        const finalSchedules = schedules.length > 0 ? schedules : JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
+        const finalSpareParts = spareParts.length > 0 ? spareParts : JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
+        await savePMManifestDoc(db, finalContracts, finalSchedules);
+        await saveSparePartsManifestDoc(db, finalSpareParts);
       } catch (err: any) {
         checkAndNotifyQuotaError(err, 'importBackupData');
         console.warn('Firebase batch restore warning, continuing to local storage:', err);
@@ -1650,6 +1728,7 @@ export const importBackupData = async (
         { count: repairs.length, label: 'เคสแจ้งซ่อม' },
         { count: audits.length, label: 'ประวัติกิจกรรม' },
         { count: rounds.length + departments.length + users.length, label: 'การตั้งค่าและผู้ใช้' },
+        { count: contracts.length + schedules.length + spareParts.length, label: 'สัญญา PM และอะไหล่' }
       ];
 
       for (const stage of stages) {
@@ -1677,6 +1756,9 @@ export const importBackupData = async (
     if (users.length > 0) {
       safeSetItem('assetwatch_users', JSON.stringify(users));
     }
+    if (contracts.length > 0) safeSetItem('assetwatch_contracts', JSON.stringify(contracts));
+    if (schedules.length > 0) safeSetItem('assetwatch_schedules', JSON.stringify(schedules));
+    if (spareParts.length > 0) safeSetItem('assetwatch_spare_parts', JSON.stringify(spareParts));
 
     onProgress?.({
       current: totalRecords,
@@ -1696,7 +1778,10 @@ export const importBackupData = async (
         audits: audits.length,
         departments: departments.length,
         users: users.length,
-        rounds: rounds.length
+        rounds: rounds.length,
+        contracts: contracts.length,
+        schedules: schedules.length,
+        spareParts: spareParts.length
       }
     };
   } catch (e: any) {
@@ -1785,12 +1870,38 @@ export const deleteUser = async (id: string): Promise<void> => {
   localStorage.setItem('assetwatch_users', JSON.stringify(filtered));
 };
 
+// Helper to sync PM Manifest Doc
+const syncCurrentPMManifest = async (db: any) => {
+  try {
+    const contracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+    const schedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
+    await savePMManifestDoc(db, contracts, schedules);
+  } catch (err) {
+    console.warn('Failed to sync PM manifest:', err);
+  }
+};
+
 // --- PM CONTRACT SERVICES ---
 export const getPMContracts = async (): Promise<PMContract[]> => {
+  initLocalStorageIfNeeded();
+  const localContracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
   const { isFirebase, db } = getServices();
   
   if (isFirebase && db) {
     try {
+      // 1. MANIFEST-FIRST STRATEGY (1 READ ONLY!)
+      const manifestDoc = await fetchPMManifestDoc(db);
+      if (manifestDoc && manifestDoc.contracts) {
+        console.log(`[Manifest Engine] Loaded ${manifestDoc.contracts.length} PM contracts & ${manifestDoc.schedules?.length || 0} schedules from manifest (1 Read)!`);
+        localStorage.setItem('assetwatch_contracts', JSON.stringify(manifestDoc.contracts));
+        if (manifestDoc.schedules && manifestDoc.schedules.length > 0) {
+          localStorage.setItem('assetwatch_schedules', JSON.stringify(manifestDoc.schedules));
+        }
+        return manifestDoc.contracts;
+      }
+
+      // 2. FALLBACK & AUTO-SEED MANIFEST:
+      console.log('[Manifest Engine] manifests/pm not found on cloud. Auto-generating manifest...');
       const q = query(collection(db, 'pm_contracts'));
       const snapshot = await getDocs(q);
       const list: PMContract[] = [];
@@ -1798,22 +1909,25 @@ export const getPMContracts = async (): Promise<PMContract[]> => {
         list.push({ id: doc.id, ...doc.data() } as PMContract);
       });
 
+      const localSchedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
       if (list.length === 0) {
-        initLocalStorageIfNeeded();
-        const localContracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
-        for (const contract of localContracts) {
+        const seedContracts = localContracts.length > 0 ? localContracts : INITIAL_CONTRACTS;
+        for (const contract of seedContracts) {
           await setDoc(doc(db, 'pm_contracts', contract.id), contract);
         }
-        return localContracts;
+        await savePMManifestDoc(db, seedContracts, localSchedules);
+        return seedContracts;
       }
+
+      await savePMManifestDoc(db, list, localSchedules);
+      localStorage.setItem('assetwatch_contracts', JSON.stringify(list));
       return list;
     } catch (e) {
       console.error('Firebase getPMContracts failed, falling back to localStorage:', e);
     }
   }
 
-  initLocalStorageIfNeeded();
-  return JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+  return localContracts;
 };
 
 export const addPMContract = async (contract: PMContract): Promise<void> => {
@@ -1828,6 +1942,7 @@ export const addPMContract = async (contract: PMContract): Promise<void> => {
   if (isFirebase && db) {
     try {
       await setDoc(doc(db, 'pm_contracts', contract.id), sanitizeForFirestore(contract as any));
+      await syncCurrentPMManifest(db);
       return;
     } catch (e) {
       console.error('Firebase addPMContract failed, saved to localStorage:', e);
@@ -1854,6 +1969,7 @@ export const updatePMContract = async (id: string, updates: Partial<PMContract>)
   if (isFirebase && db) {
     try {
       await setDoc(doc(db, 'pm_contracts', id), sanitizeForFirestore(updates), { merge: true });
+      syncCurrentPMManifest(db);
     } catch (e) {
       console.error('Firebase updatePMContract failed:', e);
       throw e;
@@ -1862,29 +1978,44 @@ export const updatePMContract = async (id: string, updates: Partial<PMContract>)
 };
 
 export const deletePMContract = async (id: string): Promise<void> => {
+  initLocalStorageIfNeeded();
+  const contracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+  const filtered = contracts.filter(c => c.id !== id);
+  localStorage.setItem('assetwatch_contracts', JSON.stringify(filtered));
+
   const { isFirebase, db } = getServices();
-  
   if (isFirebase && db) {
     try {
       await deleteDoc(doc(db, 'pm_contracts', id));
+      await syncCurrentPMManifest(db);
       return;
     } catch (e) {
       console.error('Firebase deletePMContract failed, falling back to localStorage:', e);
     }
   }
-
-  initLocalStorageIfNeeded();
-  const contracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
-  const filtered = contracts.filter(c => c.id !== id);
-  localStorage.setItem('assetwatch_contracts', JSON.stringify(filtered));
 };
 
 // --- PM SCHEDULE SERVICES ---
 export const getPMSchedules = async (): Promise<PMSchedule[]> => {
+  initLocalStorageIfNeeded();
+  const localSchedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
   const { isFirebase, db } = getServices();
   
   if (isFirebase && db) {
     try {
+      // 1. MANIFEST-FIRST STRATEGY (1 READ ONLY!)
+      const manifestDoc = await fetchPMManifestDoc(db);
+      if (manifestDoc && manifestDoc.schedules) {
+        console.log(`[Manifest Engine] Loaded ${manifestDoc.schedules.length} PM schedules from manifest (1 Read)!`);
+        if (manifestDoc.contracts && manifestDoc.contracts.length > 0) {
+          localStorage.setItem('assetwatch_contracts', JSON.stringify(manifestDoc.contracts));
+        }
+        localStorage.setItem('assetwatch_schedules', JSON.stringify(manifestDoc.schedules));
+        return manifestDoc.schedules;
+      }
+
+      // 2. FALLBACK & AUTO-SEED MANIFEST:
+      console.log('[Manifest Engine] manifests/pm not found on cloud. Auto-generating manifest...');
       const q = query(collection(db, 'pm_schedules'));
       const snapshot = await getDocs(q);
       const list: PMSchedule[] = [];
@@ -1892,22 +2023,25 @@ export const getPMSchedules = async (): Promise<PMSchedule[]> => {
         list.push({ id: doc.id, ...doc.data() } as PMSchedule);
       });
 
+      const localContracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
       if (list.length === 0) {
-        initLocalStorageIfNeeded();
-        const localSchedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
-        for (const sched of localSchedules) {
+        const seedSchedules = localSchedules.length > 0 ? localSchedules : INITIAL_SCHEDULES;
+        for (const sched of seedSchedules) {
           await setDoc(doc(db, 'pm_schedules', sched.id), sanitizeForFirestore(sched as any));
         }
-        return localSchedules;
+        await savePMManifestDoc(db, localContracts, seedSchedules);
+        return seedSchedules;
       }
+
+      await savePMManifestDoc(db, localContracts, list);
+      localStorage.setItem('assetwatch_schedules', JSON.stringify(list));
       return list;
     } catch (e) {
       console.error('Firebase getPMSchedules failed, falling back to localStorage:', e);
     }
   }
 
-  initLocalStorageIfNeeded();
-  return JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
+  return localSchedules;
 };
 
 export const addPMSchedule = async (schedule: PMSchedule): Promise<void> => {
@@ -1922,6 +2056,7 @@ export const addPMSchedule = async (schedule: PMSchedule): Promise<void> => {
   if (isFirebase && db) {
     try {
       await setDoc(doc(db, 'pm_schedules', schedule.id), sanitizeForFirestore(schedule as any));
+      await syncCurrentPMManifest(db);
       return;
     } catch (e) {
       console.error('Firebase addPMSchedule failed, saved to localStorage:', e);
@@ -1948,6 +2083,7 @@ export const updatePMSchedule = async (id: string, updates: Partial<PMSchedule>)
   if (isFirebase && db) {
     try {
       await setDoc(doc(db, 'pm_schedules', id), sanitizeForFirestore(updates), { merge: true });
+      syncCurrentPMManifest(db);
     } catch (e) {
       console.error('Firebase updatePMSchedule failed:', e);
       throw e;
@@ -2050,20 +2186,20 @@ export const deletePMNotification = async (id: string): Promise<void> => {
 };
 
 export const deletePMSchedule = async (id: string): Promise<void> => {
-  const { isFirebase, db } = getServices();
-  
-  if (isFirebase && db) {
-    try {
-      await deleteDoc(doc(db, 'pm_schedules', id));
-    } catch (e) {
-      console.error('Firebase deletePMSchedule failed, falling back to localStorage:', e);
-    }
-  }
-
   initLocalStorageIfNeeded();
   const schedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
   const filtered = schedules.filter(s => s.id !== id);
   localStorage.setItem('assetwatch_schedules', JSON.stringify(filtered));
+
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      await deleteDoc(doc(db, 'pm_schedules', id));
+      await syncCurrentPMManifest(db);
+    } catch (e) {
+      console.error('Firebase deletePMSchedule failed, falling back to localStorage:', e);
+    }
+  }
 };
 
 // --- SPARE PARTS (คลังอะไหล่) DATABASE OPERATIONS ---
@@ -2074,50 +2210,38 @@ export const fetchSpareParts = async (forceFull: boolean = false): Promise<Spare
 
   if (isFirebase && db) {
     try {
-      let fbList: SparePart[] = [];
-
-      // 1. Smart Delta Sync: Only query spare parts modified after our latest local update
-      if (!forceFull && localParts.length > 0) {
-        let maxUpdatedAt = '';
-        for (const p of localParts) {
-          if (p.updatedAt && p.updatedAt > maxUpdatedAt) {
-            maxUpdatedAt = p.updatedAt;
-          }
-        }
-
-        if (maxUpdatedAt) {
-          const deltaQuery = query(
-            collection(db, 'spare_parts'),
-            where('updatedAt', '>', maxUpdatedAt)
-          );
-          const deltaSnapshot = await getDocs(deltaQuery);
-          deltaSnapshot.forEach((docSnap) => {
-            fbList.push(docSnap.data() as SparePart);
-          });
-
-          if (fbList.length === 0) {
-            return localParts;
-          }
-        }
+      // 1. MANIFEST-FIRST STRATEGY (1 READ ONLY!)
+      const manifestDoc = await fetchSparePartsManifestDoc(db);
+      if (manifestDoc && manifestDoc.items) {
+        console.log(`[Manifest Engine] Loaded ${manifestDoc.items.length} spare parts from manifest (1 Read)!`);
+        safeSetItem('assetwatch_spare_parts', JSON.stringify(manifestDoc.items));
+        return manifestDoc.items;
       }
 
-      // 2. Full Sync if cache empty or forceFull
-      if (fbList.length === 0 && (forceFull || localParts.length === 0)) {
-        const q = query(collection(db, 'spare_parts'));
-        const snapshot = await getDocs(q);
-        snapshot.forEach((docSnap) => {
-          fbList.push(docSnap.data() as SparePart);
-        });
-      }
+      // 2. FALLBACK & AUTO-SEED MANIFEST:
+      console.log('[Manifest Engine] manifests/spare_parts not found on cloud. Auto-generating manifest...');
+      const q = query(collection(db, 'spare_parts'));
+      const snapshot = await getDocs(q);
+      const fbList: SparePart[] = [];
+      snapshot.forEach((docSnap) => {
+        fbList.push(docSnap.data() as SparePart);
+      });
 
       if (fbList.length === 0 && localParts.length === 0) {
-        return localParts;
+        const seedParts = INITIAL_SPARE_PARTS;
+        for (const p of seedParts) {
+          await setDoc(doc(db, 'spare_parts', p.id), sanitizeForFirestore(p));
+        }
+        await saveSparePartsManifestDoc(db, seedParts);
+        safeSetItem('assetwatch_spare_parts', JSON.stringify(seedParts));
+        return seedParts;
       }
 
       const map = new Map<string, SparePart>();
       localParts.forEach(p => map.set(p.id, p));
       fbList.forEach(p => map.set(p.id, p));
       const merged = Array.from(map.values());
+      await saveSparePartsManifestDoc(db, merged);
       safeSetItem('assetwatch_spare_parts', JSON.stringify(merged));
       return merged;
     } catch (err) {
@@ -2132,14 +2256,6 @@ export const saveSparePart = async (part: SparePart): Promise<void> => {
     ...part,
     updatedAt: part.updatedAt || new Date().toISOString()
   };
-  const { isFirebase, db } = getServices();
-  if (isFirebase && db) {
-    try {
-      await setDoc(doc(db, 'spare_parts', part.id), sanitizeForFirestore(partWithTime));
-    } catch (err) {
-      console.error('Failed to save spare part to Firestore, falling back to LocalStorage:', err);
-    }
-  }
   const parts: SparePart[] = JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
   const index = parts.findIndex(p => p.id === part.id);
   if (index !== -1) {
@@ -2148,20 +2264,32 @@ export const saveSparePart = async (part: SparePart): Promise<void> => {
     parts.push(partWithTime);
   }
   safeSetItem('assetwatch_spare_parts', JSON.stringify(parts));
+
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      await setDoc(doc(db, 'spare_parts', part.id), sanitizeForFirestore(partWithTime));
+      await saveSparePartsManifestDoc(db, parts);
+    } catch (err) {
+      console.error('Failed to save spare part to Firestore, falling back to LocalStorage:', err);
+    }
+  }
 };
 
 export const deleteSparePart = async (id: string): Promise<void> => {
+  const parts: SparePart[] = JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
+  const filtered = parts.filter(p => p.id !== id);
+  localStorage.setItem('assetwatch_spare_parts', JSON.stringify(filtered));
+
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
       await deleteDoc(doc(db, 'spare_parts', id));
+      await saveSparePartsManifestDoc(db, filtered);
     } catch (err) {
       console.error('Failed to delete spare part from Firestore, falling back to LocalStorage:', err);
     }
   }
-  const parts: SparePart[] = JSON.parse(localStorage.getItem('assetwatch_spare_parts') || '[]');
-  const filtered = parts.filter(p => p.id !== id);
-  localStorage.setItem('assetwatch_spare_parts', JSON.stringify(filtered));
 };
 
 export const factoryResetDatabase = async (): Promise<void> => {
@@ -2195,7 +2323,8 @@ export const factoryResetDatabase = async (): Promise<void> => {
       'pm_contracts',
       'pm_schedules',
       'pm_notifications',
-      'spare_parts'
+      'spare_parts',
+      'manifests'
     ];
 
     for (const collName of collectionsToClear) {
@@ -2264,12 +2393,19 @@ export const factoryResetDatabase = async (): Promise<void> => {
         operator: 'ระบบอัตโนมัติ'
       };
       await setDoc(doc(db, 'survey_rounds', defaultActiveRound.id), sanitizeForFirestore(defaultActiveRound));
+
+      // 4. Save initial manifests
+      await saveAssetsManifestDoc(db, seedAssets);
+      await saveSurveysManifestDoc(db, []);
+      await saveRepairsManifestDoc(db, INITIAL_REPAIRS);
+      await savePMManifestDoc(db, INITIAL_CONTRACTS, INITIAL_SCHEDULES);
+      await saveSparePartsManifestDoc(db, INITIAL_SPARE_PARTS);
     } catch (err) {
       console.error('Failed to seed Firestore initial data after clear:', err);
       throw err;
     }
   }
 
-  // 4. Initialize LocalStorage
+  // 5. Initialize LocalStorage
   initLocalStorageIfNeeded();
 };
