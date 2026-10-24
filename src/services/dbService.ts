@@ -575,7 +575,7 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
     // If asset has a master record in BLOOD_BAG_ASSETS, hydrate missing/stub fields
     if (bloodBagMasterMap.has(a.id)) {
       const master = bloodBagMasterMap.get(a.id)!;
-      if (!name || name === 'undefined' || name === 'null' || name.includes('ผลิตถุงบรรจุโลหิต')) {
+      if (!name || name === 'undefined' || name === 'null' || name.includes('ผลิตถุงบรรจุโลหิต') || name !== master.name) {
         name = master.name;
         changed = true;
       }
@@ -636,7 +636,8 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
         status,
         imageUrl,
         source,
-        note
+        note,
+        updatedAt: new Date().toISOString()
       };
       changedAssetsToSync.push(updatedAsset);
       return updatedAsset;
