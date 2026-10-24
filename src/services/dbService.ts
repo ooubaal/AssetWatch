@@ -29,15 +29,21 @@ import {
   saveSparePartsManifestDoc,
   mergeAssetsWithLocalCache,
   mergeSurveysWithLocalCache,
+  mergeSchedulesWithLocalCache,
+  mergeContractsWithLocalCache,
   fetchAssetDeepDetail,
   fetchSurveyDeepDetail,
-  fetchRepairDeepDetail
+  fetchRepairDeepDetail,
+  fetchPMScheduleDeepDetail,
+  fetchPMContractDeepDetail
 } from './manifestService';
 
 export {
   fetchAssetDeepDetail,
   fetchSurveyDeepDetail,
-  fetchRepairDeepDetail
+  fetchRepairDeepDetail,
+  fetchPMScheduleDeepDetail,
+  fetchPMContractDeepDetail
 };
 
 // Helper to check if we are using Firebase
@@ -2085,10 +2091,57 @@ const syncCurrentPMManifest = async (db: any) => {
   }
 };
 
+// Auto-heal PM Data to guarantee assets with schedules are bound to their contract and appear in all views
+export const autoHealPMData = (contracts: PMContract[], schedules: PMSchedule[]): { healedContracts: PMContract[]; didHeal: boolean } => {
+  let didHeal = false;
+  const contractMap = new Map<string, PMContract>();
+  (contracts || []).forEach(c => contractMap.set(c.id, { ...c, assetIds: [...(c.assetIds || [])] }));
+
+  for (const sched of (schedules || [])) {
+    if (!sched.assetId) continue;
+
+    if (sched.contractId && contractMap.has(sched.contractId)) {
+      const contract = contractMap.get(sched.contractId)!;
+      if (!contract.assetIds.includes(sched.assetId)) {
+        contract.assetIds.push(sched.assetId);
+        didHeal = true;
+      }
+    } else {
+      const targetContractId = sched.contractId || `INT-PM-${sched.assetId}`;
+      if (!contractMap.has(targetContractId)) {
+        const newContract: PMContract = {
+          id: targetContractId,
+          contractNumber: targetContractId.startsWith('PM-') || targetContractId.startsWith('INT-') ? targetContractId : `INT-PM-${sched.assetId.slice(-6)}`,
+          title: `แผนบำรุงรักษาประจำเครื่อง: ${sched.assetName || sched.assetId}`,
+          vendorName: 'ฝ่ายผู้ดูแลครุภัณฑ์ (บำรุงรักษาภายใน)',
+          startDate: sched.plannedDate || '2026-01-01',
+          endDate: '',
+          hasNoEndDate: true,
+          pmFrequency: 'custom',
+          assetIds: [sched.assetId],
+          contactPerson: sched.operator || 'เจ้าหน้าที่ผู้ดูแล',
+          contactPhone: '-'
+        };
+        contractMap.set(targetContractId, newContract);
+        didHeal = true;
+      } else {
+        const contract = contractMap.get(targetContractId)!;
+        if (!contract.assetIds.includes(sched.assetId)) {
+          contract.assetIds.push(sched.assetId);
+          didHeal = true;
+        }
+      }
+    }
+  }
+
+  return { healedContracts: Array.from(contractMap.values()), didHeal };
+};
+
 // --- PM CONTRACT SERVICES ---
 export const getPMContracts = async (): Promise<PMContract[]> => {
   initLocalStorageIfNeeded();
   const localContracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+  const localSchedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
   const { isFirebase, db } = getServices();
   
   if (isFirebase && db) {
@@ -2097,11 +2150,23 @@ export const getPMContracts = async (): Promise<PMContract[]> => {
       const manifestDoc = await fetchPMManifestDoc(db);
       if (manifestDoc && manifestDoc.contracts) {
         console.log(`[Manifest Engine] Loaded ${manifestDoc.contracts.length} PM contracts & ${manifestDoc.schedules?.length || 0} schedules from manifest (1 Read)!`);
-        localStorage.setItem('assetwatch_contracts', JSON.stringify(manifestDoc.contracts));
+        
+        // Merge with local cache to preserve local attachments & offline contracts
+        const mergedContracts = mergeContractsWithLocalCache(manifestDoc.contracts, localContracts);
+        let mergedSchedules: PMSchedule[] = localSchedules;
         if (manifestDoc.schedules && manifestDoc.schedules.length > 0) {
-          localStorage.setItem('assetwatch_schedules', JSON.stringify(manifestDoc.schedules));
+          mergedSchedules = mergeSchedulesWithLocalCache(manifestDoc.schedules, localSchedules);
+          localStorage.setItem('assetwatch_schedules', JSON.stringify(mergedSchedules));
         }
-        return manifestDoc.contracts;
+
+        // Auto-heal contracts & schedules
+        const { healedContracts, didHeal } = autoHealPMData(mergedContracts, mergedSchedules);
+        localStorage.setItem('assetwatch_contracts', JSON.stringify(healedContracts));
+        
+        if (didHeal) {
+          syncCurrentPMManifest(db);
+        }
+        return healedContracts;
       }
 
       // 2. FALLBACK & AUTO-SEED MANIFEST:
@@ -2113,25 +2178,27 @@ export const getPMContracts = async (): Promise<PMContract[]> => {
         list.push({ id: doc.id, ...doc.data() } as PMContract);
       });
 
-      const localSchedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
+      const seedSource = list.length > 0 ? list : (localContracts.length > 0 ? localContracts : INITIAL_CONTRACTS);
+      const { healedContracts } = autoHealPMData(seedSource, localSchedules);
       if (list.length === 0) {
-        const seedContracts = localContracts.length > 0 ? localContracts : INITIAL_CONTRACTS;
-        for (const contract of seedContracts) {
+        for (const contract of healedContracts) {
           await setDoc(doc(db, 'pm_contracts', contract.id), contract);
         }
-        await savePMManifestDoc(db, seedContracts, localSchedules);
-        return seedContracts;
       }
 
-      await savePMManifestDoc(db, list, localSchedules);
-      localStorage.setItem('assetwatch_contracts', JSON.stringify(list));
-      return list;
+      await savePMManifestDoc(db, healedContracts, localSchedules);
+      localStorage.setItem('assetwatch_contracts', JSON.stringify(healedContracts));
+      return healedContracts;
     } catch (e) {
       console.error('Firebase getPMContracts failed, falling back to localStorage:', e);
     }
   }
 
-  return localContracts;
+  const { healedContracts, didHeal } = autoHealPMData(localContracts, localSchedules);
+  if (didHeal) {
+    localStorage.setItem('assetwatch_contracts', JSON.stringify(healedContracts));
+  }
+  return healedContracts;
 };
 
 export const addPMContract = async (contract: PMContract): Promise<void> => {
@@ -2203,6 +2270,7 @@ export const deletePMContract = async (id: string): Promise<void> => {
 export const getPMSchedules = async (): Promise<PMSchedule[]> => {
   initLocalStorageIfNeeded();
   const localSchedules: PMSchedule[] = JSON.parse(localStorage.getItem('assetwatch_schedules') || '[]');
+  const localContracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
   const { isFirebase, db } = getServices();
   
   if (isFirebase && db) {
@@ -2211,11 +2279,23 @@ export const getPMSchedules = async (): Promise<PMSchedule[]> => {
       const manifestDoc = await fetchPMManifestDoc(db);
       if (manifestDoc && manifestDoc.schedules) {
         console.log(`[Manifest Engine] Loaded ${manifestDoc.schedules.length} PM schedules from manifest (1 Read)!`);
+        
+        // Merge with local cache to preserve local high-res proof images & offline schedules
+        const mergedSchedules = mergeSchedulesWithLocalCache(manifestDoc.schedules, localSchedules);
+        localStorage.setItem('assetwatch_schedules', JSON.stringify(mergedSchedules));
+
+        let currentContracts: PMContract[] = localContracts;
         if (manifestDoc.contracts && manifestDoc.contracts.length > 0) {
-          localStorage.setItem('assetwatch_contracts', JSON.stringify(manifestDoc.contracts));
+          currentContracts = mergeContractsWithLocalCache(manifestDoc.contracts, localContracts);
         }
-        localStorage.setItem('assetwatch_schedules', JSON.stringify(manifestDoc.schedules));
-        return manifestDoc.schedules;
+
+        const { healedContracts, didHeal } = autoHealPMData(currentContracts, mergedSchedules);
+        localStorage.setItem('assetwatch_contracts', JSON.stringify(healedContracts));
+
+        if (didHeal) {
+          syncCurrentPMManifest(db);
+        }
+        return mergedSchedules;
       }
 
       // 2. FALLBACK & AUTO-SEED MANIFEST:
@@ -2227,19 +2307,18 @@ export const getPMSchedules = async (): Promise<PMSchedule[]> => {
         list.push({ id: doc.id, ...doc.data() } as PMSchedule);
       });
 
-      const localContracts: PMContract[] = JSON.parse(localStorage.getItem('assetwatch_contracts') || '[]');
+      const seedSchedules = list.length > 0 ? list : (localSchedules.length > 0 ? localSchedules : INITIAL_SCHEDULES);
+      const { healedContracts } = autoHealPMData(localContracts, seedSchedules);
       if (list.length === 0) {
-        const seedSchedules = localSchedules.length > 0 ? localSchedules : INITIAL_SCHEDULES;
         for (const sched of seedSchedules) {
           await setDoc(doc(db, 'pm_schedules', sched.id), sanitizeForFirestore(sched as any));
         }
-        await savePMManifestDoc(db, localContracts, seedSchedules);
-        return seedSchedules;
       }
 
-      await savePMManifestDoc(db, localContracts, list);
-      localStorage.setItem('assetwatch_schedules', JSON.stringify(list));
-      return list;
+      await savePMManifestDoc(db, healedContracts, seedSchedules);
+      localStorage.setItem('assetwatch_contracts', JSON.stringify(healedContracts));
+      localStorage.setItem('assetwatch_schedules', JSON.stringify(seedSchedules));
+      return seedSchedules;
     } catch (e) {
       console.error('Firebase getPMSchedules failed, falling back to localStorage:', e);
     }

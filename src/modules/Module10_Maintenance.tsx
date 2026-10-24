@@ -5,7 +5,7 @@ import {
   Trash2, Phone, User, Building, ExternalLink, Printer, ChevronLeft, ChevronRight, Camera, Search, ArrowRight, RefreshCw, Edit3 
 } from 'lucide-react';
 import { Asset, PMContract, PMSchedule, PMNotification, RepairCase, UserAccount } from '../utils/mockData';
-import { uploadImage, compressFileOrPdf, updateAsset } from '../services/dbService';
+import { uploadImage, compressFileOrPdf, updateAsset, fetchPMScheduleDeepDetail, fetchPMContractDeepDetail } from '../services/dbService';
 import { SearchableSelect } from '../components/SearchableSelect';
 
 interface Module10MaintenanceProps {
@@ -153,11 +153,17 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         return false;
       }
 
-      // Asset PM plan check
-      const assetContracts = contracts.filter(c => c.assetIds.includes(asset.id));
-      const hasPlan = assetContracts.length > 0;
-      const latestContract = hasPlan ? assetContracts[assetContracts.length - 1] : null;
-      const isInternal = latestContract ? latestContract.contractNumber.startsWith('INT-PM-') : false;
+      // Asset PM plan check (matches both contracts with assetIds and schedules tied to the asset)
+      const assetSchedules = schedules.filter(s => s.assetId === asset.id);
+      const assetContracts = contracts.filter(c => 
+        (c.assetIds && c.assetIds.includes(asset.id)) || 
+        assetSchedules.some(s => s.contractId === c.id)
+      );
+      const hasPlan = assetContracts.length > 0 || assetSchedules.length > 0;
+      const latestContract = assetContracts.length > 0 ? assetContracts[assetContracts.length - 1] : null;
+      const isInternal = latestContract 
+        ? (latestContract.contractNumber ? latestContract.contractNumber.startsWith('INT-PM-') : false) 
+        : (assetSchedules.length > 0);
 
       if (assetPMTypeFilter === 'has_plan' && !hasPlan) return false;
       if (assetPMTypeFilter === 'no_plan' && hasPlan) return false;
@@ -166,9 +172,9 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       if (!assetPMSearch.trim()) return true;
       const term = assetPMSearch.toLowerCase().trim();
-      const vendor = latestContract ? latestContract.vendorName.toLowerCase() : '';
-      const contractNo = latestContract ? latestContract.contractNumber.toLowerCase() : '';
-      const contractTitle = latestContract ? latestContract.title.toLowerCase() : '';
+      const vendor = latestContract ? (latestContract.vendorName || '').toLowerCase() : '';
+      const contractNo = latestContract ? (latestContract.contractNumber || '').toLowerCase() : '';
+      const contractTitle = latestContract ? (latestContract.title || '').toLowerCase() : '';
 
       return (
         (asset.id || '').toLowerCase().includes(term) ||
@@ -181,7 +187,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         contractTitle.includes(term)
       );
     });
-  }, [assets, contracts, selectedDeptFilter, assetPMTypeFilter, assetPMSearch]);
+  }, [assets, contracts, schedules, selectedDeptFilter, assetPMTypeFilter, assetPMSearch]);
 
   // Quick Note / Equipment Nickname Modal States
   const [isQuickNoteOpen, setIsQuickNoteOpen] = useState(false);
@@ -388,9 +394,57 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
     setShouldCreateCM(false);
     setCmSymptom('');
     setProofFile(null);
-    setProofPreview(sched.proofImageUrl || null);
+    const validProof = (sched.proofImageUrl && !sched.proofImageUrl.includes('images.unsplash.com')) ? sched.proofImageUrl : null;
+    setProofPreview(validProof);
     setProofInfo(null);
     setIsPMFormOpen(true);
+
+    // If proof was stripped in manifest and schedule is completed/has record, lazy load from Firestore
+    if (!validProof && (sched.status === 'completed' || sched.completedDate)) {
+      fetchPMScheduleDeepDetail(sched.id).then(deep => {
+        if (deep && deep.proofImageUrl && !deep.proofImageUrl.includes('images.unsplash.com')) {
+          setProofPreview(deep.proofImageUrl);
+          setSelectedSchedule(prev => prev && prev.id === sched.id ? { ...prev, proofImageUrl: deep.proofImageUrl } : prev);
+          onUpdatePMSchedule(sched.id, { proofImageUrl: deep.proofImageUrl });
+        }
+      }).catch(err => console.warn('Lazy-load deep proof failed:', err));
+    }
+  };
+
+  // Universal PM Proof Viewer with On-Demand Lazy Loading
+  const handleViewPMProof = async (sched: PMSchedule) => {
+    let url = sched.proofImageUrl;
+    if (!url || url.includes('images.unsplash.com')) {
+      try {
+        const deep = await fetchPMScheduleDeepDetail(sched.id);
+        if (deep && deep.proofImageUrl && !deep.proofImageUrl.includes('images.unsplash.com')) {
+          url = deep.proofImageUrl;
+          await onUpdatePMSchedule(sched.id, { proofImageUrl: url });
+        }
+      } catch (err) {
+        console.warn('Failed to lazy load deep proof for PM schedule:', err);
+      }
+    }
+
+    if (url && !url.includes('images.unsplash.com')) {
+      handleOpenLightbox(url, `รูปภาพหลักฐาน PM - ${selectedLogbookAsset?.name || sched.assetName}`);
+    } else {
+      alert('ไม่พบไฟล์หลักฐานจริงที่แนบไว้สำหรับรอบการบำรุงรักษานี้ (คุณสามารถกดปุ่ม "✏️ แก้ไข" เพื่อแนบรูปภาพหรือไฟล์ PDF ได้)');
+    }
+  };
+
+  // Open A4 Print Report with Auto-Fetch of Heavy Proof File
+  const handleOpenPrintReport = (sched: PMSchedule) => {
+    setSelectedSchedule(sched);
+    setIsPrintReportOpen(true);
+    if ((!sched.proofImageUrl || sched.proofImageUrl.includes('images.unsplash.com')) && (sched.status === 'completed' || sched.completedDate)) {
+      fetchPMScheduleDeepDetail(sched.id).then(deep => {
+        if (deep && deep.proofImageUrl && !deep.proofImageUrl.includes('images.unsplash.com')) {
+          setSelectedSchedule(prev => prev && prev.id === sched.id ? { ...prev, proofImageUrl: deep.proofImageUrl } : prev);
+          onUpdatePMSchedule(sched.id, { proofImageUrl: deep.proofImageUrl });
+        }
+      }).catch(err => console.warn('Lazy-load print proof failed:', err));
+    }
   };
 
   const handleProofImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -440,8 +494,12 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       let finalImgUrl = '';
       if (proofFile) {
         finalImgUrl = await uploadImage(proofFile, 'pm_proofs');
+      } else if (proofPreview && !proofPreview.includes('images.unsplash.com')) {
+        finalImgUrl = proofPreview;
+      } else if (selectedSchedule.proofImageUrl && !selectedSchedule.proofImageUrl.includes('images.unsplash.com')) {
+        finalImgUrl = selectedSchedule.proofImageUrl;
       } else {
-        finalImgUrl = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=60';
+        finalImgUrl = '';
       }
 
       const operatorName = localStorage.getItem('assetwatch_operator') || 'เจ้าหน้าที่พัสดุ';
@@ -2037,9 +2095,8 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                 setDraggedSchedule(null);
                               }}
                               onClick={() => {
-                                setSelectedSchedule(sched);
                                 if (sched.status !== 'pending') {
-                                  setIsPrintReportOpen(true);
+                                  handleOpenPrintReport(sched);
                                 } else {
                                   handleOpenPMForm(sched);
                                 }
@@ -2252,11 +2309,14 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </div>
             ) : (
               filteredAssetPMList.map(asset => {
-                const assetContracts = contracts.filter(c => c.assetIds.includes(asset.id));
-                const hasPlan = assetContracts.length > 0;
                 const assetSchedules = schedules
                   .filter(s => s.assetId === asset.id)
                   .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate));
+                const assetContracts = contracts.filter(c => 
+                  (c.assetIds && c.assetIds.includes(asset.id)) ||
+                  assetSchedules.some(s => s.contractId === c.id)
+                );
+                const hasPlan = assetContracts.length > 0 || assetSchedules.length > 0;
                 
                 const completedCount = assetSchedules.filter(s => s.status === 'completed').length;
                 const assetRepairs = repairs.filter(r => r.assetId === asset.id);
@@ -2287,7 +2347,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                         {/* Status Pointers / Plans Count */}
                         {hasPlan ? (
                           <span className="badge badge-success" style={{ fontSize: '0.675rem' }}>
-                            📋 {assetContracts.length} แผนงาน PM ({assetContracts.some(c => c.contractNumber.startsWith('INT-PM-')) ? 'มีแผนภายใน' : ''}{assetContracts.some(c => !c.contractNumber.startsWith('INT-PM-')) ? (assetContracts.some(c => c.contractNumber.startsWith('INT-PM-')) ? ' / Outsource' : 'Outsource') : ''})
+                            📋 {assetContracts.length > 0 ? `${assetContracts.length} แผนงาน PM` : `${assetSchedules.length} รอบ PM`} ({assetContracts.some(c => c.contractNumber.startsWith('INT-PM-')) || assetContracts.length === 0 ? 'มีแผนภายใน' : ''}{assetContracts.some(c => !c.contractNumber.startsWith('INT-PM-')) ? (assetContracts.some(c => c.contractNumber.startsWith('INT-PM-')) ? ' / Outsource' : 'Outsource') : ''})
                           </span>
                         ) : (
                           <span className="badge badge-warning" style={{ fontSize: '0.675rem' }}>⚠️ ยังไม่ตั้งค่า PM</span>
@@ -2334,9 +2394,107 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                       {/* Maintenance Plans List for this Asset */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.5rem 0' }}>
                         {assetContracts.length === 0 ? (
-                          <div style={{ background: 'var(--bg-primary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', fontSize: '0.775rem' }}>
-                            ยังไม่มีการกำหนดความถี่หรือผูกเข้ากับสัญญาบำรุงรักษา
-                          </div>
+                          assetSchedules.length > 0 ? (
+                            (() => {
+                              const planPendingSched = assetSchedules.find(s => s.status === 'pending');
+                              const planCompletedScheds = assetSchedules
+                                .filter(s => s.status === 'completed')
+                                .sort((a, b) => (b.completedDate || b.plannedDate).localeCompare(a.completedDate || a.plannedDate));
+                              const latestCompleted = planCompletedScheds[0];
+                              const displayNextDate = planPendingSched ? planPendingSched.plannedDate : '';
+
+                              return (
+                                <div style={{ background: 'var(--bg-primary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.775rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.4rem' }}>
+                                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
+                                      แผนงานบำรุงรักษาประจำเครื่อง (Internal PM)
+                                    </div>
+                                  </div>
+                                  <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                                    <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.05rem 0.3rem' }}>
+                                      📌 บำรุงรักษาภายใน ({assetSchedules.length} รอบ)
+                                    </span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem', color: 'var(--text-secondary)' }}>
+                                    <div>🔄 <strong>ความถี่:</strong> <span style={{ color: 'var(--primary)', fontWeight: 700 }}>กำหนดวันนัดรายเครื่อง</span></div>
+                                    <div>📅 ไม่มีกำหนดสิ้นสุด (ถาวร ♾️)</div>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--border)', paddingTop: '0.35rem', marginTop: '0.2rem' }}>
+                                    <div>
+                                      📅 <strong>PM ถัดไป:</strong>{' '}
+                                      {displayNextDate ? (
+                                        <span style={{ color: 'var(--primary)', fontWeight: 700 }}>
+                                          {getThaiDateFormatted(displayNextDate)}
+                                        </span>
+                                      ) : (
+                                        <span style={{ color: 'var(--success)', fontWeight: 650 }}>✅ ครบทุกรอบ</span>
+                                      )}
+                                    </div>
+                                    {planPendingSched && (
+                                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                        <button 
+                                          onClick={() => handleOpenReschedule(planPendingSched)}
+                                          className="btn btn-ghost btn-xs"
+                                          style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                          title="เลื่อนวันนัด PM"
+                                        >
+                                          📅 เลื่อนวัน
+                                        </button>
+                                        <button 
+                                          onClick={() => handleOpenPMForm(planPendingSched)}
+                                          className="btn btn-success btn-xs"
+                                          style={{ padding: '0.15rem 0.45rem', fontSize: '0.675rem' }}
+                                        >
+                                          🔧 บันทึก PM
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {latestCompleted && (
+                                    <div style={{ background: 'var(--bg-secondary)', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.725rem', marginTop: '0.35rem' }}>
+                                      <div>
+                                        <span style={{ color: 'var(--success)', fontWeight: 700 }}>🟢 PM ล่าสุด:</span> {getThaiDateFormatted(latestCompleted.completedDate || latestCompleted.plannedDate)} {latestCompleted.operator ? `(${latestCompleted.operator})` : ''}
+                                      </div>
+                                      <div style={{ display: 'flex', gap: '0.2rem' }}>
+                                        <button 
+                                          onClick={() => handleOpenPrintReport(latestCompleted)}
+                                          className="btn btn-ghost btn-xs"
+                                          style={{ padding: '0.1rem 0.3rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                          title="ดู / พิมพ์ใบรายงาน A4"
+                                        >
+                                          🖨️ พิมพ์
+                                        </button>
+                                        {currentUser?.role !== 'user' && (
+                                          <button 
+                                            onClick={() => handleOpenPMForm(latestCompleted)}
+                                            className="btn btn-ghost btn-xs"
+                                            style={{ padding: '0.1rem 0.3rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                            title="แก้ไขข้อมูลผลการบำรุงรักษา"
+                                          >
+                                            ✏️ แก้ไข
+                                          </button>
+                                        )}
+                                        {currentUser?.role === 'admin' && (
+                                          <button 
+                                            onClick={() => handleDeleteSchedule(latestCompleted.id)}
+                                            className="btn btn-ghost btn-xs text-danger"
+                                            style={{ padding: '0.1rem 0.3rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
+                                            title="ลบบันทึกนี้"
+                                          >
+                                            🗑️ ลบ
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()
+                          ) : (
+                            <div style={{ background: 'var(--bg-primary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', fontSize: '0.775rem' }}>
+                              ยังไม่มีการกำหนดความถี่หรือผูกเข้ากับสัญญาบำรุงรักษา
+                            </div>
+                          )
                         ) : (
                           assetContracts.map((contract, planIdx) => {
                             const isInternal = contract.contractNumber.startsWith('INT-PM-');
@@ -2481,7 +2639,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                       </div>
                                       <div style={{ display: 'flex', gap: '0.2rem' }}>
                                         <button 
-                                          onClick={() => { setSelectedSchedule(latestCompleted); setIsPrintReportOpen(true); }}
+                                          onClick={() => handleOpenPrintReport(latestCompleted)}
                                           className="btn btn-ghost btn-xs"
                                           style={{ padding: '0.1rem 0.3rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
                                           title="ดู / พิมพ์ใบรายงาน A4"
@@ -3104,6 +3262,23 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                           >
                             🔍 เปิดดูขนาดเต็ม / ดาวน์โหลด
                           </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs text-danger"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setProofPreview(null);
+                              setProofFile(null);
+                              setProofInfo(null);
+                              if (selectedSchedule) {
+                                selectedSchedule.proofImageUrl = '';
+                              }
+                            }}
+                            style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.6rem', border: '1px solid var(--border)' }}
+                          >
+                            🗑️ ลบไฟล์หลักฐานออก
+                          </button>
                         </div>
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>หากต้องการอัปโหลดใหม่ ให้กดปุ่มอัปโหลดหรือลากไฟล์มาวางแทน</span>
                       </div>
@@ -3312,29 +3487,51 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                     );
                   })()}
 
-                  {/* Proof of image */}
-                  {selectedSchedule.proofImageUrl && (
-                    <div style={{ marginBottom: '2rem' }}>
-                      <strong>📸 ภาพถ่ายสภาพหลังดำเนินการบำรุงรักษา (Proof of Work):</strong>
-                      <div style={{ marginTop: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                        <img 
-                          src={selectedSchedule.proofImageUrl} 
-                          alt="PM proof" 
-                          style={{ maxWidth: '380px', maxHeight: '200px', border: '2px solid #dddddd', borderRadius: '4px', cursor: 'pointer' }}
-                          onClick={() => handleOpenLightbox(selectedSchedule.proofImageUrl!, `ภาพถ่ายหลักฐาน PM - ${selectedSchedule.assetName}`)}
-                          title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD / ดาวน์โหลด"
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs hide-on-print"
-                          onClick={() => handleOpenLightbox(selectedSchedule.proofImageUrl!, `ภาพถ่ายหลักฐาน PM - ${selectedSchedule.assetName}`)}
-                          style={{ border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.5rem', fontSize: '0.72rem', color: 'var(--text-secondary)' }}
-                        >
-                          🔍 เปิดดูขนาดเต็ม / ดาวน์โหลดไฟล์หลักฐาน
-                        </button>
+                  {/* Proof of image / document */}
+                  {(() => {
+                    const proofUrl = selectedSchedule.proofImageUrl;
+                    const isValidProof = proofUrl && !proofUrl.includes('images.unsplash.com');
+                    const isPdf = isValidProof && (proofUrl.startsWith('data:application/pdf') || proofUrl.toLowerCase().includes('.pdf'));
+
+                    if (!isValidProof) return null;
+
+                    return (
+                      <div style={{ marginBottom: '2rem' }}>
+                        <strong>📸 ภาพถ่ายหรือเอกสารหลักฐานสภาพหลังบำรุงรักษา (Proof of Work):</strong>
+                        <div style={{ marginTop: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                          {isPdf ? (
+                            <div 
+                              onClick={() => handleOpenLightbox(proofUrl, `เอกสารหลักฐาน PM - ${selectedSchedule.assetName}`)}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1.25rem', background: '#fef2f2', border: '1.5px solid #f87171', borderRadius: '6px', cursor: 'pointer', maxWidth: '400px' }}
+                              title="คลิกเพื่อเปิดดูเอกสาร PDF เต็มหน้าจอ"
+                            >
+                              <FileText size={26} color="#ef4444" />
+                              <div style={{ textAlign: 'left' }}>
+                                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#991b1b' }}>📄 เอกสารหลักฐานบันทึก PM (ไฟล์ PDF HD)</div>
+                                <div style={{ fontSize: '0.75rem', color: '#b91c1c' }}>คลิกเพื่อเปิดอ่านเอกสาร / พิมพ์รายงานตัวจริง</div>
+                              </div>
+                            </div>
+                          ) : (
+                            <img 
+                              src={proofUrl} 
+                              alt="PM proof" 
+                              style={{ maxWidth: '380px', maxHeight: '200px', border: '2px solid #dddddd', borderRadius: '4px', cursor: 'pointer' }}
+                              onClick={() => handleOpenLightbox(proofUrl, `ภาพถ่ายหลักฐาน PM - ${selectedSchedule.assetName}`)}
+                              title="คลิกเพื่อขยายดูรูปภาพขนาดเต็ม HD / ดาวน์โหลด"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs hide-on-print"
+                            onClick={() => handleOpenLightbox(proofUrl, `ภาพถ่ายหลักฐาน PM - ${selectedSchedule.assetName}`)}
+                            style={{ border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.5rem', fontSize: '0.72rem', color: 'var(--text-secondary)' }}
+                          >
+                            🔍 เปิดดูขนาดเต็ม / ดาวน์โหลดไฟล์หลักฐาน
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Signature Zone */}
                   <div style={{ marginTop: '4rem', display: 'flex', justifyContent: 'space-between' }}>
@@ -4391,7 +4588,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
 
               {/* SECTION 1: CONTRACT HISTORY */}
               {(() => {
-                const assetContracts = contracts.filter(c => c.assetIds.includes(selectedLogbookAsset.id));
+                const assetContracts = contracts.filter(c => (c.assetIds && c.assetIds.includes(selectedLogbookAsset.id)) || schedules.some(s => s.assetId === selectedLogbookAsset.id && s.contractId === c.id));
                 return (
                   <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
@@ -4525,10 +4722,10 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                   <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sched.details || sched.notes || '-'}</div>
                                 </td>
                                 <td style={{ padding: '0.4rem' }}>
-                                  {sched.proofImageUrl ? (
+                                  {sched.proofImageUrl || sched.status === 'completed' ? (
                                     <button 
                                       type="button"
-                                      onClick={() => handleOpenLightbox(sched.proofImageUrl!, `รูปภาพหลักฐาน PM - ${selectedLogbookAsset?.name || sched.assetName}`)}
+                                      onClick={() => handleViewPMProof(sched)}
                                       className="btn btn-ghost btn-xs"
                                       style={{ color: 'var(--primary)', border: '1px solid var(--border)', padding: '0.15rem 0.4rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: 'var(--bg-primary)' }}
                                       title="คลิกเพื่อเปิดดูรูปภาพหรือไฟล์ PDF ขนาดเต็ม HD"
@@ -4540,7 +4737,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                 <td style={{ padding: '0.4rem', textAlign: 'center' }}>
                                   <div style={{ display: 'flex', gap: '0.2rem', justifyContent: 'center' }}>
                                     <button 
-                                      onClick={() => { setSelectedSchedule(sched); setIsPrintReportOpen(true); }}
+                                      onClick={() => handleOpenPrintReport(sched)}
                                       className="btn btn-ghost btn-xs"
                                       style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
                                       title="ดู / พิมพ์ใบรายงาน A4"

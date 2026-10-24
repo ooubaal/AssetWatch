@@ -1,4 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirebaseServices } from '../firebase';
 import { 
   Asset, 
   SurveyRecord, 
@@ -255,6 +256,77 @@ export const mergeSurveysWithLocalCache = (manifestItems: SurveyManifestItem[], 
   return merged;
 };
 
+export const mergeSchedulesWithLocalCache = (manifestSchedules: PMSchedule[], localSchedules: PMSchedule[]): PMSchedule[] => {
+  const localMap = new Map<string, PMSchedule>();
+  localSchedules.forEach(s => localMap.set(s.id, s));
+  const manifestIds = new Set<string>();
+
+  const merged: PMSchedule[] = (manifestSchedules || []).map(item => {
+    manifestIds.add(item.id);
+    const local = localMap.get(item.id);
+    let finalProof = item.proofImageUrl || '';
+
+    // If manifest stripped heavy base64 or has an Unsplash stock photo, keep valid local proof image
+    if ((!finalProof || finalProof.includes('images.unsplash.com')) && local && local.proofImageUrl && !local.proofImageUrl.includes('images.unsplash.com')) {
+      finalProof = local.proofImageUrl;
+    }
+
+    return {
+      ...item,
+      proofImageUrl: finalProof,
+      details: item.details || local?.details || '',
+      notes: item.notes || local?.notes || '',
+      nextPMNotes: item.nextPMNotes || local?.nextPMNotes || ''
+    };
+  });
+
+  // Preserve offline-created schedules that have not yet synced to cloud manifest
+  for (const local of localSchedules) {
+    if (!manifestIds.has(local.id)) {
+      merged.push(local);
+    }
+  }
+
+  return merged;
+};
+
+export const mergeContractsWithLocalCache = (manifestContracts: PMContract[], localContracts: PMContract[]): PMContract[] => {
+  const localMap = new Map<string, PMContract>();
+  localContracts.forEach(c => localMap.set(c.id, c));
+  const manifestIds = new Set<string>();
+
+  const merged: PMContract[] = (manifestContracts || []).map(item => {
+    manifestIds.add(item.id);
+    const local = localMap.get(item.id);
+    let finalAttachment = item.attachmentUrl || '';
+
+    if (!finalAttachment && local && local.attachmentUrl) {
+      finalAttachment = local.attachmentUrl;
+    }
+
+    // Merge assetIds to ensure no assigned asset is dropped
+    const mergedAssetIds = Array.from(new Set([
+      ...(item.assetIds || []),
+      ...(local?.assetIds || [])
+    ]));
+
+    return {
+      ...item,
+      attachmentUrl: finalAttachment,
+      assetIds: mergedAssetIds
+    };
+  });
+
+  // Preserve offline-created contracts that have not yet synced to cloud manifest
+  for (const local of localContracts) {
+    if (!manifestIds.has(local.id)) {
+      merged.push(local);
+    }
+  }
+
+  return merged;
+};
+
 // --- FIRESTORE MANIFEST CRUD HELPERS ---
 
 // 1. Assets Manifest
@@ -461,6 +533,48 @@ export const fetchRepairDeepDetail = async (db: any, repairId: string): Promise<
     return null;
   } catch (err) {
     console.warn(`[LazyLoader] Failed to fetch repair detail for ${repairId}:`, err);
+    return null;
+  }
+};
+
+export const fetchPMScheduleDeepDetail = async (dbOrId: any, maybeId?: string): Promise<PMSchedule | null> => {
+  let targetDb = maybeId ? dbOrId : null;
+  let scheduleId = maybeId ? maybeId : dbOrId;
+
+  if (!targetDb) {
+    targetDb = getFirebaseServices().db;
+  }
+  if (!targetDb || !scheduleId) return null;
+
+  try {
+    const snap = await getDoc(doc(targetDb, 'pm_schedules', scheduleId));
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() } as PMSchedule;
+    }
+    return null;
+  } catch (err) {
+    console.warn(`[LazyLoader] Failed to fetch PM schedule detail for ${scheduleId}:`, err);
+    return null;
+  }
+};
+
+export const fetchPMContractDeepDetail = async (dbOrId: any, maybeId?: string): Promise<PMContract | null> => {
+  let targetDb = maybeId ? dbOrId : null;
+  let contractId = maybeId ? maybeId : dbOrId;
+
+  if (!targetDb) {
+    targetDb = getFirebaseServices().db;
+  }
+  if (!targetDb || !contractId) return null;
+
+  try {
+    const snap = await getDoc(doc(targetDb, 'pm_contracts', contractId));
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() } as PMContract;
+    }
+    return null;
+  } catch (err) {
+    console.warn(`[LazyLoader] Failed to fetch PM contract detail for ${contractId}:`, err);
     return null;
   }
 };
