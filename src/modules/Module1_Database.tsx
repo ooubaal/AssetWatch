@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet, 
-  QrCode, Camera, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  QrCode, Camera, CameraOff, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ArrowUpDown, ArrowUp, ArrowDown, SlidersHorizontal, RotateCcw, CheckCircle2,
   AlertTriangle, Wrench, Calendar, MapPin, Building2, Layers, Sparkles, Trash2
 } from 'lucide-react';
@@ -10,9 +10,7 @@ import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule, S
 import { AssetModal } from '../components/AssetModal';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
-import { deleteAsset, isDefaultPlaceholder, cleanAssetNote } from '../services/dbService';
-
-const FALLBACK_ASSET_IMG = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+import { deleteAsset, isDefaultPlaceholder, cleanAssetNote, fetchAssetImageOnDemand } from '../services/dbService';
 
 export type SortField = 'id' | 'name' | 'receivedDate' | 'location' | 'department' | 'status' | 'updatedAt';
 export type SortDirection = 'asc' | 'desc';
@@ -73,6 +71,12 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   // Selected asset for viewing details in modal
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
+  // On-demand Photo Preview States
+  const [viewingImageAsset, setViewingImageAsset] = useState<Asset | null>(null);
+  const [loadedImage, setLoadedImage] = useState<string | null>(null);
+  const [imageSource, setImageSource] = useState<'survey' | 'asset' | null>(null);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
+
   // Map of latest survey photos per asset for instant live display
   const latestSurveyImageMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -85,16 +89,45 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     return map;
   }, [surveys]);
 
-  const getEffectiveAssetImage = (asset: Asset) => {
-    // 1. Survey photo always takes top priority
-    const surveyImg = latestSurveyImageMap.get(asset.id);
-    if (surveyImg) return surveyImg;
-    // 2. Custom asset image if not default placeholder
-    if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) {
-      return asset.imageUrl;
+  const handleOpenImageModal = async (asset: Asset) => {
+    setViewingImageAsset(asset);
+    setIsLoadingImage(true);
+    setLoadedImage(null);
+    setImageSource(null);
+
+    try {
+      // 1. Check local survey photo first
+      const surveyImg = latestSurveyImageMap.get(asset.id);
+      if (surveyImg && !isDefaultPlaceholder(surveyImg)) {
+        setLoadedImage(surveyImg);
+        setImageSource('survey');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      // 2. Check local asset image
+      if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) {
+        setLoadedImage(asset.imageUrl);
+        setImageSource('asset');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      // 3. On-demand fetch from Firebase Firestore (1 read)
+      const res = await fetchAssetImageOnDemand(asset.id);
+      if (res && res.imageUrl) {
+        setLoadedImage(res.imageUrl);
+        setImageSource(res.source);
+      } else {
+        setLoadedImage(null);
+        setImageSource(null);
+      }
+    } catch (err) {
+      console.warn('Failed to load image on demand:', err);
+      setLoadedImage(null);
+    } finally {
+      setIsLoadingImage(false);
     }
-    // 3. Fallback
-    return FALLBACK_ASSET_IMG;
   };
   
   // State for Report Print Modal & Scanner Modal
@@ -946,25 +979,14 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         <div className="asset-grid">
           {paginatedAssets.map((asset) => (
             <div key={asset.id} className="asset-card glass-panel" onClick={() => setSelectedAsset(asset)}>
-              <div className="asset-card-image-box">
-                <img 
-                  src={getEffectiveAssetImage(asset)} 
-                  alt={asset.name || 'ครุภัณฑ์'}
-                  loading="lazy"
-                  decoding="async"
-                  onError={(e) => {
-                    const target = e.currentTarget as HTMLImageElement;
-                    target.onerror = null;
-                    target.src = FALLBACK_ASSET_IMG;
-                  }}
-                />
-                <span className={`badge ${statusColors[asset.status] || 'badge-muted'} asset-status-badge`}>
+              <div className="asset-card-header">
+                <span className="asset-card-id">{asset.id}</span>
+                <span className={`badge ${statusColors[asset.status] || 'badge-muted'}`}>
                   <span className="status-dot"></span>
                   {asset.status || 'ใช้งานได้'}
                 </span>
               </div>
               <div className="asset-card-body">
-                <span className="asset-card-id">{asset.id}</span>
                 <h3 className="asset-card-title">{asset.name}</h3>
                 {cleanAssetNote(asset.note) && (
                   <div style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', padding: '0.15rem 0.4rem', borderRadius: '4px', margin: '0.2rem 0 0.35rem 0', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', maxWidth: '100%' }}>
@@ -977,14 +999,30 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                   <span className="meta-dept">🏢 {asset.department || '-'}</span>
                 </div>
               </div>
-              <div className="asset-card-actions" style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.5rem' }}>
-                <button className="btn btn-secondary btn-xs flex-1" onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedAsset(asset);
-                }}>
+              <div className="asset-card-actions">
+                <button 
+                  type="button"
+                  className="btn btn-secondary btn-xs" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenImageModal(asset);
+                  }}
+                  title="ดูรูปภาพครุภัณฑ์ (โหลด On-demand)"
+                >
+                  <Camera size={12} /> รูปภาพ
+                </button>
+                <button 
+                  type="button"
+                  className="btn btn-secondary btn-xs flex-1" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedAsset(asset);
+                  }}
+                >
                   <Eye size={12} /> รายละเอียด
                 </button>
                 <button 
+                  type="button"
                   className="btn btn-primary btn-xs" 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1086,6 +1124,14 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                   </td>
                   <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                      <button 
+                        type="button"
+                        className="btn btn-secondary btn-xs" 
+                        onClick={() => handleOpenImageModal(asset)} 
+                        title="ดูรูปภาพครุภัณฑ์ (โหลด On-demand)"
+                      >
+                        <Camera size={12} />
+                      </button>
                       <button className="btn btn-secondary btn-xs" onClick={() => setSelectedAsset(asset)} title="ดูรายละเอียด">
                         <Eye size={12} />
                       </button>
@@ -1249,6 +1295,120 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         document.body
       )}
 
+      {/* On-demand Photo Preview Lightbox Modal */}
+      {viewingImageAsset && createPortal(
+        <div 
+          className="modal-backdrop" 
+          onClick={() => setViewingImageAsset(null)} 
+          style={{ zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div 
+            className="modal-card glass-panel animate-fade-in" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '640px', width: '92vw', padding: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    {viewingImageAsset.id}
+                  </span>
+                  <span className={`badge ${statusColors[viewingImageAsset.status] || 'badge-muted'}`} style={{ fontSize: '0.7rem' }}>
+                    {viewingImageAsset.status}
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  {viewingImageAsset.name}
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                  📍 {viewingImageAsset.location || '-'} &nbsp;•&nbsp; 🏢 {viewingImageAsset.department || '-'}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-xs" 
+                onClick={() => setViewingImageAsset(null)}
+                style={{ padding: '0.35rem', borderRadius: '50%' }}
+                title="ปิดหน้าต่าง"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            {isLoadingImage ? (
+              <div style={{ minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-muted)' }}>
+                <div style={{ width: '36px', height: '36px', border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: '0.875rem', fontWeight: 550 }}>กำลังโหลดรูปภาพครุภัณฑ์แบบ On-demand จากคลาวด์...</span>
+              </div>
+            ) : loadedImage ? (
+              <div>
+                <div style={{ 
+                  borderRadius: '10px', 
+                  overflow: 'hidden', 
+                  border: '1px solid var(--border)', 
+                  backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                  maxHeight: '60vh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <img 
+                    src={loadedImage} 
+                    alt={viewingImageAsset.name} 
+                    style={{ width: '100%', height: 'auto', maxHeight: '58vh', objectFit: 'contain' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    {imageSource === 'survey' ? '📷 รูปถ่ายจากการตรวจนับสภาพจริงล่าสุด' : '📦 รูปภาพประจำรายการครุภัณฑ์'}
+                  </span>
+                  <a 
+                    href={loadedImage} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="btn btn-secondary btn-xs"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <ExternalLink size={13} /> เปิดภาพขนาดเต็ม
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div style={{ minHeight: '240px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem', padding: '1.5rem', textAlign: 'center' }}>
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                  <CameraOff size={32} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.25rem 0' }}>
+                    ยังไม่มีการแนบรูปภาพสำหรับครุภัณฑ์นี้
+                  </h4>
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', maxWidth: '380px', margin: 0, lineHeight: 1.45 }}>
+                    ครุภัณฑ์นี้ยังไม่มีภาพถ่ายสภาพจริงในระบบ ท่านสามารถถ่ายภาพได้โดยการสแกนตรวจนับ (โมดูล 2) หรือกดแก้ไขครุภัณฑ์
+                  </p>
+                </div>
+                {isAllowedToEdit(viewingImageAsset) && (
+                  <button 
+                    type="button" 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      const targetAsset = viewingImageAsset;
+                      setViewingImageAsset(null);
+                      onAssetEdit(targetAsset);
+                    }}
+                    style={{ marginTop: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Edit3 size={14} /> แก้ไขเพื่อเพิ่มรูปภาพ
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
       <style>{`
         .module-title-section {
           margin-bottom: 1.5rem;
@@ -1343,126 +1503,48 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         .asset-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-          gap: 1.25rem;
+          gap: 1.15rem;
         }
 
         .asset-card {
-          overflow: hidden;
+          border-radius: var(--radius-md, 10px);
           cursor: pointer;
           display: flex;
           flex-direction: column;
+          padding: 1.15rem;
           height: 100%;
-        }
-
-        .asset-card-image-box {
-          width: 100%;
-          aspect-ratio: 16/10;
-          overflow: hidden;
+          min-height: 185px;
+          transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+          border: 1px solid var(--border);
           position: relative;
-          background-color: var(--bg-tertiary);
-          border-bottom: 1px solid var(--border);
         }
 
-        .asset-card-image-box img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          transition: transform var(--transition-slow);
+        .asset-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+          border-color: var(--primary);
         }
 
-        .asset-card:hover .asset-card-image-box img {
-          transform: scale(1.05);
-        }
-
-        .asset-status-badge {
-          position: absolute;
-          top: 0.65rem;
-          right: 0.65rem;
-          display: inline-flex;
+        .asset-card-header {
+          display: flex;
+          justify-content: space-between;
           align-items: center;
-          gap: 0.35rem;
-          padding: 0.25rem 0.65rem;
+          gap: 0.5rem;
+          margin-bottom: 0.45rem;
+        }
+
+        .asset-card-id {
           font-size: 0.75rem;
-          font-weight: 750;
-          border-radius: 9999px;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
-          letter-spacing: 0.02em;
-          z-index: 2;
-          transition: transform 0.15s ease;
-        }
-
-        .asset-card:hover .asset-status-badge {
-          transform: translateY(-1px) scale(1.03);
-        }
-
-        .asset-status-badge .status-dot {
-          width: 6.5px;
-          height: 6.5px;
-          border-radius: 50%;
-          background: #ffffff;
-          display: inline-block;
-          box-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
-          flex-shrink: 0;
-        }
-
-        /* High-Contrast Solid Badges over Image Cards */
-        .asset-status-badge.badge-success {
-          background: #15803d !important;
-          color: #ffffff !important;
-          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-        }
-
-        .asset-status-badge.badge-danger {
-          background: #dc2626 !important;
-          color: #ffffff !important;
-          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-        }
-
-        .asset-status-badge.badge-warning {
-          background: #d97706 !important;
-          color: #ffffff !important;
-          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-        }
-
-        .asset-status-badge.badge-info {
-          background: #0284c7 !important;
-          color: #ffffff !important;
-          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-        }
-
-        .asset-status-badge.badge-primary {
-          background: #4f46e5 !important;
-          color: #ffffff !important;
-          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-        }
-
-        .asset-status-badge.badge-muted {
-          background: #475569 !important;
-          color: #ffffff !important;
-          border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+          font-family: monospace;
+          color: var(--text-muted);
+          font-weight: 600;
         }
 
         .asset-card-body {
-          padding: 1rem;
           display: flex;
           flex-direction: column;
           gap: 0.35rem;
           flex: 1;
-        }
-
-        .asset-card-id {
-          font-size: 0.725rem;
-          font-family: monospace;
-          color: var(--text-muted);
-          font-weight: 550;
         }
 
         .asset-card-title {
@@ -1474,24 +1556,26 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
-          min-height: 2.7rem;
+          min-height: 2.6rem;
         }
 
         .asset-card-meta {
           display: flex;
           flex-direction: column;
-          gap: 0.15rem;
+          gap: 0.2rem;
           font-size: 0.775rem;
           color: var(--text-secondary);
           margin-top: auto;
+          padding-top: 0.35rem;
         }
 
         .asset-card-actions {
-          padding: 0.75rem 1rem;
+          padding-top: 0.75rem;
+          margin-top: 0.75rem;
           border-top: 1px solid var(--border);
           display: flex;
-          justify-content: space-between;
-          background-color: rgba(0, 0, 0, 0.01);
+          align-items: center;
+          gap: 0.35rem;
         }
 
         .empty-results {

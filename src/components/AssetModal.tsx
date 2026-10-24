@@ -27,6 +27,8 @@ import {
   RefreshCw,
   ZoomIn,
   Eye,
+  Camera,
+  CameraOff,
   Barcode
 } from 'lucide-react';
 import { 
@@ -766,8 +768,8 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     return withImg[0]?.imageUrl;
   }, [assetSurveys]);
 
-  // Priority: 1. Latest physical survey photo -> 2. Registered asset photo -> 3. Fallback
-  const displayImageUrl = latestSurveyPhoto || (!isDefaultPlaceholder(asset.imageUrl) ? asset.imageUrl : undefined) || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+  // Priority: 1. Latest physical survey photo -> 2. Registered asset photo -> null (no fallback fake image)
+  const realImageUrl = latestSurveyPhoto || (!isDefaultPlaceholder(asset.imageUrl) ? asset.imageUrl : null);
   const isImageFromSurvey = Boolean(latestSurveyPhoto);
 
   useEffect(() => {
@@ -877,98 +879,119 @@ export const AssetModal: React.FC<AssetModalProps> = ({
             <div className="tab-info-layout">
               {/* Asset Picture & QR Label Card */}
               <div className="info-visuals-panel">
-                <div className="info-image-container" style={{ position: 'relative' }}>
-                  <img 
-                    src={displayImageUrl} 
-                    alt={asset.name} 
-                    className="info-asset-img"
-                    onError={(e) => {
-                      const target = e.currentTarget as HTMLImageElement;
-                      target.onerror = null;
-                      target.src = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+                {realImageUrl ? (
+                  <div className="info-image-container" style={{ position: 'relative' }}>
+                    <img 
+                      src={realImageUrl} 
+                      alt={asset.name} 
+                      className="info-asset-img"
+                    />
+                    {isImageFromSurvey && (
+                      <span 
+                        style={{
+                          position: 'absolute',
+                          bottom: '8px',
+                          left: '8px',
+                          background: 'rgba(16, 185, 129, 0.92)',
+                          color: '#ffffff',
+                          borderRadius: '6px',
+                          padding: '0.2rem 0.5rem',
+                          fontSize: '0.675rem',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          backdropFilter: 'blur(4px)',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                          zIndex: 4
+                        }}
+                        title="ภาพถ่ายจริงจากการตรวจนับสภาพล่าสุด"
+                      >
+                        📷 ภาพจากการตรวจนับล่าสุด
+                      </span>
+                    )}
+                    {asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl) && isAllowedToDeleteImage(asset) && (
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-xs"
+                        onClick={handleDeleteAssetImage}
+                        disabled={isDeletingImage}
+                        title="ลบรูปภาพครุภัณฑ์นี้ออกจากระบบ"
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          background: 'rgba(239, 68, 68, 0.92)',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '0.3rem 0.6rem',
+                          fontSize: '0.725rem',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                          backdropFilter: 'blur(4px)',
+                          cursor: 'pointer',
+                          zIndex: 5
+                        }}
+                      >
+                        <Trash2 size={12} /> {isDeletingImage ? 'กำลังลบ...' : 'ลบรูปภาพ'}
+                      </button>
+                    )}
+                    {asset.imageUrl && !isAllowedToDeleteImage(asset) && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          background: 'rgba(15, 23, 42, 0.75)',
+                          color: '#e2e8f0',
+                          borderRadius: '6px',
+                          padding: '0.25rem 0.5rem',
+                          fontSize: '0.675rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          backdropFilter: 'blur(4px)',
+                          zIndex: 5
+                        }}
+                        title={
+                          currentUser?.role === 'head' 
+                            ? `หัวหน้าฝ่ายลบได้เฉพาะรูปของฝ่าย ${currentUser.department}` 
+                            : `ผู้ใช้งานลบได้เฉพาะรูปที่ตนเองสร้าง/อัปโหลด (${asset.createdBy || 'ผู้ดูแลระบบ'})`
+                        }
+                      >
+                        🔒 รูปภาพครุภัณฑ์
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div 
+                    className="info-image-container info-image-placeholder"
+                    style={{
+                      minHeight: '180px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(241, 245, 249, 0.6)',
+                      border: '2px dashed var(--border-color, #cbd5e1)',
+                      borderRadius: '8px',
+                      color: 'var(--text-muted, #94a3b8)',
+                      padding: '1.5rem',
+                      textAlign: 'center',
+                      gap: '0.5rem'
                     }}
-                  />
-                  {isImageFromSurvey && (
-                    <span 
-                      style={{
-                        position: 'absolute',
-                        bottom: '8px',
-                        left: '8px',
-                        background: 'rgba(16, 185, 129, 0.92)',
-                        color: '#ffffff',
-                        borderRadius: '6px',
-                        padding: '0.2rem 0.5rem',
-                        fontSize: '0.675rem',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        backdropFilter: 'blur(4px)',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-                        zIndex: 4
-                      }}
-                      title="ภาพถ่ายจริงจากการตรวจนับสภาพล่าสุด"
-                    >
-                      📷 ภาพจากการตรวจนับล่าสุด
+                  >
+                    <CameraOff size={36} style={{ opacity: 0.5 }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>ยังไม่มีรูปภาพสำหรับครุภัณฑ์นี้</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>
+                      สามารถเพิ่มรูปภาพได้โดยกดแท็บแก้ไข หรือทำการบันทึกตรวจนับพร้อมแนบรูป
                     </span>
-                  )}
-                  {asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl) && isAllowedToDeleteImage(asset) && (
-                    <button
-                      type="button"
-                      className="btn btn-danger btn-xs"
-                      onClick={handleDeleteAssetImage}
-                      disabled={isDeletingImage}
-                      title="ลบรูปภาพครุภัณฑ์นี้ออกจากระบบ"
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        background: 'rgba(239, 68, 68, 0.92)',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '0.3rem 0.6rem',
-                        fontSize: '0.725rem',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.3rem',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
-                        backdropFilter: 'blur(4px)',
-                        cursor: 'pointer',
-                        zIndex: 5
-                      }}
-                    >
-                      <Trash2 size={12} /> {isDeletingImage ? 'กำลังลบ...' : 'ลบรูปภาพ'}
-                    </button>
-                  )}
-                  {asset.imageUrl && !isAllowedToDeleteImage(asset) && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        background: 'rgba(15, 23, 42, 0.75)',
-                        color: '#e2e8f0',
-                        borderRadius: '6px',
-                        padding: '0.25rem 0.5rem',
-                        fontSize: '0.675rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        backdropFilter: 'blur(4px)',
-                        zIndex: 5
-                      }}
-                      title={
-                        currentUser?.role === 'head' 
-                          ? `หัวหน้าฝ่ายลบได้เฉพาะรูปของฝ่าย ${currentUser.department}` 
-                          : `ผู้ใช้งานลบได้เฉพาะรูปที่ตนเองสร้าง/อัปโหลด (${asset.createdBy || 'ผู้ดูแลระบบ'})`
-                      }
-                    >
-                      🔒 รูปภาพครุภัณฑ์
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
                 
                 {/* Area for saving misc info / notes */}
                 <div style={{ marginTop: '0.85rem', width: '100%', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>

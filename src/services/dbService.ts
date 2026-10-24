@@ -760,6 +760,93 @@ export const getAsset = async (id: string): Promise<Asset | null> => {
   return assets.find(a => a.id === id) || null;
 };
 
+/**
+ * On-demand Image Fetcher:
+ * Checks local cache (LocalStorage) first for 0 cloud reads.
+ * If not present or only placeholder, queries Firestore specifically for this asset's photo (1 Read).
+ * Caches the result in LocalStorage to eliminate repeated reads.
+ */
+export const fetchAssetImageOnDemand = async (
+  assetId: string
+): Promise<{ imageUrl: string | null; source: 'survey' | 'asset' | null }> => {
+  if (!assetId) return { imageUrl: null, source: null };
+
+  // 1. Check LocalStorage first (0 Reads)
+  try {
+    const localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
+    const matchingSurveys = localSurveys
+      .filter(s => s.assetId === assetId && s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    if (matchingSurveys.length > 0 && matchingSurveys[0].imageUrl) {
+      return { imageUrl: matchingSurveys[0].imageUrl, source: 'survey' };
+    }
+
+    const localAssets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+    const localAsset = localAssets.find(a => a.id === assetId);
+    if (localAsset && localAsset.imageUrl && !isDefaultPlaceholder(localAsset.imageUrl)) {
+      return { imageUrl: localAsset.imageUrl, source: 'asset' };
+    }
+  } catch (err) {
+    console.warn('LocalStorage check error in fetchAssetImageOnDemand:', err);
+  }
+
+  // 2. Query Firestore On-Demand (1 Read)
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      // First check latest survey for this asset
+      const surveyQ = query(
+        collection(db, 'surveys'),
+        where('assetId', '==', assetId),
+        limit(3)
+      );
+      const surveySnap = await getDocs(surveyQ);
+      let foundSurveyImg: string | null = null;
+      surveySnap.forEach((docSnap) => {
+        const data = docSnap.data() as SurveyRecord;
+        if (data.imageUrl && !isDefaultPlaceholder(data.imageUrl) && !foundSurveyImg) {
+          foundSurveyImg = data.imageUrl;
+        }
+      });
+
+      if (foundSurveyImg) {
+        // Cache to local surveys so future requests cost 0 reads
+        try {
+          const localSurveys: SurveyRecord[] = JSON.parse(localStorage.getItem('assetwatch_surveys') || '[]');
+          const idx = localSurveys.findIndex(s => s.assetId === assetId);
+          if (idx !== -1) {
+            localSurveys[idx].imageUrl = foundSurveyImg;
+            safeSetItem('assetwatch_surveys', JSON.stringify(localSurveys));
+          }
+        } catch {}
+        return { imageUrl: foundSurveyImg, source: 'survey' };
+      }
+
+      // If no survey photo, check individual asset document
+      const assetDocSnap = await getDoc(doc(db, 'assets', assetId));
+      if (assetDocSnap.exists()) {
+        const data = assetDocSnap.data() as Asset;
+        if (data.imageUrl && !isDefaultPlaceholder(data.imageUrl)) {
+          // Cache to local assets so future requests cost 0 reads
+          try {
+            const localAssets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+            const idx = localAssets.findIndex(a => a.id === assetId);
+            if (idx !== -1) {
+              localAssets[idx].imageUrl = data.imageUrl;
+              safeSetItem('assetwatch_assets', JSON.stringify(localAssets));
+            }
+          } catch {}
+          return { imageUrl: data.imageUrl, source: 'asset' };
+        }
+      }
+    } catch (e) {
+      console.warn('On-demand image fetch from Firestore failed:', e);
+    }
+  }
+
+  return { imageUrl: null, source: null };
+};
+
 export const addAsset = async (asset: Asset): Promise<void> => {
   // 1. LocalStorage update
   initLocalStorageIfNeeded();
