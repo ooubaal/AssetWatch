@@ -725,11 +725,17 @@ function App() {
     const nextSurveys = [surveyWithId, ...surveys.filter(s => s.id !== surveyWithId.id)];
     setSurveys(nextSurveys);
 
-    // If a photo was attached, optimistically update the asset's image immediately
-    if (survey.imageUrl && survey.imageUrl.trim() && !isDefaultPlaceholder(survey.imageUrl)) {
-      const newImg = survey.imageUrl;
-      setAssets(prev => prev.map(a => a.id === survey.assetId ? { ...a, imageUrl: newImg } : a));
-    }
+    // Optimistically update the asset's status and image immediately
+    setAssets(prev => prev.map(a => {
+      if (a.id === survey.assetId) {
+        return {
+          ...a,
+          status: (survey.status as Asset['status']) || a.status,
+          imageUrl: (survey.imageUrl && survey.imageUrl.trim() && !isDefaultPlaceholder(survey.imageUrl)) ? survey.imageUrl : a.imageUrl
+        };
+      }
+      return a;
+    }));
 
     // 2. Dynamically calculate and update active round stats in DB and in local state (0 cloud reads)
     if (activeRound) {

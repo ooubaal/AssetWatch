@@ -193,11 +193,14 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     const ready = scopedAssetsPool.filter(a => a.status === 'ใช้งานได้').length;
     const broken = scopedAssetsPool.filter(a => a.status === 'ชำรุด').length;
     const dispose = scopedAssetsPool.filter(a => a.status === 'รอจำหน่าย').length;
+    const relabel = scopedAssetsPool.filter(a => a.status === 'ขอป้ายรหัสใหม่').length;
+    const transfer = scopedAssetsPool.filter(a => a.status === 'รอโอน').length;
+    const other = scopedAssetsPool.filter(a => a.status === 'อื่นๆ').length;
     const surveyed = scopedAssetsPool.filter(a => surveyedAssetIds.has(a.id) || Boolean(a.note && a.note.includes('สำรวจ'))).length;
     const inRepair = scopedAssetsPool.filter(a => activeRepairAssetIds.has(a.id) || a.status === 'ชำรุด').length;
     const surveyPct = total > 0 ? Math.round((surveyed / total) * 100) : 0;
 
-    return { total, ready, broken, dispose, surveyed, inRepair, surveyPct };
+    return { total, ready, broken, dispose, relabel, transfer, other, surveyed, inRepair, surveyPct };
   }, [scopedAssetsPool, surveyedAssetIds, activeRepairAssetIds]);
 
   // Filter computation (safely guarded against null/undefined)
@@ -595,6 +598,81 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         >
           🟡 รอจำหน่าย: <span>{analyticsStats.dispose}</span>
         </button>
+
+        {/* Relabel Chip */}
+        {analyticsStats.relabel > 0 && (
+          <button
+            type="button"
+            className={`analytics-chip ${statusFilter === 'ขอป้ายรหัสใหม่' ? 'active' : ''}`}
+            onClick={() => setStatusFilter(prev => prev === 'ขอป้ายรหัสใหม่' ? '' : 'ขอป้ายรหัสใหม่')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.3rem 0.65rem',
+              borderRadius: '20px',
+              fontSize: '0.775rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: '1px solid rgba(6, 182, 212, 0.4)',
+              background: statusFilter === 'ขอป้ายรหัสใหม่' ? '#06b6d4' : 'rgba(6, 182, 212, 0.12)',
+              color: statusFilter === 'ขอป้ายรหัสใหม่' ? '#fff' : '#06b6d4',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            🏷️ ขอป้ายรหัสใหม่: <span>{analyticsStats.relabel}</span>
+          </button>
+        )}
+
+        {/* Transfer Chip */}
+        {analyticsStats.transfer > 0 && (
+          <button
+            type="button"
+            className={`analytics-chip ${statusFilter === 'รอโอน' ? 'active' : ''}`}
+            onClick={() => setStatusFilter(prev => prev === 'รอโอน' ? '' : 'รอโอน')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.3rem 0.65rem',
+              borderRadius: '20px',
+              fontSize: '0.775rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: '1px solid rgba(99, 102, 241, 0.4)',
+              background: statusFilter === 'รอโอน' ? '#6366f1' : 'rgba(99, 102, 241, 0.12)',
+              color: statusFilter === 'รอโอน' ? '#fff' : '#6366f1',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            🔄 รอโอน: <span>{analyticsStats.transfer}</span>
+          </button>
+        )}
+
+        {/* Other Status Chip */}
+        {analyticsStats.other > 0 && (
+          <button
+            type="button"
+            className={`analytics-chip ${statusFilter === 'อื่นๆ' ? 'active' : ''}`}
+            onClick={() => setStatusFilter(prev => prev === 'อื่นๆ' ? '' : 'อื่นๆ')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.3rem 0.65rem',
+              borderRadius: '20px',
+              fontSize: '0.775rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: '1px solid rgba(148, 163, 184, 0.4)',
+              background: statusFilter === 'อื่นๆ' ? '#64748b' : 'rgba(148, 163, 184, 0.12)',
+              color: statusFilter === 'อื่นๆ' ? '#fff' : '#94a3b8',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            ⚪ อื่นๆ: <span>{analyticsStats.other}</span>
+          </button>
+        )}
 
         {/* Surveyed Chip */}
         <button

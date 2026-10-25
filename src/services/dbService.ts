@@ -816,9 +816,9 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
 };
 
 /**
- * Automatically sync all assets that have surveys with attached photos:
- * If an asset has no real photo or only has a default placeholder image,
- * update its imageUrl to the latest survey photo in both memory, localStorage, and Firestore.
+ * Automatically sync all assets that have surveys with their latest physical survey results:
+ * Updates asset imageUrl (if photo was attached in survey) and asset status (physical condition).
+ * Ensures Module 1 (Asset Registry) stays 100% in sync with Module 2 (Active Survey Breakdown).
  */
 export const syncAssetsWithSurveyPhotos = async (
   assetsList: Asset[], 
@@ -828,47 +828,81 @@ export const syncAssetsWithSurveyPhotos = async (
     return { syncedAssets: assetsList, updatedCount: 0 };
   }
 
-  // 1. Map each asset to its latest survey photo
-  const latestPhotoMap = new Map<string, string>();
+  // 1. Map each asset to its latest survey record (sorted by timestamp ascending, so latest wins)
+  const latestSurveyMap = new Map<string, SurveyRecord>();
   const sortedSurveys = [...surveysList].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   for (const s of sortedSurveys) {
-    if (s.assetId && s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl)) {
-      latestPhotoMap.set(s.assetId, s.imageUrl);
+    if (s.assetId) {
+      latestSurveyMap.set(s.assetId, s);
     }
   }
 
-  if (latestPhotoMap.size === 0) {
+  if (latestSurveyMap.size === 0) {
     return { syncedAssets: assetsList, updatedCount: 0 };
   }
 
-  // 2. Identify assets needing photo update
-  const toUpdate: Asset[] = [];
+  const validStatuses: Set<string> = new Set(['ใช้งานได้', 'ชำรุด', 'รอจำหน่าย', 'ขอป้ายรหัสใหม่', 'รอโอน', 'อื่นๆ']);
+
+  // 2. Identify assets needing photo or status update
+  let updatedCount = 0;
   const syncedAssets = assetsList.map(asset => {
-    const surveyPhoto = latestPhotoMap.get(asset.id);
-    if (surveyPhoto && isDefaultPlaceholder(asset.imageUrl)) {
-      const updatedAsset = { ...asset, imageUrl: surveyPhoto };
-      toUpdate.push(updatedAsset);
-      return updatedAsset;
+    const latestSurvey = latestSurveyMap.get(asset.id);
+    if (!latestSurvey) return asset;
+
+    let changed = false;
+    let nextImageUrl = asset.imageUrl;
+    let nextStatus = asset.status;
+
+    // A. Sync photo if survey has photo and asset currently has placeholder or empty
+    if (latestSurvey.imageUrl && latestSurvey.imageUrl.trim() && !isDefaultPlaceholder(latestSurvey.imageUrl)) {
+      if (isDefaultPlaceholder(asset.imageUrl) || !asset.imageUrl) {
+        nextImageUrl = latestSurvey.imageUrl;
+        changed = true;
+      }
+    }
+
+    // B. Sync real-time physical condition / status from latest survey
+    if (latestSurvey.status && validStatuses.has(latestSurvey.status) && latestSurvey.status !== asset.status) {
+      nextStatus = latestSurvey.status as Asset['status'];
+      changed = true;
+    }
+
+    if (changed) {
+      updatedCount++;
+      return {
+        ...asset,
+        imageUrl: nextImageUrl,
+        status: nextStatus,
+        hasImage: asset.hasImage || Boolean(nextImageUrl)
+      };
     }
     return asset;
   });
 
-  if (toUpdate.length === 0) {
+  if (updatedCount === 0) {
     return { syncedAssets: assetsList, updatedCount: 0 };
   }
 
-  console.log(`Auto-syncing ${toUpdate.length} asset photos from survey records...`);
+  console.log(`[Sync Engine] Auto-synced ${updatedCount} assets with latest survey conditions and photos...`);
 
   // 3. Update localStorage
   try {
     safeSetItem('assetwatch_assets', JSON.stringify(syncedAssets));
   } catch (err) {
-    console.warn('Failed to update localStorage with synced photos:', err);
+    console.warn('Failed to update localStorage with synced survey data:', err);
   }
 
-  // Note: Individual asset image is already persisted to Firestore upon survey submission (addSurvey).
-  // Omitting bulk Firestore write loop here saves hundreds of unnecessary Cloud Writes.
-  return { syncedAssets, updatedCount: toUpdate.length };
+  // 4. Save synced manifest doc to Firestore (1 write)
+  const { isFirebase, db } = getServices();
+  if (isFirebase && db) {
+    try {
+      await saveAssetsManifestDoc(db, syncedAssets);
+    } catch (e) {
+      console.warn('Failed to save updated assets manifest after survey sync:', e);
+    }
+  }
+
+  return { syncedAssets, updatedCount };
 };
 
 export const getAsset = async (id: string): Promise<Asset | null> => {
@@ -1409,13 +1443,20 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
     }
   }
 
-  // 3. If survey has an attached photo, automatically sync it as the asset's current photo
-  if (survey.imageUrl && survey.imageUrl.trim() && !isDefaultPlaceholder(survey.imageUrl)) {
-    try {
-      await updateAsset(survey.assetId, { imageUrl: survey.imageUrl });
-    } catch (imgErr) {
-      console.warn('Failed to auto-update asset image from survey:', imgErr);
+  // 3. Auto-sync asset status & photo from survey
+  try {
+    const assetUpdates: Partial<Asset> = {};
+    if (survey.status && ['ใช้งานได้', 'ชำรุด', 'รอจำหน่าย', 'ขอป้ายรหัสใหม่', 'รอโอน', 'อื่นๆ'].includes(survey.status)) {
+      assetUpdates.status = survey.status as Asset['status'];
     }
+    if (survey.imageUrl && survey.imageUrl.trim() && !isDefaultPlaceholder(survey.imageUrl)) {
+      assetUpdates.imageUrl = survey.imageUrl;
+    }
+    if (Object.keys(assetUpdates).length > 0) {
+      await updateAsset(survey.assetId, assetUpdates);
+    }
+  } catch (syncErr) {
+    console.warn('Failed to auto-update asset status/image from survey:', syncErr);
   }
 };
 
