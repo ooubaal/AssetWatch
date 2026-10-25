@@ -1158,45 +1158,26 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 <div className="brief-details" style={{ width: '100%' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
                     <span className="brief-id">{scannedAsset.id}</span>
-                    {hasExistingImage ? (
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-xs"
-                        onClick={() => handleOpenAssetImageModal(scannedAsset)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                          fontWeight: 650,
-                          padding: '0.3rem 0.65rem',
-                          borderRadius: 'var(--radius-sm)',
-                          color: 'var(--primary)',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border)',
-                          cursor: 'pointer'
-                        }}
-                        title="คลิกเพื่อดูรูปภาพของครุภัณฑ์นี้"
-                      >
-                        <Camera size={14} /> ดูรูปภาพครุภัณฑ์
-                      </button>
-                    ) : (
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          background: 'var(--bg-secondary)',
-                          border: '1px dashed var(--border)',
-                          padding: '0.25rem 0.6rem',
-                          borderRadius: 'var(--radius-sm)',
-                          fontWeight: 500
-                        }}
-                      >
-                        <ImageOff size={13} /> ยังไม่มีรูปภาพครุภัณฑ์
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-xs"
+                      onClick={() => handleOpenAssetImageModal(scannedAsset)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        fontWeight: 650,
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--primary)',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border)',
+                        cursor: 'pointer'
+                      }}
+                      title="คลิกเพื่อดูรูปภาพของครุภัณฑ์นี้ (โหลด On-demand)"
+                    >
+                      <Camera size={14} /> ดูรูปภาพครุภัณฑ์
+                    </button>
                   </div>
                   <h3 style={{ margin: '0.15rem 0 0.4rem 0', fontSize: '1.1rem', fontWeight: 750, color: 'var(--text-primary)', lineHeight: 1.35 }}>
                     {scannedAsset.name}

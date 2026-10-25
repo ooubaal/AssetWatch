@@ -11,6 +11,7 @@ export interface Asset {
   responsiblePerson: string;
   note: string;
   status: 'ใช้งานได้' | 'รอจำหน่าย' | 'ชำรุด' | 'ขอป้ายรหัสใหม่' | 'รอโอน' | 'อื่นๆ';
+  hasImage?: boolean;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
@@ -35,6 +36,7 @@ export interface SurveyRecord {
   roundId: string; // Link to active survey round
   status: string;
   imageUrl?: string;
+  hasImage?: boolean;
   operator: string;
   timestamp: string;
 }

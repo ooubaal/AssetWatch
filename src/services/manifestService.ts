@@ -261,6 +261,7 @@ export const mergeAssetsWithLocalCache = (
         responsiblePerson: item.responsiblePerson || '',
         note: item.note || '',
         imageUrl: finalImageUrl,
+        hasImage: item.hasImage || Boolean(finalImageUrl) || Boolean(local?.hasImage),
         createdAt: item.createdAt || '',
         updatedAt: item.updatedAt || ''
       };
@@ -297,7 +298,8 @@ export const mergeSurveysWithLocalCache = (manifestItems: SurveyManifestItem[], 
       status: item.status,
       operator: item.operator,
       timestamp: item.timestamp,
-      imageUrl: finalImageUrl || undefined
+      imageUrl: finalImageUrl || undefined,
+      hasImage: item.hasImage || Boolean(finalImageUrl) || Boolean(local?.hasImage)
     };
   });
 

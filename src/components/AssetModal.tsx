@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import JsBarcode from 'jsbarcode';
 import { 
   X, 
@@ -30,7 +31,8 @@ import {
   Camera,
   CameraOff,
   ImageOff,
-  Barcode
+  Barcode,
+  ExternalLink
 } from 'lucide-react';
 import { 
   Asset, 
@@ -195,7 +197,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
       });
 
       asset.imageUrl = '';
-      setLoadedAssetImage(null);
+      setLoadedImage(null);
       alert('ลบรูปภาพครุภัณฑ์เรียบร้อยแล้ว');
       if (onRefreshData) {
         onRefreshData();
@@ -782,32 +784,52 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     return false;
   }, [realImageUrl, asset, assetSurveys]);
 
-  const [loadedAssetImage, setLoadedAssetImage] = useState<string | null>(null);
-  const [isLoadingAssetImage, setIsLoadingAssetImage] = useState(false);
-  const [, setAssetImageSource] = useState<'survey' | 'asset' | null>(null);
+  const [viewingImageAsset, setViewingImageAsset] = useState<Asset | null>(null);
+  const [loadedImage, setLoadedImage] = useState<string | null>(null);
+  const [imageSource, setImageSource] = useState<'survey' | 'asset' | null>(null);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
 
-  const handleViewAssetImage = async () => {
-    const existing = loadedAssetImage || realImageUrl;
-    if (existing) {
-      handleOpenPartLightbox(existing, `รูปภาพครุภัณฑ์: ${asset.id} - ${asset.name}`);
-      return;
-    }
+  const handleOpenAssetImageModal = async (targetAsset: Asset) => {
+    setViewingImageAsset(targetAsset);
+    setIsLoadingImage(true);
+    setLoadedImage(null);
+    setImageSource(null);
 
-    setIsLoadingAssetImage(true);
     try {
-      const res = await fetchAssetImageOnDemand(asset.id);
+      // 1. Check local survey photo first
+      const withPhoto = assetSurveys
+        .filter(s => s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl))
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      if (withPhoto.length > 0 && withPhoto[0].imageUrl) {
+        setLoadedImage(withPhoto[0].imageUrl);
+        setImageSource('survey');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      // 2. Check local asset image
+      if (targetAsset.imageUrl && !isDefaultPlaceholder(targetAsset.imageUrl)) {
+        setLoadedImage(targetAsset.imageUrl);
+        setImageSource('asset');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      // 3. On-demand fetch from Firebase Firestore (1 read)
+      const res = await fetchAssetImageOnDemand(targetAsset.id);
       if (res && res.imageUrl) {
-        setLoadedAssetImage(res.imageUrl);
-        setAssetImageSource(res.source);
-        handleOpenPartLightbox(res.imageUrl, `รูปภาพครุภัณฑ์: ${asset.id} - ${asset.name}`);
+        setLoadedImage(res.imageUrl);
+        setImageSource(res.source);
       } else {
-        alert('ไม่พบไฟล์รูปภาพของครุภัณฑ์นี้ในฐานข้อมูล');
+        setLoadedImage(null);
+        setImageSource(null);
       }
     } catch (err) {
-      console.error('Failed to load asset image:', err);
-      alert('เกิดข้อผิดพลาดในการโหลดรูปภาพ');
+      console.warn('Failed to load asset image on demand:', err);
+      setLoadedImage(null);
     } finally {
-      setIsLoadingAssetImage(false);
+      setIsLoadingImage(false);
     }
   };
 
@@ -918,115 +940,87 @@ export const AssetModal: React.FC<AssetModalProps> = ({
             <div className="tab-info-layout">
               {/* Asset Picture & QR Label Card */}
               <div className="info-visuals-panel">
-                {hasExistingImage ? (
-                  <div 
-                    className="info-image-card"
-                    style={{
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '0.75rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.5rem',
-                      width: '100%',
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                        📷 รูปภาพครุภัณฑ์
+                <div 
+                  className="info-image-card"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.75rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      📷 รูปภาพครุภัณฑ์
+                    </span>
+                    {isImageFromSurvey && (
+                      <span 
+                        style={{
+                          fontSize: '0.675rem',
+                          color: '#10b981',
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          padding: '0.15rem 0.45rem',
+                          borderRadius: '4px',
+                          fontWeight: 600
+                        }}
+                      >
+                        ภาพจากการตรวจนับ
                       </span>
-                      {isImageFromSurvey && (
-                        <span 
-                          style={{
-                            fontSize: '0.675rem',
-                            color: '#10b981',
-                            background: 'rgba(16, 185, 129, 0.1)',
-                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                            padding: '0.15rem 0.45rem',
-                            borderRadius: '4px',
-                            fontWeight: 600
-                          }}
-                        >
-                          ภาพจากการตรวจนับ
-                        </span>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleOpenAssetImageModal(asset)}
+                      style={{
+                        flex: 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.4rem',
+                        fontWeight: 650,
+                        fontSize: '0.825rem',
+                        color: 'var(--primary)',
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '0.45rem 0.75rem',
+                        cursor: 'pointer'
+                      }}
+                      title="คลิกเพื่อดูรูปภาพของครุภัณฑ์นี้ (โหลด On-demand)"
+                    >
+                      <Camera size={15} /> ดูรูปภาพครุภัณฑ์
+                    </button>
+
+                    {asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl) && isAllowedToDeleteImage(asset) && (
                       <button
                         type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={handleViewAssetImage}
-                        disabled={isLoadingAssetImage}
+                        className="btn btn-danger btn-sm"
+                        onClick={handleDeleteAssetImage}
+                        disabled={isDeletingImage}
+                        title="ลบรูปภาพครุภัณฑ์นี้ออกจากระบบ"
                         style={{
-                          flex: 1,
                           display: 'inline-flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.4rem',
-                          fontWeight: 650,
-                          fontSize: '0.825rem',
-                          color: 'var(--primary)',
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '0.45rem 0.75rem',
-                          cursor: 'pointer'
+                          gap: '0.3rem',
+                          padding: '0.45rem 0.65rem',
+                          fontSize: '0.75rem',
+                          borderRadius: 'var(--radius-sm)'
                         }}
-                        title="คลิกเพื่อดูรูปภาพของครุภัณฑ์นี้"
                       >
-                        {isLoadingAssetImage ? (
-                          <>⏳ กำลังโหลดรูปภาพ...</>
-                        ) : (
-                          <>
-                            <Camera size={15} /> ดูรูปภาพครุภัณฑ์
-                          </>
-                        )}
+                        <Trash2 size={13} /> {isDeletingImage ? 'กำลังลบ...' : 'ลบรูปภาพ'}
                       </button>
-
-                      {asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl) && isAllowedToDeleteImage(asset) && (
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={handleDeleteAssetImage}
-                          disabled={isDeletingImage}
-                          title="ลบรูปภาพครุภัณฑ์นี้ออกจากระบบ"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                            padding: '0.45rem 0.65rem',
-                            fontSize: '0.75rem',
-                            borderRadius: 'var(--radius-sm)'
-                          }}
-                        >
-                          <Trash2 size={13} /> {isDeletingImage ? 'กำลังลบ...' : 'ลบรูปภาพ'}
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
-                ) : (
-                  <div 
-                    className="info-no-image-card"
-                    style={{
-                      background: 'var(--bg-secondary)',
-                      border: '1px dashed var(--border)',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '0.75rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      color: 'var(--text-muted)',
-                      width: '100%',
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    <ImageOff size={16} />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ยังไม่มีรูปภาพครุภัณฑ์</span>
-                  </div>
-                )}
+                </div>
                 
                 {/* Area for saving misc info / notes */}
                 <div style={{ marginTop: '0.85rem', width: '100%', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -2978,6 +2972,125 @@ export const AssetModal: React.FC<AssetModalProps> = ({
           }
         }
       `}</style>
+
+      {/* On-Demand High-Definition Asset Image Modal */}
+      {viewingImageAsset && createPortal(
+        <div 
+          className="modal-overlay" 
+          onClick={() => setViewingImageAsset(null)}
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(0, 0, 0, 0.75)', 
+            backdropFilter: 'blur(6px)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            zIndex: 10000, 
+            padding: '1rem' 
+          }}
+        >
+          <div 
+            className="modal-card glass-panel" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              maxWidth: '560px', 
+              width: '100%', 
+              backgroundColor: 'var(--bg-primary)', 
+              borderRadius: '16px', 
+              border: '1px solid var(--border)', 
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              padding: '1.25rem',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace' }}>
+                    {viewingImageAsset.id}
+                  </span>
+                  <span className={`badge ${statusColors[viewingImageAsset.status] || 'badge-muted'}`} style={{ fontSize: '0.7rem' }}>
+                    {viewingImageAsset.status}
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  {viewingImageAsset.name}
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                  📍 {viewingImageAsset.location || '-'} &nbsp;•&nbsp; 🏢 {viewingImageAsset.department || '-'}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-xs" 
+                onClick={() => setViewingImageAsset(null)}
+                style={{ padding: '0.35rem', borderRadius: '50%' }}
+                title="ปิดหน้าต่าง"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            {isLoadingImage ? (
+              <div style={{ minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-muted)' }}>
+                <div style={{ width: '36px', height: '36px', border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: '0.875rem', fontWeight: 550 }}>กำลังโหลดรูปภาพครุภัณฑ์แบบ On-demand จากคลาวด์...</span>
+              </div>
+            ) : loadedImage ? (
+              <div>
+                <div style={{ 
+                  borderRadius: '10px', 
+                  overflow: 'hidden', 
+                  border: '1px solid var(--border)', 
+                  backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                  maxHeight: '60vh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <img 
+                    src={loadedImage} 
+                    alt={viewingImageAsset.name} 
+                    style={{ width: '100%', height: 'auto', maxHeight: '58vh', objectFit: 'contain' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    {imageSource === 'survey' ? '📷 รูปถ่ายจากการตรวจนับสภาพจริงล่าสุด' : '📦 รูปภาพประจำรายการครุภัณฑ์'}
+                  </span>
+                  <a 
+                    href={loadedImage} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="btn btn-secondary btn-xs"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <ExternalLink size={13} /> เปิดภาพขนาดเต็ม
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div style={{ minHeight: '240px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem', padding: '1.5rem', textAlign: 'center' }}>
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                  <CameraOff size={32} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.25rem 0' }}>
+                    ยังไม่มีการแนบรูปภาพสำหรับครุภัณฑ์นี้
+                  </h4>
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', maxWidth: '380px', margin: 0, lineHeight: 1.45 }}>
+                    ครุภัณฑ์นี้ยังไม่มีภาพถ่ายสภาพจริงในระบบ ท่านสามารถถ่ายภาพได้โดยการสแกนตรวจนับ (โมดูล 2) หรือกดแก้ไขครุภัณฑ์
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
