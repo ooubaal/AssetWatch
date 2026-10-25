@@ -39,6 +39,7 @@ export interface SurveyRecord {
   hasImage?: boolean;
   operator: string;
   timestamp: string;
+  note?: string;
 }
 
 export interface DepartmentSignoff {

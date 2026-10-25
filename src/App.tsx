@@ -725,12 +725,13 @@ function App() {
     const nextSurveys = [surveyWithId, ...surveys.filter(s => s.id !== surveyWithId.id)];
     setSurveys(nextSurveys);
 
-    // Optimistically update the asset's status and image immediately
+    // Optimistically update the asset's status, note, and image immediately
     setAssets(prev => prev.map(a => {
       if (a.id === survey.assetId) {
         return {
           ...a,
           status: (survey.status as Asset['status']) || a.status,
+          ...(survey.note !== undefined ? { note: survey.note } : {}),
           imageUrl: (survey.imageUrl && survey.imageUrl.trim() && !isDefaultPlaceholder(survey.imageUrl)) ? survey.imageUrl : a.imageUrl
         };
       }

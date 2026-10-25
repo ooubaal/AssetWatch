@@ -33,12 +33,13 @@ import {
   ExternalLink,
   CameraOff,
   ImageOff,
-  X
+  X,
+  Save
 } from 'lucide-react';
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
-import { uploadImage, compressFileOrPdf, isDefaultPlaceholder, isFirestoreQuotaError, fetchAssetImageOnDemand } from '../services/dbService';
+import { uploadImage, compressFileOrPdf, isDefaultPlaceholder, isFirestoreQuotaError, fetchAssetImageOnDemand, cleanAssetNote } from '../services/dbService';
 import { InAppCameraModal } from '../components/InAppCameraModal';
 
 interface Module2ScanSurveyProps {
@@ -178,6 +179,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [selectedStatus, setSelectedStatus] = useState<Asset['status']>(() => initialDraft?.selectedStatus || 'ใช้งานได้');
   const [selectedLocation, setSelectedLocation] = useState<string>(() => initialDraft?.selectedLocation || '');
   const [customLocation, setCustomLocation] = useState<string>(() => initialDraft?.customLocation || '');
+  const [surveyNote, setSurveyNote] = useState<string>(() => initialDraft?.note || '');
+  const [isSavingQuickNote, setIsSavingQuickNote] = useState(false);
   const [attachImageFile, setAttachImageFile] = useState<File | null>(null);
   const [attachImagePreview, setAttachImagePreview] = useState<string | null>(null);
   
@@ -302,7 +305,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       list = list.filter((item: Asset) => 
         (item.name || '').toLowerCase().includes(q) || 
         (item.id || '').toLowerCase().includes(q) || 
-        (item.location && item.location.toLowerCase().includes(q))
+        (item.location && item.location.toLowerCase().includes(q)) ||
+        (item.note && item.note.toLowerCase().includes(q))
       );
     }
 
@@ -393,30 +397,34 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
     setIsNewScanNeeded(false);
     setScannedId(cleanedId);
-    saveSurveyDraft(cleanedId, found ? found.status : 'ใช้งานได้', found ? (found.location || '') : '', '');
+    const initialNote = found ? cleanAssetNote(found.note || '') : '';
+    saveSurveyDraft(cleanedId, found ? found.status : 'ใช้งานได้', found ? (found.location || '') : '', '', initialNote);
     
     if (found) {
       setScannedAsset(found);
       setSelectedStatus(found.status);
       setSelectedLocation(found.location || '');
       setCustomLocation('');
+      setSurveyNote(initialNote);
       setSurveySuccess(false);
     } else {
       setScannedAsset(null);
       setSelectedLocation('');
       setCustomLocation('');
+      setSurveyNote('');
       setSurveySuccess(false);
     }
   };
 
   // Helper to persist draft across mobile OS kills
-  const saveSurveyDraft = (id: string, status?: Asset['status'], loc?: string, custLoc?: string) => {
+  const saveSurveyDraft = (id: string, status?: Asset['status'], loc?: string, custLoc?: string, note?: string) => {
     try {
       localStorage.setItem(SURVEY_DRAFT_KEY, JSON.stringify({
         assetId: id,
         selectedStatus: status !== undefined ? status : selectedStatus,
         selectedLocation: loc !== undefined ? loc : selectedLocation,
         customLocation: custLoc !== undefined ? custLoc : customLocation,
+        note: note !== undefined ? note : surveyNote,
         savedAt: Date.now()
       }));
       sessionStorage.setItem('assetwatch_draft_survey_id', id);
@@ -434,9 +442,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   // Auto-sync survey draft changes to localStorage
   useEffect(() => {
     if (scannedId) {
-      saveSurveyDraft(scannedId, selectedStatus, selectedLocation, customLocation);
+      saveSurveyDraft(scannedId, selectedStatus, selectedLocation, customLocation, surveyNote);
     }
-  }, [scannedId, selectedStatus, selectedLocation, customLocation]);
+  }, [scannedId, selectedStatus, selectedLocation, customLocation, surveyNote]);
 
   // Sync scannedAsset if restored from draft on page reload
   useEffect(() => {
@@ -450,6 +458,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         if (!initialDraft?.selectedLocation) {
           setSelectedLocation(found.location || '');
         }
+        if (initialDraft?.note === undefined) {
+          setSurveyNote(cleanAssetNote(found.note || ''));
+        }
       }
     }
   }, [scannedId, scannedAsset, assets, initialDraft]);
@@ -457,12 +468,38 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const handleManualCountSelect = (asset: Asset) => {
     setIsNewScanNeeded(false);
     setScannedId(asset.id);
-    saveSurveyDraft(asset.id, asset.status, asset.location || '', '');
+    const initialNote = cleanAssetNote(asset.note || '');
+    saveSurveyDraft(asset.id, asset.status, asset.location || '', '', initialNote);
     setScannedAsset(asset);
     setSelectedStatus(asset.status);
     setSelectedLocation(asset.location || '');
     setCustomLocation('');
+    setSurveyNote(initialNote);
     setSurveySuccess(false);
+  };
+
+  const handleQuickSaveNoteOnly = async () => {
+    if (!scannedAsset) return;
+    const finalNote = cleanAssetNote(surveyNote.trim());
+    setIsSavingQuickNote(true);
+    try {
+      await onUpdateAssetStatus(scannedAsset.id, selectedStatus, { note: finalNote });
+      setScannedAsset(prev => prev ? { ...prev, note: finalNote } : null);
+      saveSurveyDraft(scannedAsset.id, selectedStatus, selectedLocation, customLocation, finalNote);
+      await onLogAudit({
+        assetId: scannedAsset.id,
+        assetName: scannedAsset.name,
+        action: 'edit',
+        operator: operator || 'ผู้ตรวจการทั่วไป',
+        details: `บันทึกข้อมูลโน้ต/ชื่อเล่นเครื่องมือ: "${finalNote || '-'}"`
+      });
+      alert('บันทึกโน้ต/ชื่อเล่นเรียบร้อยแล้ว');
+    } catch (err: any) {
+      console.error('Failed to quick save note:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึกโน้ต: ' + (err?.message || 'กรุณาลองใหม่อีกครั้ง'));
+    } finally {
+      setIsSavingQuickNote(false);
+    }
   };
 
   const surveyCameraInputRef = useRef<HTMLInputElement>(null);
@@ -530,8 +567,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         }
       }
 
-      // Determine final location
+      // Determine final location & note
       const finalLocation = selectedLocation === 'custom' ? customLocation.trim() : selectedLocation;
+      const finalNote = cleanAssetNote(surveyNote.trim());
 
       // 1. Add survey log record
       await onAddSurvey({
@@ -540,17 +578,21 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         imageUrl: uploadedUrl || undefined,
         operator: operator || 'ผู้ตรวจการทั่วไป',
         timestamp: new Date().toISOString(),
-        roundId: activeRound?.id || 'round-default'
+        roundId: activeRound?.id || 'round-default',
+        note: finalNote || undefined
       });
 
-      // 2. If status, location, OR new image is attached, update the asset in the main database
+      // 2. If status, location, note, OR new image is attached, update the asset in the main database
       const hasStatusChanged = scannedAsset && scannedAsset.status !== selectedStatus;
       const hasLocationChanged = scannedAsset && scannedAsset.location !== finalLocation;
+      const oldNote = scannedAsset ? cleanAssetNote(scannedAsset.note || '') : '';
+      const hasNoteChanged = scannedAsset && (oldNote !== finalNote);
       const hasNewImage = Boolean(uploadedUrl);
 
-      if (scannedAsset && (hasStatusChanged || hasLocationChanged || hasNewImage)) {
+      if (scannedAsset && (hasStatusChanged || hasLocationChanged || hasNoteChanged || hasNewImage)) {
         const assetUpdates: Partial<Asset> = {
           location: finalLocation,
+          note: finalNote,
           ...(hasNewImage ? { imageUrl: uploadedUrl } : {})
         };
         await onUpdateAssetStatus(scannedId, selectedStatus, assetUpdates);
@@ -558,6 +600,9 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         let details = 'สแกนสำรวจตรวจนับ';
         if (hasNewImage) {
           details += ' พร้อมอัปเดตภาพถ่ายสภาพครุภัณฑ์ล่าสุด';
+        }
+        if (hasNoteChanged) {
+          details += ` และบันทึกโน้ต/ชื่อเล่น: "${finalNote || '-'}"`;
         }
         if (hasStatusChanged && hasLocationChanged) {
           details += ` และอัปเดตเปลี่ยนสถานะพัสดุ จาก "${scannedAsset.status}" เป็น "${selectedStatus}" พร้อมย้ายห้องที่ตั้ง จาก "${scannedAsset.location || '-'}" เป็น "${finalLocation}"`;
@@ -624,6 +669,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     setAttachImagePreview(null);
     setSelectedLocation('');
     setCustomLocation('');
+    setSurveyNote('');
     setSurveySuccess(false);
     setIsNewScanNeeded(true);
     clearSurveyDraft();
@@ -1051,6 +1097,11 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                           <code className="item-code" style={{ fontSize: '0.65rem' }}>{item.id}</code>
                           <h4 className="item-title" style={{ fontSize: '0.8rem', margin: '0.1rem 0' }}>{item.name}</h4>
                           <span className="item-loc" style={{ fontSize: '0.675rem' }}>📍 {item.location}</span>
+                          {cleanAssetNote(item.note) && (
+                            <span style={{ fontSize: '0.675rem', color: 'var(--primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.1rem' }}>
+                              📝 {cleanAssetNote(item.note)}
+                            </span>
+                          )}
                         </div>
                         <button 
                           type="button"
@@ -1089,6 +1140,11 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                             <h4 className="item-title" style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.1rem 0' }}>{item.name}</h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
                               <span className="item-loc" style={{ color: 'var(--text-muted)', fontSize: '0.675rem' }}>📍 {item.location}</span>
+                              {cleanAssetNote(item.note) && (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                  📝 {cleanAssetNote(item.note)}
+                                </span>
+                              )}
                               {timeStr && (
                                 <span style={{ color: 'var(--success)', fontSize: '0.625rem', fontWeight: 600 }}>
                                   ⏱️ สแกนเมื่อ: {timeStr}
@@ -1182,6 +1238,11 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                   <h3 style={{ margin: '0.15rem 0 0.4rem 0', fontSize: '1.1rem', fontWeight: 750, color: 'var(--text-primary)', lineHeight: 1.35 }}>
                     {scannedAsset.name}
                   </h3>
+                  {cleanAssetNote(scannedAsset.note) && (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.35rem' }}>
+                      📝 {cleanAssetNote(scannedAsset.note)}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                     <span>🏢 แผนก: {scannedAsset.department}</span>
                     <span>📍 ที่ตั้ง: {scannedAsset.location}</span>
@@ -1219,6 +1280,55 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                   allowCustom={true}
                   icon={<MapPin size={15} color="var(--primary)" />}
                   required
+                />
+              </div>
+
+              {/* Note / Nickname input field */}
+              <div className="form-group">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                  <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    📝 บันทึกข้อมูลโน้ต / ชื่อเล่นเครื่องมือ (Note / Nickname)
+                  </label>
+                  {scannedAsset && cleanAssetNote(scannedAsset.note || '') !== cleanAssetNote(surveyNote.trim()) && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-xs"
+                      onClick={handleQuickSaveNoteOnly}
+                      disabled={isSavingQuickNote}
+                      style={{
+                        fontSize: '0.7rem',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: 'var(--radius-sm)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        color: 'var(--primary)',
+                        borderColor: 'var(--primary)'
+                      }}
+                      title="บันทึกเฉพาะโน้ต/ชื่อเล่นลงฐานข้อมูลทันที"
+                    >
+                      <Save size={12} /> {isSavingQuickNote ? 'กำลังบันทึก...' : 'บันทึกโน้ตทันที'}
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  className="form-input"
+                  value={surveyNote}
+                  onChange={(e) => setSurveyNote(e.target.value)}
+                  placeholder="พิมพ์บันทึกโน้ต ชื่อเล่นเครื่องมือ เช่น ตู้นึ่ง AR-2, ปั๊มหลักตึก 5 หรือข้อสังเกต..."
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    minHeight: '68px',
+                    fontSize: '0.85rem',
+                    padding: '0.55rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border)',
+                    resize: 'vertical',
+                    lineHeight: '1.4'
+                  }}
                 />
               </div>
 
