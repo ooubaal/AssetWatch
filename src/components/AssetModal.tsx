@@ -29,6 +29,7 @@ import {
   Eye,
   Camera,
   CameraOff,
+  ImageOff,
   Barcode
 } from 'lucide-react';
 import { 
@@ -43,7 +44,7 @@ import {
   loadSpareParts,
   saveSpareParts
 } from '../utils/mockData';
-import { updateAsset, addAuditTrail, updateSurvey } from '../services/dbService';
+import { updateAsset, addAuditTrail, updateSurvey, fetchAssetImageOnDemand } from '../services/dbService';
 
 interface AssetModalProps {
   asset: Asset;
@@ -194,6 +195,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
       });
 
       asset.imageUrl = '';
+      setLoadedAssetImage(null);
       alert('ลบรูปภาพครุภัณฑ์เรียบร้อยแล้ว');
       if (onRefreshData) {
         onRefreshData();
@@ -772,6 +774,43 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   const realImageUrl = latestSurveyPhoto || (!isDefaultPlaceholder(asset.imageUrl) ? asset.imageUrl : null);
   const isImageFromSurvey = Boolean(latestSurveyPhoto);
 
+  const hasExistingImage = useMemo(() => {
+    if (realImageUrl) return true;
+    if ((asset as any).hasImage) return true;
+    if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) return true;
+    if (assetSurveys.some(s => s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl))) return true;
+    return false;
+  }, [realImageUrl, asset, assetSurveys]);
+
+  const [loadedAssetImage, setLoadedAssetImage] = useState<string | null>(null);
+  const [isLoadingAssetImage, setIsLoadingAssetImage] = useState(false);
+  const [, setAssetImageSource] = useState<'survey' | 'asset' | null>(null);
+
+  const handleViewAssetImage = async () => {
+    const existing = loadedAssetImage || realImageUrl;
+    if (existing) {
+      handleOpenPartLightbox(existing, `รูปภาพครุภัณฑ์: ${asset.id} - ${asset.name}`);
+      return;
+    }
+
+    setIsLoadingAssetImage(true);
+    try {
+      const res = await fetchAssetImageOnDemand(asset.id);
+      if (res && res.imageUrl) {
+        setLoadedAssetImage(res.imageUrl);
+        setAssetImageSource(res.source);
+        handleOpenPartLightbox(res.imageUrl, `รูปภาพครุภัณฑ์: ${asset.id} - ${asset.name}`);
+      } else {
+        alert('ไม่พบไฟล์รูปภาพของครุภัณฑ์นี้ในฐานข้อมูล');
+      }
+    } catch (err) {
+      console.error('Failed to load asset image:', err);
+      alert('เกิดข้อผิดพลาดในการโหลดรูปภาพ');
+    } finally {
+      setIsLoadingAssetImage(false);
+    }
+  };
+
   useEffect(() => {
     setNoteText(cleanedAssetNote);
   }, [cleanedAssetNote, asset.id]);
@@ -879,117 +918,113 @@ export const AssetModal: React.FC<AssetModalProps> = ({
             <div className="tab-info-layout">
               {/* Asset Picture & QR Label Card */}
               <div className="info-visuals-panel">
-                {realImageUrl ? (
-                  <div className="info-image-container" style={{ position: 'relative' }}>
-                    <img 
-                      src={realImageUrl} 
-                      alt={asset.name} 
-                      className="info-asset-img"
-                    />
-                    {isImageFromSurvey && (
-                      <span 
-                        style={{
-                          position: 'absolute',
-                          bottom: '8px',
-                          left: '8px',
-                          background: 'rgba(16, 185, 129, 0.92)',
-                          color: '#ffffff',
-                          borderRadius: '6px',
-                          padding: '0.2rem 0.5rem',
-                          fontSize: '0.675rem',
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          backdropFilter: 'blur(4px)',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-                          zIndex: 4
-                        }}
-                        title="ภาพถ่ายจริงจากการตรวจนับสภาพล่าสุด"
-                      >
-                        📷 ภาพจากการตรวจนับล่าสุด
+                {hasExistingImage ? (
+                  <div 
+                    className="info-image-card"
+                    style={{
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '0.75rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                        📷 รูปภาพครุภัณฑ์
                       </span>
-                    )}
-                    {asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl) && isAllowedToDeleteImage(asset) && (
+                      {isImageFromSurvey && (
+                        <span 
+                          style={{
+                            fontSize: '0.675rem',
+                            color: '#10b981',
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '4px',
+                            fontWeight: 600
+                          }}
+                        >
+                          ภาพจากการตรวจนับ
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
                       <button
                         type="button"
-                        className="btn btn-danger btn-xs"
-                        onClick={handleDeleteAssetImage}
-                        disabled={isDeletingImage}
-                        title="ลบรูปภาพครุภัณฑ์นี้ออกจากระบบ"
+                        className="btn btn-secondary btn-sm"
+                        onClick={handleViewAssetImage}
+                        disabled={isLoadingAssetImage}
                         style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          background: 'rgba(239, 68, 68, 0.92)',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '0.3rem 0.6rem',
-                          fontSize: '0.725rem',
-                          fontWeight: 700,
-                          display: 'flex',
+                          flex: 1,
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.3rem',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
-                          backdropFilter: 'blur(4px)',
-                          cursor: 'pointer',
-                          zIndex: 5
+                          justifyContent: 'center',
+                          gap: '0.4rem',
+                          fontWeight: 650,
+                          fontSize: '0.825rem',
+                          color: 'var(--primary)',
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '0.45rem 0.75rem',
+                          cursor: 'pointer'
                         }}
+                        title="คลิกเพื่อดูรูปภาพของครุภัณฑ์นี้"
                       >
-                        <Trash2 size={12} /> {isDeletingImage ? 'กำลังลบ...' : 'ลบรูปภาพ'}
+                        {isLoadingAssetImage ? (
+                          <>⏳ กำลังโหลดรูปภาพ...</>
+                        ) : (
+                          <>
+                            <Camera size={15} /> ดูรูปภาพครุภัณฑ์
+                          </>
+                        )}
                       </button>
-                    )}
-                    {asset.imageUrl && !isAllowedToDeleteImage(asset) && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          background: 'rgba(15, 23, 42, 0.75)',
-                          color: '#e2e8f0',
-                          borderRadius: '6px',
-                          padding: '0.25rem 0.5rem',
-                          fontSize: '0.675rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          backdropFilter: 'blur(4px)',
-                          zIndex: 5
-                        }}
-                        title={
-                          currentUser?.role === 'head' 
-                            ? `หัวหน้าฝ่ายลบได้เฉพาะรูปของฝ่าย ${currentUser.department}` 
-                            : `ผู้ใช้งานลบได้เฉพาะรูปที่ตนเองสร้าง/อัปโหลด (${asset.createdBy || 'ผู้ดูแลระบบ'})`
-                        }
-                      >
-                        🔒 รูปภาพครุภัณฑ์
-                      </div>
-                    )}
+
+                      {asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl) && isAllowedToDeleteImage(asset) && (
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          onClick={handleDeleteAssetImage}
+                          disabled={isDeletingImage}
+                          title="ลบรูปภาพครุภัณฑ์นี้ออกจากระบบ"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.45rem 0.65rem',
+                            fontSize: '0.75rem',
+                            borderRadius: 'var(--radius-sm)'
+                          }}
+                        >
+                          <Trash2 size={13} /> {isDeletingImage ? 'กำลังลบ...' : 'ลบรูปภาพ'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div 
-                    className="info-image-container info-image-placeholder"
+                    className="info-no-image-card"
                     style={{
-                      minHeight: '180px',
+                      background: 'var(--bg-secondary)',
+                      border: '1px dashed var(--border)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '0.75rem',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      background: 'rgba(241, 245, 249, 0.6)',
-                      border: '2px dashed var(--border-color, #cbd5e1)',
-                      borderRadius: '8px',
-                      color: 'var(--text-muted, #94a3b8)',
-                      padding: '1.5rem',
-                      textAlign: 'center',
-                      gap: '0.5rem'
+                      gap: '0.5rem',
+                      color: 'var(--text-muted)',
+                      width: '100%',
+                      boxSizing: 'border-box'
                     }}
                   >
-                    <CameraOff size={36} style={{ opacity: 0.5 }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>ยังไม่มีรูปภาพสำหรับครุภัณฑ์นี้</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>
-                      สามารถเพิ่มรูปภาพได้โดยกดแท็บแก้ไข หรือทำการบันทึกตรวจนับพร้อมแนบรูป
-                    </span>
+                    <ImageOff size={16} />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ยังไม่มีรูปภาพครุภัณฑ์</span>
                   </div>
                 )}
                 

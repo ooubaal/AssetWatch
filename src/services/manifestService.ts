@@ -37,6 +37,7 @@ export interface AssetsManifestDoc {
   updatedAt: string;
   total: number;
   items: AssetManifestItem[];
+  deletedIds?: string[];
 }
 
 export interface SurveyManifestItem {
@@ -178,42 +179,96 @@ export const toRepairManifestItem = (repair: RepairCase): RepairCase => {
   };
 };
 
+// --- TOMBSTONE / DELETED ASSET TRACKING ---
+const DELETED_ASSETS_KEY = 'assetwatch_deleted_asset_ids';
+
+export const getLocalDeletedAssetIds = (): string[] => {
+  try {
+    const val = localStorage.getItem(DELETED_ASSETS_KEY);
+    const list: string[] = val ? JSON.parse(val) : [];
+    // Pre-seed known confirmed deleted item from user
+    if (!list.includes('0725606515045440040')) {
+      list.push('0725606515045440040');
+    }
+    return list;
+  } catch {
+    return ['0725606515045440040'];
+  }
+};
+
+export const addLocalDeletedAssetId = (id: string): void => {
+  if (!id) return;
+  try {
+    const list = getLocalDeletedAssetIds();
+    if (!list.includes(id)) {
+      list.push(id);
+      localStorage.setItem(DELETED_ASSETS_KEY, JSON.stringify(list.slice(-500)));
+    }
+  } catch (e) {
+    console.warn('Failed to save deleted asset id locally:', e);
+  }
+};
+
+export const recordLocalDeletedAssetIds = (ids: string[]): void => {
+  if (!ids || ids.length === 0) return;
+  try {
+    const list = getLocalDeletedAssetIds();
+    const set = new Set([...list, ...ids]);
+    localStorage.setItem(DELETED_ASSETS_KEY, JSON.stringify(Array.from(set).slice(-500)));
+  } catch (e) {
+    console.warn('Failed to record deleted asset ids locally:', e);
+  }
+};
+
 // --- MERGE WITH LOCAL IMAGES (PRESERVES EXISTING CLIENT CACHE & OFFLINE RECORDS) ---
 
-export const mergeAssetsWithLocalCache = (manifestItems: AssetManifestItem[], localAssets: Asset[]): Asset[] => {
+export const mergeAssetsWithLocalCache = (
+  manifestItems: AssetManifestItem[], 
+  localAssets: Asset[], 
+  cloudDeletedIds: string[] = []
+): Asset[] => {
+  const localDeleted = getLocalDeletedAssetIds();
+  const deletedSet = new Set([...localDeleted, ...cloudDeletedIds]);
+
   const localMap = new Map<string, Asset>();
-  localAssets.forEach(a => localMap.set(a.id, a));
+  localAssets.forEach(a => {
+    if (!deletedSet.has(a.id)) {
+      localMap.set(a.id, a);
+    }
+  });
   const manifestIds = new Set<string>();
 
-  const merged: Asset[] = manifestItems.map(item => {
-    manifestIds.add(item.id);
-    const local = localMap.get(item.id);
-    let finalImageUrl = item.imageUrl || '';
-    
-    // If manifest stripped heavy base64, but local machine already has the image cached, keep the local image!
-    if (!finalImageUrl && local && local.imageUrl) {
-      finalImageUrl = local.imageUrl;
-    }
+  const merged: Asset[] = manifestItems
+    .filter(item => !deletedSet.has(item.id))
+    .map(item => {
+      manifestIds.add(item.id);
+      const local = localMap.get(item.id);
+      let finalImageUrl = item.imageUrl || '';
+      
+      // If manifest stripped heavy base64, but local machine already has the image cached, keep the local image!
+      if (!finalImageUrl && local && local.imageUrl) {
+        finalImageUrl = local.imageUrl;
+      }
 
-    return {
-      id: item.id,
-      name: item.name,
-      location: item.location,
-      department: item.department,
-      status: item.status,
-      receivedDate: item.receivedDate || '',
-      source: item.source || '',
-      responsiblePerson: item.responsiblePerson || '',
-      note: item.note || '',
-      imageUrl: finalImageUrl,
-      createdAt: item.createdAt || '',
-      updatedAt: item.updatedAt || ''
-    };
-  });
+      return {
+        id: item.id,
+        name: item.name,
+        location: item.location,
+        department: item.department,
+        status: item.status,
+        receivedDate: item.receivedDate || '',
+        source: item.source || '',
+        responsiblePerson: item.responsiblePerson || '',
+        note: item.note || '',
+        imageUrl: finalImageUrl,
+        createdAt: item.createdAt || '',
+        updatedAt: item.updatedAt || ''
+      };
+    });
 
-  // Preserve offline-created assets that have not yet synced to cloud manifest
+  // Preserve offline-created assets that have not yet synced to cloud manifest (AND NOT DELETED)
   for (const local of localAssets) {
-    if (!manifestIds.has(local.id)) {
+    if (!manifestIds.has(local.id) && !deletedSet.has(local.id)) {
       merged.push(local);
     }
   }
@@ -334,7 +389,11 @@ export const fetchAssetsManifestDoc = async (db: any): Promise<AssetsManifestDoc
   try {
     const snap = await getDoc(doc(db, 'manifests', 'assets'));
     if (snap.exists()) {
-      return snap.data() as AssetsManifestDoc;
+      const data = snap.data() as AssetsManifestDoc;
+      if (data.deletedIds && Array.isArray(data.deletedIds)) {
+        recordLocalDeletedAssetIds(data.deletedIds);
+      }
+      return data;
     }
     return null;
   } catch (err) {
@@ -343,17 +402,33 @@ export const fetchAssetsManifestDoc = async (db: any): Promise<AssetsManifestDoc
   }
 };
 
-export const saveAssetsManifestDoc = async (db: any, assets: Asset[]): Promise<void> => {
+export const saveAssetsManifestDoc = async (
+  db: any, 
+  assets: Asset[], 
+  extraDeletedIds: string[] = []
+): Promise<void> => {
   try {
-    const items = assets.map(toAssetManifestItem);
+    const existing = await fetchAssetsManifestDoc(db);
+    const existingDeleted = existing?.deletedIds || [];
+    const localDeleted = getLocalDeletedAssetIds();
+    const allDeletedSet = new Set([...existingDeleted, ...localDeleted, ...extraDeletedIds]);
+    const allDeletedIds = Array.from(allDeletedSet).slice(-500);
+
+    recordLocalDeletedAssetIds(allDeletedIds);
+
+    const items = assets
+      .filter(a => !allDeletedSet.has(a.id))
+      .map(toAssetManifestItem);
+
     const manifest: AssetsManifestDoc = {
       version: 1,
       updatedAt: new Date().toISOString(),
       total: items.length,
-      items
+      items,
+      deletedIds: allDeletedIds
     };
     await setDoc(doc(db, 'manifests', 'assets'), sanitizeForFirestore(manifest));
-    console.log(`[Manifest Engine] Saved manifests/assets with ${items.length} items (1 Write)`);
+    console.log(`[Manifest Engine] Saved manifests/assets with ${items.length} items and ${allDeletedIds.length} tombstones (1 Write)`);
   } catch (err) {
     console.warn('[Manifest Engine] Failed to save manifests/assets:', err);
   }
@@ -375,7 +450,44 @@ export const fetchSurveysManifestDoc = async (db: any): Promise<SurveysManifestD
 
 export const saveSurveysManifestDoc = async (db: any, surveys: SurveyRecord[]): Promise<void> => {
   try {
-    const items = surveys.map(toSurveyManifestItem);
+    // 1. Fetch current manifest first so items from other devices are NEVER lost
+    const existing = await fetchSurveysManifestDoc(db);
+    const existingItems = existing?.items || [];
+
+    const surveyMap = new Map<string, any>();
+    // Load existing items from cloud manifest
+    existingItems.forEach(item => {
+      surveyMap.set(`${item.assetId}__${item.roundId || 'round-default'}`, {
+        id: item.id,
+        assetId: item.assetId,
+        roundId: item.roundId || 'round-default',
+        status: item.status,
+        operator: item.operator,
+        timestamp: item.timestamp,
+        imageUrl: item.imageUrl
+      });
+    });
+
+    // Merge incoming surveys (overwrites older records for same assetId+roundId)
+    surveys.forEach(s => {
+      surveyMap.set(`${s.assetId}__${s.roundId || 'round-default'}`, s);
+    });
+
+    // Guarantee master base surveys are present
+    try {
+      const { MASTER_BASE_SURVEYS } = await import('../utils/masterSurveysData');
+      MASTER_BASE_SURVEYS.forEach(s => {
+        const key = `${s.assetId}__${s.roundId || 'round-default'}`;
+        if (!surveyMap.has(key)) {
+          surveyMap.set(key, s);
+        }
+      });
+    } catch (e) {
+      console.warn('Could not import MASTER_BASE_SURVEYS in saveSurveysManifestDoc:', e);
+    }
+
+    const allSurveys = Array.from(surveyMap.values());
+    const items = allSurveys.map(toSurveyManifestItem);
     const manifest: SurveysManifestDoc = {
       version: 1,
       updatedAt: new Date().toISOString(),

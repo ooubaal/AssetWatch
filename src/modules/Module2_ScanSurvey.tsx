@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   QrCode, 
   CheckCircle2, 
@@ -28,12 +29,16 @@ import {
   Trash2,
   RotateCw,
   FileSpreadsheet,
-  Download
+  Download,
+  ExternalLink,
+  CameraOff,
+  ImageOff,
+  X
 } from 'lucide-react';
 import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
-import { uploadImage, compressFileOrPdf, isDefaultPlaceholder, isFirestoreQuotaError } from '../services/dbService';
+import { uploadImage, compressFileOrPdf, isDefaultPlaceholder, isFirestoreQuotaError, fetchAssetImageOnDemand } from '../services/dbService';
 import { InAppCameraModal } from '../components/InAppCameraModal';
 
 interface Module2ScanSurveyProps {
@@ -108,16 +113,66 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [scannedId, setScannedId] = useState<string | null>(() => initialDraft?.assetId || null);
   const [scannedAsset, setScannedAsset] = useState<Asset | null>(null);
 
-  const effectiveScannedImage = useMemo(() => {
-    if (!scannedAsset) return '';
-    if (scannedAsset.imageUrl && !isDefaultPlaceholder(scannedAsset.imageUrl)) {
-      return scannedAsset.imageUrl;
-    }
-    const withPhoto = surveys
-      .filter(s => s.assetId === scannedAsset.id && s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl))
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return withPhoto[0]?.imageUrl || scannedAsset.imageUrl || 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
+  // Check if current scanned asset has an existing image in DB/surveys/asset
+  const hasExistingImage = useMemo(() => {
+    if (!scannedAsset) return false;
+    if (scannedAsset.imageUrl && !isDefaultPlaceholder(scannedAsset.imageUrl)) return true;
+    if ((scannedAsset as any).hasImage) return true;
+    const withPhoto = surveys.some(
+      s => s.assetId === scannedAsset.id && s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl)
+    );
+    return withPhoto;
   }, [scannedAsset, surveys]);
+
+  // On-demand Photo Preview Lightbox States for Scanned Asset
+  const [viewingImageAsset, setViewingImageAsset] = useState<Asset | null>(null);
+  const [loadedImage, setLoadedImage] = useState<string | null>(null);
+  const [imageSource, setImageSource] = useState<'survey' | 'asset' | null>(null);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
+
+  const handleOpenAssetImageModal = async (asset: Asset) => {
+    setViewingImageAsset(asset);
+    setIsLoadingImage(true);
+    setLoadedImage(null);
+    setImageSource(null);
+
+    try {
+      // 1. Check local surveys first
+      const withPhoto = surveys
+        .filter(s => s.assetId === asset.id && s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl))
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      if (withPhoto.length > 0 && withPhoto[0].imageUrl) {
+        setLoadedImage(withPhoto[0].imageUrl);
+        setImageSource('survey');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      // 2. Check asset imageUrl
+      if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) {
+        setLoadedImage(asset.imageUrl);
+        setImageSource('asset');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      // 3. On-demand fetch from Firebase Firestore (1 read)
+      const res = await fetchAssetImageOnDemand(asset.id);
+      if (res && res.imageUrl) {
+        setLoadedImage(res.imageUrl);
+        setImageSource(res.source);
+      } else {
+        setLoadedImage(null);
+        setImageSource(null);
+      }
+    } catch (err) {
+      console.warn('Failed to load asset image on demand:', err);
+      setLoadedImage(null);
+    } finally {
+      setIsLoadingImage(false);
+    }
+  };
   
   // Survey Form States
   const [selectedStatus, setSelectedStatus] = useState<Asset['status']>(() => initialDraft?.selectedStatus || 'ใช้งานได้');
@@ -186,7 +241,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   // Helpers to check if asset was surveyed in active round
   const isAssetSurveyedInRound = (assetId: string) => {
     if (!activeRound) return false;
-    return surveys.some(s => s.assetId === assetId && s.roundId === activeRound.id);
+    return surveys.some(s => s.assetId === assetId && (!s.roundId || s.roundId === activeRound.id || (activeRound.id === 'round-default' && (!s.roundId || s.roundId === 'round-default'))));
   };
 
   // Calculate filtered checklist based on selected department
@@ -219,7 +274,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
     const map = new Map<string, number>();
     if (!activeRound) return map;
     for (const s of surveys) {
-      if (s.roundId === activeRound.id) {
+      const sRound = s.roundId || 'round-default';
+      if (sRound === activeRound.id || (activeRound.id === 'round-default' && (!s.roundId || s.roundId === 'round-default'))) {
         const time = new Date(s.timestamp).getTime();
         const prev = map.get(s.assetId) || 0;
         if (time > prev) {
@@ -233,7 +289,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   // Helper to get survey information for scanned timestamp
   const getSurveyInfo = (assetId: string) => {
     if (!activeRound) return null;
-    return surveys.find(s => s.assetId === assetId && s.roundId === activeRound.id);
+    return surveys.find(s => s.assetId === assetId && (!s.roundId || s.roundId === activeRound.id || (activeRound.id === 'round-default' && (!s.roundId || s.roundId === 'round-default'))));
   };
 
   // Filtered and sorted checklist list
@@ -1099,20 +1155,56 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               )}
 
               <div className="survey-asset-brief">
-                <img 
-                  src={effectiveScannedImage} 
-                  alt={scannedAsset.name} 
-                  onError={(e) => {
-                    const target = e.currentTarget as HTMLImageElement;
-                    target.onerror = null;
-                    target.src = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=60';
-                  }}
-                />
-                <div className="brief-details">
-                  <span className="brief-id">{scannedAsset.id}</span>
-                  <h3>{scannedAsset.name}</h3>
-                  <span>📍 แผนก: {scannedAsset.department}</span>
-                  <span>📍 ที่ตั้ง: {scannedAsset.location}</span>
+                <div className="brief-details" style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+                    <span className="brief-id">{scannedAsset.id}</span>
+                    {hasExistingImage ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-xs"
+                        onClick={() => handleOpenAssetImageModal(scannedAsset)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          fontWeight: 650,
+                          padding: '0.3rem 0.65rem',
+                          borderRadius: 'var(--radius-sm)',
+                          color: 'var(--primary)',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border)',
+                          cursor: 'pointer'
+                        }}
+                        title="คลิกเพื่อดูรูปภาพของครุภัณฑ์นี้"
+                      >
+                        <Camera size={14} /> ดูรูปภาพครุภัณฑ์
+                      </button>
+                    ) : (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          background: 'var(--bg-secondary)',
+                          border: '1px dashed var(--border)',
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: 'var(--radius-sm)',
+                          fontWeight: 500
+                        }}
+                      >
+                        <ImageOff size={13} /> ยังไม่มีรูปภาพครุภัณฑ์
+                      </span>
+                    )}
+                  </div>
+                  <h3 style={{ margin: '0.15rem 0 0.4rem 0', fontSize: '1.1rem', fontWeight: 750, color: 'var(--text-primary)', lineHeight: 1.35 }}>
+                    {scannedAsset.name}
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <span>🏢 แผนก: {scannedAsset.department}</span>
+                    <span>📍 ที่ตั้ง: {scannedAsset.location}</span>
+                  </div>
                 </div>
               </div>
 
@@ -1352,7 +1444,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
             {activeRound ? (() => {
               const activeRoundAssets = assets.filter(a => selectedRoundDept === 'all' || a.department === selectedRoundDept);
               const activeRoundSurveys = surveys.filter(s => {
-                if (s.roundId !== activeRound.id) return false;
+                const sRound = s.roundId || 'round-default';
+                if (sRound !== activeRound.id && !(activeRound.id === 'round-default' && (!s.roundId || s.roundId === 'round-default'))) return false;
                 if (selectedRoundDept === 'all') return true;
                 const asset = assets.find(a => a.id === s.assetId);
                 return asset?.department === selectedRoundDept;
@@ -2416,27 +2509,18 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
 
         .survey-asset-brief {
           display: flex;
-          gap: 1rem;
+          flex-direction: column;
+          gap: 0.5rem;
           border-bottom: 1px solid var(--border);
           padding-bottom: 1rem;
-          align-items: center;
           width: 100%;
           box-sizing: border-box;
-        }
-
-        .survey-asset-brief img {
-          width: 64px;
-          height: 64px;
-          object-fit: cover;
-          border-radius: var(--radius-sm);
-          border: 1px solid var(--border);
-          flex-shrink: 0;
         }
 
         .brief-details {
           display: flex;
           flex-direction: column;
-          gap: 0.15rem;
+          gap: 0.25rem;
           flex: 1;
           min-width: 0;
         }
@@ -2935,6 +3019,106 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         title={`ถ่ายภาพสภาพครุภัณฑ์ (${scannedAsset?.id || scannedId || ''})`}
         subtitle="ถ่ายผ่านหน้าเว็บโดยตรง ไม่สลับแอป ป้องกันปัญหาแอปหลุดหรือหน่วยความจำไม่พอ 100%"
       />
+
+      {/* On-demand Photo Preview Lightbox Modal for Scanned Asset */}
+      {viewingImageAsset && createPortal(
+        <div 
+          className="modal-backdrop" 
+          onClick={() => setViewingImageAsset(null)} 
+          style={{ zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div 
+            className="modal-card glass-panel animate-fade-in" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '640px', width: '92vw', padding: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    {viewingImageAsset.id}
+                  </span>
+                  <span className={`badge ${statusColors[viewingImageAsset.status] || 'badge-muted'}`} style={{ fontSize: '0.7rem' }}>
+                    {viewingImageAsset.status}
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  {viewingImageAsset.name}
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                  📍 {viewingImageAsset.location || '-'} &nbsp;•&nbsp; 🏢 {viewingImageAsset.department || '-'}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-xs" 
+                onClick={() => setViewingImageAsset(null)}
+                style={{ padding: '0.35rem', borderRadius: '50%' }}
+                title="ปิดหน้าต่าง"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            {isLoadingImage ? (
+              <div style={{ minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-muted)' }}>
+                <div style={{ width: '36px', height: '36px', border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: '0.875rem', fontWeight: 550 }}>กำลังโหลดรูปภาพครุภัณฑ์แบบ On-demand จากคลาวด์...</span>
+              </div>
+            ) : loadedImage ? (
+              <div>
+                <div style={{ 
+                  borderRadius: '10px', 
+                  overflow: 'hidden', 
+                  border: '1px solid var(--border)', 
+                  backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                  maxHeight: '60vh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <img 
+                    src={loadedImage} 
+                    alt={viewingImageAsset.name} 
+                    style={{ width: '100%', height: 'auto', maxHeight: '58vh', objectFit: 'contain' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    {imageSource === 'survey' ? '📷 รูปถ่ายจากการตรวจนับสภาพจริงล่าสุด' : '📦 รูปภาพประจำรายการครุภัณฑ์'}
+                  </span>
+                  <a 
+                    href={loadedImage} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="btn btn-secondary btn-xs"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <ExternalLink size={13} /> เปิดภาพขนาดเต็ม
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div style={{ minHeight: '220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem', padding: '1.5rem', textAlign: 'center' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                  <CameraOff size={28} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.25rem 0' }}>
+                    ยังไม่มีการแนบรูปภาพสำหรับครุภัณฑ์นี้
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '360px', margin: 0, lineHeight: 1.45 }}>
+                    ครุภัณฑ์นี้ยังไม่มีภาพถ่ายสภาพจริงในระบบ ท่านสามารถถ่ายภาพได้โดยการแนบภาพในแบบฟอร์มตรวจนับนี้
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

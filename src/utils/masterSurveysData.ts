@@ -1,0 +1,5781 @@
+import { SurveyRecord } from './mockData';
+
+// Master baseline surveys containing all 722 verified physical surveys (Decoupled & Lightweight)
+export const MASTER_BASE_SURVEYS: SurveyRecord[] = [
+  {
+    "id": "survey-1792897202442-vzfz",
+    "assetId": "0725607110006130041",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-25T03:00:02.442Z"
+  },
+  {
+    "id": "survey-1792758798267-t9w2",
+    "assetId": "0725697125004050077",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:33:18.267Z"
+  },
+  {
+    "id": "survey-1792758772563-bzpg",
+    "assetId": "0725697125004050076",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:32:52.563Z"
+  },
+  {
+    "id": "survey-1792758733996-ut25",
+    "assetId": "0725697125004050075",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:32:13.996Z"
+  },
+  {
+    "id": "survey-1792758686158-2sa9",
+    "assetId": "0725697125004050079",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:31:26.158Z"
+  },
+  {
+    "id": "survey-1792758634085-p1n2",
+    "assetId": "0725697125004050080",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:30:34.085Z"
+  },
+  {
+    "id": "survey-1792758582732-4yli",
+    "assetId": "0725697125004050078",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:29:42.732Z"
+  },
+  {
+    "id": "survey-1792758546203-utlu",
+    "assetId": "0725607110006130023",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:29:06.202Z"
+  },
+  {
+    "id": "survey-1792758510677-6uoh",
+    "assetId": "0725627110006040135",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:28:30.677Z"
+  },
+  {
+    "id": "survey-1792758417789-05l6",
+    "assetId": "0725697110007240025",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:26:57.789Z"
+  },
+  {
+    "id": "survey-1792758399273-u4qq",
+    "assetId": "0725694510015980020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:26:39.273Z"
+  },
+  {
+    "id": "survey-1792758217005-cp5l",
+    "assetId": "0725697110006020141",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:23:37.005Z"
+  },
+  {
+    "id": "survey-1792758198188-llhp",
+    "assetId": "0725697110006020133",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:23:18.188Z"
+  },
+  {
+    "id": "survey-1792758173184-lug7",
+    "assetId": "0725697110007020059",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T12:22:53.184Z"
+  },
+  {
+    "id": "survey-1792747029410-ow1z",
+    "assetId": "0725597440010060064",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-23T09:17:09.410Z"
+  },
+  {
+    "id": "survey-1792681125976-jp7k",
+    "assetId": "0725597440010010118",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T14:58:45.975Z"
+  },
+  {
+    "id": "survey-1792660539267-omc8",
+    "assetId": "0725607110007160020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T09:15:39.267Z"
+  },
+  {
+    "id": "survey-1792659584783-8hki",
+    "assetId": "0725637125004050002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T08:59:44.783Z"
+  },
+  {
+    "id": "survey-1792659437683-cnai",
+    "assetId": "0725634140003990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T08:57:17.683Z"
+  },
+  {
+    "id": "survey-1792659296915-xm1m",
+    "assetId": "0725607440001020068",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T08:54:56.915Z"
+  },
+  {
+    "id": "survey-1792659159054-c3kj",
+    "assetId": "0725607440009090015",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T08:52:39.054Z"
+  },
+  {
+    "id": "survey-1792658764067-a5po",
+    "assetId": "0725607110007160019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T08:46:04.067Z"
+  },
+  {
+    "id": "survey-1792658659933-9ael",
+    "assetId": "0725627490008010002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T08:44:19.932Z"
+  },
+  {
+    "id": "survey-1792658144241-1uwl",
+    "assetId": "0725666640026020124",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T08:35:44.241Z"
+  },
+  {
+    "id": "survey-1792657927495-vi1r",
+    "assetId": "0725607440001020018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T08:32:07.495Z"
+  },
+  {
+    "id": "survey-1792657480999-hi09",
+    "assetId": "0725643650005200002",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T08:24:40.999Z"
+  },
+  {
+    "id": "survey-1792656987286-5c4z",
+    "assetId": "0725557440010990001",
+    "roundId": "round-default",
+    "status": "ชำรุด",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T08:16:27.286Z"
+  },
+  {
+    "id": "survey-1792656931675-093u",
+    "assetId": "0725614320002090001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T08:15:31.675Z"
+  },
+  {
+    "id": "survey-1792656800103-bv4n",
+    "assetId": "0725564310004010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T08:13:20.103Z"
+  },
+  {
+    "id": "survey-1792656588269-taof",
+    "assetId": "0725694140003110003",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T08:09:48.269Z"
+  },
+  {
+    "id": "survey-1792656467649-ldh8",
+    "assetId": "0725686515045320048",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T08:07:47.648Z"
+  },
+  {
+    "id": "survey-1792656154436-sino",
+    "assetId": "0725696515019010001",
+    "roundId": "round-default",
+    "status": "รอโอน",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T08:02:34.436Z"
+  },
+  {
+    "id": "survey-1792655721187-s9x8",
+    "assetId": "0725604140001010031",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T07:55:21.186Z"
+  },
+  {
+    "id": "survey-1792655607203-lw1b",
+    "assetId": "0725686670003010090",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:53:27.202Z"
+  },
+  {
+    "id": "survey-1792655400482-47oq",
+    "assetId": "0725633650005200001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:50:00.481Z"
+  },
+  {
+    "id": "survey-1792655220397-qp5c",
+    "assetId": "0725607110013040029",
+    "roundId": "round-default",
+    "status": "รอโอน",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T07:47:00.397Z"
+  },
+  {
+    "id": "survey-1792654790877-4ou1",
+    "assetId": "0725665805001020007",
+    "roundId": "round-default",
+    "status": "ชำรุด",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:39:50.877Z"
+  },
+  {
+    "id": "survey-1792654650775-w33l",
+    "assetId": "0725384140003990001",
+    "roundId": "round-default",
+    "status": "ชำรุด",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:37:30.775Z"
+  },
+  {
+    "id": "survey-1792654565790-yqg6",
+    "assetId": "0725614120001990072",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T07:36:05.790Z"
+  },
+  {
+    "id": "survey-1792654524801-4scd",
+    "assetId": "0725637125004110002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:35:24.801Z"
+  },
+  {
+    "id": "survey-1792654413127-oti0",
+    "assetId": "0725697125004990003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:33:33.127Z"
+  },
+  {
+    "id": "survey-1792654316515-kusq",
+    "assetId": "0725697125004990002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:31:56.515Z"
+  },
+  {
+    "id": "survey-1792654276388-rrxp",
+    "assetId": "0725519999001990001",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:31:16.388Z"
+  },
+  {
+    "id": "survey-1792654223242-7z27",
+    "assetId": "0725605805001010006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:30:23.242Z"
+  },
+  {
+    "id": "survey-1792654000313-3egu",
+    "assetId": "0725607110006130202",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T07:26:40.313Z"
+  },
+  {
+    "id": "survey-1792653933867-jujt",
+    "assetId": "0725607110006130203",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T07:25:33.867Z"
+  },
+  {
+    "id": "survey-1792653764778-6g32",
+    "assetId": "0725607125002990010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T07:22:44.778Z"
+  },
+  {
+    "id": "survey-1792653609889-gepo",
+    "assetId": "0725627110006040086",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:20:09.889Z"
+  },
+  {
+    "id": "survey-1792653478612-hjpo",
+    "assetId": "0725604510007030004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:17:58.612Z"
+  },
+  {
+    "id": "survey-1792653446028-59o9",
+    "assetId": "0725607110013040031",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:17:26.028Z"
+  },
+  {
+    "id": "survey-1792653435218-plbp",
+    "assetId": "0725604510007030002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:17:15.218Z"
+  },
+  {
+    "id": "survey-1792653424122-4yrc",
+    "assetId": "0725607110013040030",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:17:04.122Z"
+  },
+  {
+    "id": "survey-1792653380203-p0vn",
+    "assetId": "0725519999007990002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:16:20.203Z"
+  },
+  {
+    "id": "survey-1792653372971-oyw9",
+    "assetId": "0725607110013040027",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:16:12.971Z"
+  },
+  {
+    "id": "survey-1792653330978-fobx",
+    "assetId": "0725604510007030001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:15:30.978Z"
+  },
+  {
+    "id": "survey-1792653302265-ckn3",
+    "assetId": "0725607110013040028",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:15:02.265Z"
+  },
+  {
+    "id": "survey-1792653288095-cvuk",
+    "assetId": "0725694510015980018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T07:14:48.095Z"
+  },
+  {
+    "id": "survey-1792653275399-enf8",
+    "assetId": "0725637110016050002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:14:35.399Z"
+  },
+  {
+    "id": "survey-1792653210237-aomt",
+    "assetId": "0725603920005260022",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:13:30.237Z"
+  },
+  {
+    "id": "survey-1792653205920-cuaj",
+    "assetId": "0725626530021070006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:13:25.920Z"
+  },
+  {
+    "id": "survey-1792653156320-8i44",
+    "assetId": "0725634110008030002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:12:36.319Z"
+  },
+  {
+    "id": "survey-1792653133020-ofk3",
+    "assetId": "0725637320021010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:12:13.020Z"
+  },
+  {
+    "id": "survey-1792653120500-ih3o",
+    "assetId": "0725604140001010034",
+    "roundId": "round-default",
+    "status": "ชำรุด",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:12:00.500Z"
+  },
+  {
+    "id": "survey-1792653089715-vjhl",
+    "assetId": "0725614120001990071",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:11:29.714Z"
+  },
+  {
+    "id": "survey-1792653080030-zgjf",
+    "assetId": "0725697110007020061",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:11:20.030Z"
+  },
+  {
+    "id": "survey-1792653053252-inog",
+    "assetId": "0725697110007020060",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:10:53.252Z"
+  },
+  {
+    "id": "survey-1792653013392-dq7u",
+    "assetId": "0725697110013010040",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T07:10:13.392Z"
+  },
+  {
+    "id": "survey-1792652912181-8cnv",
+    "assetId": "0725697125004050081",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:08:32.181Z"
+  },
+  {
+    "id": "survey-1792652815162-a4bt",
+    "assetId": "0725607110007020021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:06:55.162Z"
+  },
+  {
+    "id": "survey-1792652699490-zsdt",
+    "assetId": "0725607110013110007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:04:59.490Z"
+  },
+  {
+    "id": "survey-1792652658745-bldj",
+    "assetId": "0725607110013110012",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:04:18.744Z"
+  },
+  {
+    "id": "survey-1792652646746-t7dk",
+    "assetId": "0725406530009220001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:04:06.746Z"
+  },
+  {
+    "id": "survey-1792652590421-tf0d",
+    "assetId": "0725627110006040097",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:03:10.421Z"
+  },
+  {
+    "id": "survey-1792652444206-9s3q",
+    "assetId": "0725604140002010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T07:00:44.206Z"
+  },
+  {
+    "id": "survey-1792652437301-nt4g",
+    "assetId": "0725694510015980012",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T07:00:37.301Z"
+  },
+  {
+    "id": "survey-1792652418120-iwm1",
+    "assetId": "0725603920005990019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T07:00:18.117Z"
+  },
+  {
+    "id": "survey-1792652410788-9sy4",
+    "assetId": "0725604140002010002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T07:00:10.788Z"
+  },
+  {
+    "id": "survey-1792652391746-lasg",
+    "assetId": "0725694510015980017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T06:59:51.746Z"
+  },
+  {
+    "id": "survey-1792652380871-fzu5",
+    "assetId": "0725694510015980016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T06:59:40.870Z"
+  },
+  {
+    "id": "survey-1792652370910-d8xz",
+    "assetId": "0725694510015980015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T06:59:30.910Z"
+  },
+  {
+    "id": "survey-1792652369889-7n1w",
+    "assetId": "0725623930001030016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:59:29.888Z"
+  },
+  {
+    "id": "survey-1792652287860-g36b",
+    "assetId": "0725697110013060003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T06:58:07.860Z"
+  },
+  {
+    "id": "survey-1792652268467-ir3p",
+    "assetId": "0725603611001010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:57:48.466Z"
+  },
+  {
+    "id": "survey-1792652188324-u33j",
+    "assetId": "0725594110001010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T06:56:28.324Z"
+  },
+  {
+    "id": "survey-1792652096547-rj3i",
+    "assetId": "0725602320010990009",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T06:54:56.547Z"
+  },
+  {
+    "id": "survey-1792652073613-5bdv",
+    "assetId": "0725606640026030047",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T06:54:33.612Z"
+  },
+  {
+    "id": "survey-1792652044482-2vfk",
+    "assetId": "0725604140003990005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T06:54:04.482Z"
+  },
+  {
+    "id": "survey-1792651975160-n2u2",
+    "assetId": "0725684520001010004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T06:52:55.160Z"
+  },
+  {
+    "id": "survey-1792651908869-1qx7",
+    "assetId": "0725684520001010003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T06:51:48.869Z"
+  },
+  {
+    "id": "survey-1792651894342-sc6s",
+    "assetId": "0725607440035020019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:51:34.342Z"
+  },
+  {
+    "id": "survey-1792651854210-kf42",
+    "assetId": "0725677310001040002",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T06:50:54.210Z"
+  },
+  {
+    "id": "survey-1792651669040-3nhm",
+    "assetId": "0725613920005110055",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:47:49.040Z"
+  },
+  {
+    "id": "survey-1792651495444-iuf3",
+    "assetId": "0725697110006020139",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T06:44:55.444Z"
+  },
+  {
+    "id": "survey-1792651494874-f8jr",
+    "assetId": "0725607440010010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T06:44:54.874Z"
+  },
+  {
+    "id": "survey-1792651444720-a58t",
+    "assetId": "0725697110006020140",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T06:44:04.720Z"
+  },
+  {
+    "id": "survey-1792651393319-f797",
+    "assetId": "0725617110007020009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:43:13.319Z"
+  },
+  {
+    "id": "survey-1792651324779-x8q2",
+    "assetId": "0725646515019020182",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T06:42:04.779Z"
+  },
+  {
+    "id": "survey-1792651254388-4i2m",
+    "assetId": "0725634610007160001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:40:54.388Z"
+  },
+  {
+    "id": "survey-1792651221525-x7xl",
+    "assetId": "0725536515999990007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:40:21.525Z"
+  },
+  {
+    "id": "survey-1792651149957-ttof",
+    "assetId": "0725636530021150005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:39:09.957Z"
+  },
+  {
+    "id": "survey-1792651108198-1ccj",
+    "assetId": "0725637440011020002",
+    "roundId": "round-default",
+    "status": "รอโอน",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:38:28.198Z"
+  },
+  {
+    "id": "survey-1792650971765-r9t3",
+    "assetId": "0725604510007030009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T06:36:11.765Z"
+  },
+  {
+    "id": "survey-1792650933310-fc6y",
+    "assetId": "0725596670003020002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T06:35:33.310Z"
+  },
+  {
+    "id": "survey-1792650905720-h4e6",
+    "assetId": "0725647440010010016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T06:35:05.720Z"
+  },
+  {
+    "id": "survey-1792650749401-93o3",
+    "assetId": "0725654610009020001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:32:29.401Z"
+  },
+  {
+    "id": "survey-1792650713149-tt94",
+    "assetId": "0725664310001020002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:31:53.149Z"
+  },
+  {
+    "id": "survey-1792650634689-73ot",
+    "assetId": "0725666515045320072",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:30:34.689Z"
+  },
+  {
+    "id": "survey-1792650603538-9bc1",
+    "assetId": "0725666515050140001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:30:03.538Z"
+  },
+  {
+    "id": "survey-1792650551990-jdfc",
+    "assetId": "0725666530016410001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:29:11.990Z"
+  },
+  {
+    "id": "survey-1792650502471-hjf2",
+    "assetId": "0725677310001040003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:28:22.471Z"
+  },
+  {
+    "id": "survey-1792650359479-9yti",
+    "assetId": "0725686515045320049",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:25:59.479Z"
+  },
+  {
+    "id": "survey-1792650100167-wj8j",
+    "assetId": "0725697110007030006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:21:40.167Z"
+  },
+  {
+    "id": "survey-1792650033257-67cs",
+    "assetId": "7NUT0669",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:20:33.257Z"
+  },
+  {
+    "id": "survey-1792649934075-j8ud",
+    "assetId": "0725666530036050001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T06:18:54.075Z"
+  },
+  {
+    "id": "survey-1792647509717-fm5p",
+    "assetId": "0725627440029010053",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:38:29.717Z"
+  },
+  {
+    "id": "survey-1792647496252-dw1t",
+    "assetId": "0725654120001020031",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:38:16.252Z"
+  },
+  {
+    "id": "survey-1792647482970-w9yb",
+    "assetId": "0725666515045320076",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:38:02.970Z"
+  },
+  {
+    "id": "survey-1792647473353-nqag",
+    "assetId": "0725594120001030010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:37:53.353Z"
+  },
+  {
+    "id": "survey-1792647448699-616i",
+    "assetId": "0725594120001030009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:37:28.699Z"
+  },
+  {
+    "id": "survey-1792647035238-osjn",
+    "assetId": "0725499999001990002",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:30:35.238Z"
+  },
+  {
+    "id": "survey-1792646958300-0ua2",
+    "assetId": "0725356530021120001",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:29:18.300Z"
+  },
+  {
+    "id": "survey-1792646939020-k2cy",
+    "assetId": "0725666530021060017",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:28:59.020Z"
+  },
+  {
+    "id": "survey-1792646877620-asoq",
+    "assetId": "0725666530021060018",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:27:57.620Z"
+  },
+  {
+    "id": "survey-1792646740382-vgza",
+    "assetId": "0725626530021070005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T05:25:40.382Z"
+  },
+  {
+    "id": "survey-1792646394878-749y",
+    "assetId": "0725604140003990001",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:19:54.878Z"
+  },
+  {
+    "id": "survey-1792646357200-ixsy",
+    "assetId": "0725489999002990001",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:19:17.200Z"
+  },
+  {
+    "id": "survey-1792646243016-p01o",
+    "assetId": "0725637440001020090",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:17:23.016Z"
+  },
+  {
+    "id": "survey-1792646204656-6bp7",
+    "assetId": "0725457440001020007",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:16:44.656Z"
+  },
+  {
+    "id": "survey-1792646045922-9een",
+    "assetId": "0725637440001020089",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:14:05.922Z"
+  },
+  {
+    "id": "survey-1792645813330-5aon",
+    "assetId": "0725604320002170001",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T05:10:13.329Z"
+  },
+  {
+    "id": "survey-1792645754056-vmyg",
+    "assetId": "0725697110007240027",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T05:09:14.055Z"
+  },
+  {
+    "id": "survey-1792645097994-w2xd",
+    "assetId": "0725607110006130029",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T04:58:17.993Z"
+  },
+  {
+    "id": "survey-1792645095106-uyph",
+    "assetId": "0725624510007030001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:58:15.106Z"
+  },
+  {
+    "id": "survey-1792645085012-tev1",
+    "assetId": "0725647310001040004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T04:58:05.011Z"
+  },
+  {
+    "id": "survey-1792644987117-au2y",
+    "assetId": "0725607110007160025",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T04:56:27.117Z"
+  },
+  {
+    "id": "survey-1792644903880-9r6u",
+    "assetId": "0725647440011020012",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T04:55:03.879Z"
+  },
+  {
+    "id": "survey-1792644866925-0x82",
+    "assetId": "0725687440015010004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T04:54:26.925Z"
+  },
+  {
+    "id": "survey-1792644750030-1a92",
+    "assetId": "0725696530021190010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:52:30.030Z"
+  },
+  {
+    "id": "survey-1792644642390-l4ja",
+    "assetId": "0725614140002020044",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T04:50:42.389Z"
+  },
+  {
+    "id": "survey-1792644601647-h5te",
+    "assetId": "0725614140002020045",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T04:50:01.647Z"
+  },
+  {
+    "id": "survey-1792644593210-b2a7",
+    "assetId": "0725607110007160016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T04:49:53.210Z"
+  },
+  {
+    "id": "survey-1792644440151-969t",
+    "assetId": "0725627310017020002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:47:20.150Z"
+  },
+  {
+    "id": "survey-1792644415582-kanj",
+    "assetId": "0725686670003010091",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T04:46:55.582Z"
+  },
+  {
+    "id": "survey-1792644409300-i44r",
+    "assetId": "0725627310017020001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:46:49.300Z"
+  },
+  {
+    "id": "survey-1792644393950-j5ap",
+    "assetId": "0725606515045360001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T04:46:33.950Z"
+  },
+  {
+    "id": "survey-1792644354791-tc0y",
+    "assetId": "0725686670003010124",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T04:45:54.791Z"
+  },
+  {
+    "id": "survey-1792644318453-vgf4",
+    "assetId": "0725686670003010123",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-22T04:45:18.452Z"
+  },
+  {
+    "id": "survey-1792644289746-vvft",
+    "assetId": "0725616530023030001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T04:44:49.746Z"
+  },
+  {
+    "id": "survey-1792644220286-8e3c",
+    "assetId": "0725516530009220001",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:43:40.286Z"
+  },
+  {
+    "id": "survey-1792644213022-0brl",
+    "assetId": "0725614120001990142",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T04:43:33.022Z"
+  },
+  {
+    "id": "survey-1792644152738-l02n",
+    "assetId": "0725614120001990141",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T04:42:32.738Z"
+  },
+  {
+    "id": "survey-1792644051569-rnq1",
+    "assetId": "0725614120001990143",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T04:40:51.569Z"
+  },
+  {
+    "id": "survey-1792643968737-te2u",
+    "assetId": "0725614120001990144",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T04:39:28.737Z"
+  },
+  {
+    "id": "survey-1792643960362-6itt",
+    "assetId": "0725624510007030002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:39:20.362Z"
+  },
+  {
+    "id": "survey-1792643886422-1etg",
+    "assetId": "0725614120001990145",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T04:38:06.422Z"
+  },
+  {
+    "id": "survey-1792643808931-vc0w",
+    "assetId": "0725697125004050024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:36:48.931Z"
+  },
+  {
+    "id": "survey-1792643689733-vd3t",
+    "assetId": "0725627110006040116",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:34:49.733Z"
+  },
+  {
+    "id": "survey-1792643625061-dznj",
+    "assetId": "0725607125004990013",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:33:45.061Z"
+  },
+  {
+    "id": "survey-1792643595765-elfp",
+    "assetId": "0725603920005990028",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T04:33:15.765Z"
+  },
+  {
+    "id": "survey-1792643498504-kz9u",
+    "assetId": "0725607110006130026",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T04:31:38.504Z"
+  },
+  {
+    "id": "survey-1792643385337-o8vu",
+    "assetId": "0725536530021160001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-22T04:29:45.336Z"
+  },
+  {
+    "id": "survey-1792643335460-ozyv",
+    "assetId": "0725607125004990014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:28:55.460Z"
+  },
+  {
+    "id": "survey-1792643247070-cc5c",
+    "assetId": "0725627110006040092",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:27:27.070Z"
+  },
+  {
+    "id": "survey-1792643203741-r9ny",
+    "assetId": "0725636515047250001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:26:43.741Z"
+  },
+  {
+    "id": "survey-1792643108661-22zj",
+    "assetId": "0725686670002060001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:25:08.661Z"
+  },
+  {
+    "id": "survey-1792643046234-da21",
+    "assetId": "0725606640026010006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:24:06.234Z"
+  },
+  {
+    "id": "survey-1792643015464-a9dg",
+    "assetId": "0725607110007160028",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:23:35.464Z"
+  },
+  {
+    "id": "survey-1792642956499-72hz",
+    "assetId": "0725687110007240002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:22:36.499Z"
+  },
+  {
+    "id": "survey-1792642943342-0ull",
+    "assetId": "0725687110007240001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:22:23.342Z"
+  },
+  {
+    "id": "survey-1792642612988-v8mt",
+    "assetId": "0725607520018010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:16:52.988Z"
+  },
+  {
+    "id": "survey-1792642424076-v8j6",
+    "assetId": "0725694510015980014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:13:44.076Z"
+  },
+  {
+    "id": "survey-1792642348180-lojp",
+    "assetId": "0725694510015980013",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:12:28.180Z"
+  },
+  {
+    "id": "survey-1792642290514-qvrx",
+    "assetId": "0725694140003110002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:11:30.514Z"
+  },
+  {
+    "id": "survey-1792642179902-cu7t",
+    "assetId": "0725606515003340001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:09:39.902Z"
+  },
+  {
+    "id": "survey-1792641928109-uty4",
+    "assetId": "0725626530021060008",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:05:28.109Z"
+  },
+  {
+    "id": "survey-1792641867480-g32m",
+    "assetId": "0725666530021060019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:04:27.479Z"
+  },
+  {
+    "id": "survey-1792641846034-pc80",
+    "assetId": "0725626530021060031",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:04:06.034Z"
+  },
+  {
+    "id": "survey-1792641797005-c9vg",
+    "assetId": "0725646530021060021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:03:17.005Z"
+  },
+  {
+    "id": "survey-1792641735230-0ndy",
+    "assetId": "0725617440010010011",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:02:15.230Z"
+  },
+  {
+    "id": "survey-1792641701025-o22g",
+    "assetId": "0725607110007160034",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:01:41.025Z"
+  },
+  {
+    "id": "survey-1792641611553-ligz",
+    "assetId": "0725627125004110004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T04:00:11.553Z"
+  },
+  {
+    "id": "survey-1792641575021-xdr3",
+    "assetId": "0725607110007160018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:59:35.021Z"
+  },
+  {
+    "id": "survey-1792641527955-e4p5",
+    "assetId": "0725627110006040094",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:58:47.955Z"
+  },
+  {
+    "id": "survey-1792641496917-v71s",
+    "assetId": "0725614120001990146",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T03:58:16.916Z"
+  },
+  {
+    "id": "survey-1792641479807-73ni",
+    "assetId": "0725617110007160001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:57:59.807Z"
+  },
+  {
+    "id": "survey-1792641449676-kpzq",
+    "assetId": "0725627110006040064",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T03:57:29.676Z"
+  },
+  {
+    "id": "survey-1792641447322-oych",
+    "assetId": "0725656515047250001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:57:27.322Z"
+  },
+  {
+    "id": "survey-1792641377751-tqe9",
+    "assetId": "0725633694002040001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:56:17.751Z"
+  },
+  {
+    "id": "survey-1792641332465-3rgv",
+    "assetId": "0725607110006130040",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:55:32.465Z"
+  },
+  {
+    "id": "survey-1792641301945-nn9k",
+    "assetId": "0725607110006130039",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:55:01.945Z"
+  },
+  {
+    "id": "survey-1792641266122-hawm",
+    "assetId": "0725607110006130034",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:54:26.121Z"
+  },
+  {
+    "id": "survey-1792641253797-ocxy",
+    "assetId": "0725614140002020040",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T03:54:13.796Z"
+  },
+  {
+    "id": "survey-1792641202463-0t63",
+    "assetId": "0725607110007160021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:53:22.463Z"
+  },
+  {
+    "id": "survey-1792641170216-wuo1",
+    "assetId": "0725627110006040071",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:52:50.216Z"
+  },
+  {
+    "id": "survey-1792641134971-skct",
+    "assetId": "0725627110006040108",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:52:14.971Z"
+  },
+  {
+    "id": "survey-1792641087077-zm8z",
+    "assetId": "0725607110006130033",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:51:27.077Z"
+  },
+  {
+    "id": "survey-1792641057623-6a9o",
+    "assetId": "0725694510015980010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:50:57.623Z"
+  },
+  {
+    "id": "survey-1792641018711-1g0w",
+    "assetId": "0725686670004060001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:50:18.711Z"
+  },
+  {
+    "id": "survey-1792640973594-9t8k",
+    "assetId": "0725603920005260019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:49:33.594Z"
+  },
+  {
+    "id": "survey-1792640931651-zl2f",
+    "assetId": "0725673650005160001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:48:51.651Z"
+  },
+  {
+    "id": "survey-1792640899262-7emv",
+    "assetId": "0725606515047150001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:48:19.262Z"
+  },
+  {
+    "id": "survey-1792640816481-l9mu",
+    "assetId": "0725526515999990004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:46:56.481Z"
+  },
+  {
+    "id": "survey-1792640739735-hkc6",
+    "assetId": "0725633650005300003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:45:39.735Z"
+  },
+  {
+    "id": "survey-1792640731444-92hb",
+    "assetId": "0725697110007030005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T03:45:31.443Z"
+  },
+  {
+    "id": "survey-1792640695366-r6fm",
+    "assetId": "0725606530020020001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:44:55.366Z"
+  },
+  {
+    "id": "survey-1792640636557-7yns",
+    "assetId": "0725603650005150001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:43:56.557Z"
+  },
+  {
+    "id": "survey-1792640597783-5vhw",
+    "assetId": "0725603920005260020",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:43:17.783Z"
+  },
+  {
+    "id": "survey-1792640520921-448i",
+    "assetId": "0725636670002060002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:42:00.921Z"
+  },
+  {
+    "id": "survey-1792640493344-ux4p",
+    "assetId": "0725617110007020016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:41:33.344Z"
+  },
+  {
+    "id": "survey-1792640453351-41pa",
+    "assetId": "0725637440010990002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:40:53.351Z"
+  },
+  {
+    "id": "survey-1792640411504-iqyy",
+    "assetId": "0725606515003340004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:40:11.504Z"
+  },
+  {
+    "id": "survey-1792640385648-0yu9",
+    "assetId": "0725684140003040003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-22T03:39:45.648Z"
+  },
+  {
+    "id": "survey-1792633327847-5ri9",
+    "assetId": "0725634310001030002",
+    "roundId": "round-default",
+    "status": "รอจำหน่าย",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-22T01:42:07.846Z"
+  },
+  {
+    "id": "survey-1792584248215-5cfo",
+    "assetId": "0725627125004110003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T12:04:08.215Z"
+  },
+  {
+    "id": "survey-1792584217434-a5vd",
+    "assetId": "0725697125004050061",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T12:03:37.434Z"
+  },
+  {
+    "id": "survey-1792584184121-1cvo",
+    "assetId": "0725627125004110001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T12:03:04.121Z"
+  },
+  {
+    "id": "survey-1792584165544-33dx",
+    "assetId": "0725627125004110002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T12:02:45.544Z"
+  },
+  {
+    "id": "survey-1792584143982-oh8o",
+    "assetId": "0725606530025210063",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T12:02:23.982Z"
+  },
+  {
+    "id": "survey-1792584117738-lisp",
+    "assetId": "0725697125004050063",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T12:01:57.738Z"
+  },
+  {
+    "id": "survey-1792584019804-zx9b",
+    "assetId": "0725697110007240019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T12:00:19.804Z"
+  },
+  {
+    "id": "survey-1792583995743-1e3k",
+    "assetId": "0725593650005200003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:59:55.743Z"
+  },
+  {
+    "id": "survey-1792583975094-le1n",
+    "assetId": "0725593650005200001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:59:35.094Z"
+  },
+  {
+    "id": "survey-1792583946925-t3bc",
+    "assetId": "0725697110007240014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:59:06.925Z"
+  },
+  {
+    "id": "survey-1792583927400-oo44",
+    "assetId": "0725604510007030008",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:58:47.400Z"
+  },
+  {
+    "id": "survey-1792583892813-7wqc",
+    "assetId": "0725697110007240023",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:58:12.813Z"
+  },
+  {
+    "id": "survey-1792583869344-d38n",
+    "assetId": "0725603694005010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:57:49.344Z"
+  },
+  {
+    "id": "survey-1792583809829-sxsx",
+    "assetId": "0725593694005010008",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:56:49.829Z"
+  },
+  {
+    "id": "survey-1792583767287-t79a",
+    "assetId": "0725697110007240017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:56:07.287Z"
+  },
+  {
+    "id": "survey-1792583719601-xizn",
+    "assetId": "0725643650005200001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:55:19.601Z"
+  },
+  {
+    "id": "survey-1792583702287-1bi7",
+    "assetId": "0725593694005010007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:55:02.287Z"
+  },
+  {
+    "id": "survey-1792583632621-jk1l",
+    "assetId": "0725607110006130017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:53:52.621Z"
+  },
+  {
+    "id": "survey-1792583584277-qqy6",
+    "assetId": "0725607110006130024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:53:04.276Z"
+  },
+  {
+    "id": "survey-1792583547359-r7g2",
+    "assetId": "0725627110006040099",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:52:27.359Z"
+  },
+  {
+    "id": "survey-1792583518612-f7yb",
+    "assetId": "0725627110006040081",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:51:58.612Z"
+  },
+  {
+    "id": "survey-1792583446796-ht0b",
+    "assetId": "0725606530025210059",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:50:46.796Z"
+  },
+  {
+    "id": "survey-1792583416512-nyuu",
+    "assetId": "0725623920005120003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:50:16.512Z"
+  },
+  {
+    "id": "survey-1792583393340-7ni3",
+    "assetId": "0725643920005090007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:49:53.340Z"
+  },
+  {
+    "id": "survey-1792583373016-sofi",
+    "assetId": "0725643920005090006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:49:33.016Z"
+  },
+  {
+    "id": "survey-1792583317875-ofcx",
+    "assetId": "0725406515999990002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:48:37.875Z"
+  },
+  {
+    "id": "survey-1792583247105-58zl",
+    "assetId": "0725607110006130014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:47:27.105Z"
+  },
+  {
+    "id": "survey-1792583216315-81qd",
+    "assetId": "0725456515999990005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:46:56.315Z"
+  },
+  {
+    "id": "survey-1792583122052-7kti",
+    "assetId": "0725607110006130015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:45:22.052Z"
+  },
+  {
+    "id": "survey-1792583072252-b8wa",
+    "assetId": "0725627110006040110",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:44:32.252Z"
+  },
+  {
+    "id": "survey-1792583044835-0bs1",
+    "assetId": "0725607110006130038",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:44:04.834Z"
+  },
+  {
+    "id": "survey-1792582984951-wgas",
+    "assetId": "0725607110006130032",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:43:04.951Z"
+  },
+  {
+    "id": "survey-1792582707662-tqcl",
+    "assetId": "0725697125004050062",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:38:27.662Z"
+  },
+  {
+    "id": "survey-1792582675101-3fgg",
+    "assetId": "0725626530021040003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:37:55.101Z"
+  },
+  {
+    "id": "survey-1792582049138-n6ed",
+    "assetId": "0725603920005990023",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:27:29.138Z"
+  },
+  {
+    "id": "survey-1792582029162-fu4q",
+    "assetId": "0725603920005990022",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:27:09.162Z"
+  },
+  {
+    "id": "survey-1792581986070-8y2v",
+    "assetId": "0725697125004050064",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:26:26.070Z"
+  },
+  {
+    "id": "survey-1792581923552-bsb5",
+    "assetId": "0725694510015980019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:25:23.552Z"
+  },
+  {
+    "id": "survey-1792581897486-o6ey",
+    "assetId": "0725607110006130025",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:24:57.486Z"
+  },
+  {
+    "id": "survey-1792581868276-wox8",
+    "assetId": "0725627110006040070",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:24:28.276Z"
+  },
+  {
+    "id": "survey-1792581808703-swhm",
+    "assetId": "0725697110007240021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:23:28.703Z"
+  },
+  {
+    "id": "survey-1792581785724-yomy",
+    "assetId": "0725547440001030009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:23:05.724Z"
+  },
+  {
+    "id": "survey-1792581753371-14qr",
+    "assetId": "0725627490008010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:22:33.371Z"
+  },
+  {
+    "id": "survey-1792581660169-dfhh",
+    "assetId": "0725607110006130022",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:21:00.169Z"
+  },
+  {
+    "id": "survey-1792581624511-1qdm",
+    "assetId": "0725697125004050065",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:20:24.511Z"
+  },
+  {
+    "id": "survey-1792581601604-5ogu",
+    "assetId": "0725697125004050066",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:20:01.604Z"
+  },
+  {
+    "id": "survey-1792581579160-bknt",
+    "assetId": "0725697125004050067",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:19:39.160Z"
+  },
+  {
+    "id": "survey-1792581553392-r6bl",
+    "assetId": "0725697125004050068",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:19:13.392Z"
+  },
+  {
+    "id": "survey-1792581513113-aqn7",
+    "assetId": "0725607110013010175",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:18:33.113Z"
+  },
+  {
+    "id": "survey-1792581490520-a71x",
+    "assetId": "0725607110013010174",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:18:10.520Z"
+  },
+  {
+    "id": "survey-1792581442879-34l7",
+    "assetId": "0725636530021150004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:17:22.879Z"
+  },
+  {
+    "id": "survey-1792581396722-4e71",
+    "assetId": "0725627110006040101",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:16:36.722Z"
+  },
+  {
+    "id": "survey-1792581334684-ee0n",
+    "assetId": "0725697110007240018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:15:34.684Z"
+  },
+  {
+    "id": "survey-1792581174500-1jv3",
+    "assetId": "0725697110007240016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:12:54.499Z"
+  },
+  {
+    "id": "survey-1792581088513-5waw",
+    "assetId": "0725697110007240024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:11:28.513Z"
+  },
+  {
+    "id": "survey-1792581067322-84ji",
+    "assetId": "0725604510007030007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:11:07.322Z"
+  },
+  {
+    "id": "survey-1792581030590-3cry",
+    "assetId": "0725627110006040074",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:10:30.590Z"
+  },
+  {
+    "id": "survey-1792580997096-vwc4",
+    "assetId": "0725643650005200003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:09:57.096Z"
+  },
+  {
+    "id": "survey-1792580970707-otx2",
+    "assetId": "0725627110006040104",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:09:30.707Z"
+  },
+  {
+    "id": "survey-1792580948252-2ny4",
+    "assetId": "0725604510007030006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:09:08.252Z"
+  },
+  {
+    "id": "survey-1792580924457-mnjs",
+    "assetId": "0725593650005200004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:08:44.457Z"
+  },
+  {
+    "id": "survey-1792580893354-8alj",
+    "assetId": "0725593650005200002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:08:13.354Z"
+  },
+  {
+    "id": "survey-1792580862403-hvsu",
+    "assetId": "0725697110007240020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:07:42.403Z"
+  },
+  {
+    "id": "survey-1792580824372-8r0a",
+    "assetId": "0725604510007030003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:07:04.372Z"
+  },
+  {
+    "id": "survey-1792580788968-qitg",
+    "assetId": "0725697110007240015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:06:28.968Z"
+  },
+  {
+    "id": "survey-1792580735044-y1c6",
+    "assetId": "0725627110006040065",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:05:35.044Z"
+  },
+  {
+    "id": "survey-1792580672196-5ljt",
+    "assetId": "0725643650005200004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:04:32.196Z"
+  },
+  {
+    "id": "survey-1792580642741-ihb2",
+    "assetId": "0725685805001020035",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:04:02.741Z"
+  },
+  {
+    "id": "survey-1792580617633-lbty",
+    "assetId": "0725603920005990025",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:03:37.633Z"
+  },
+  {
+    "id": "survey-1792580584911-cf8v",
+    "assetId": "0725606530025210062",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:03:04.911Z"
+  },
+  {
+    "id": "survey-1792580514202-hud0",
+    "assetId": "0725627110006040139",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:01:54.202Z"
+  },
+  {
+    "id": "survey-1792580478911-b2kd",
+    "assetId": "0725627110006040140",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:01:18.911Z"
+  },
+  {
+    "id": "survey-1792580432521-j0t7",
+    "assetId": "0725627110006040114",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:00:32.521Z"
+  },
+  {
+    "id": "survey-1792580402525-kvrc",
+    "assetId": "0725697110007240022",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T11:00:02.525Z"
+  },
+  {
+    "id": "survey-1792580363275-snma",
+    "assetId": "0725604510007030005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T10:59:23.275Z"
+  },
+  {
+    "id": "survey-1792574763273-bpu3",
+    "assetId": "0725346530021050001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:26:03.273Z"
+  },
+  {
+    "id": "survey-1792574721021-h9oo",
+    "assetId": "0725627110006040109",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:25:21.021Z"
+  },
+  {
+    "id": "survey-1792574677916-6kh9",
+    "assetId": "0725696530021190002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:24:37.916Z"
+  },
+  {
+    "id": "survey-1792574653867-1ax5",
+    "assetId": "0725627110006040088",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:24:13.867Z"
+  },
+  {
+    "id": "survey-1792574619528-jryj",
+    "assetId": "0725627110006040079",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:23:39.528Z"
+  },
+  {
+    "id": "survey-1792574598600-kffo",
+    "assetId": "0725696530021190004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:23:18.600Z"
+  },
+  {
+    "id": "survey-1792574563920-f797",
+    "assetId": "0725627110006040102",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:22:43.920Z"
+  },
+  {
+    "id": "survey-1792574529119-xg99",
+    "assetId": "0725627110006040078",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:22:09.118Z"
+  },
+  {
+    "id": "survey-1792574485239-tpea",
+    "assetId": "0725627110006040106",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:21:25.239Z"
+  },
+  {
+    "id": "survey-1792574456033-qy25",
+    "assetId": "0725697125004050019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:20:56.033Z"
+  },
+  {
+    "id": "survey-1792574428205-ccpw",
+    "assetId": "0725697110007240026",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:20:28.205Z"
+  },
+  {
+    "id": "survey-1792574374567-8z7c",
+    "assetId": "0725627110006040084",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:19:34.566Z"
+  },
+  {
+    "id": "survey-1792574296161-grv1",
+    "assetId": "0725697125004050055",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:18:16.161Z"
+  },
+  {
+    "id": "survey-1792574224164-25nc",
+    "assetId": "0725697125004050070",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:17:04.164Z"
+  },
+  {
+    "id": "survey-1792574202359-r7am",
+    "assetId": "0725696530021190008",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:16:42.359Z"
+  },
+  {
+    "id": "survey-1792574163451-qw2s",
+    "assetId": "0725696530021190001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:16:03.451Z"
+  },
+  {
+    "id": "survey-1792574087256-9jxl",
+    "assetId": "0725696530021190007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:14:47.256Z"
+  },
+  {
+    "id": "survey-1792573970598-9575",
+    "assetId": "0725467910003990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:12:50.598Z"
+  },
+  {
+    "id": "survey-1792573920875-60ex",
+    "assetId": "0725547910003990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:12:00.875Z"
+  },
+  {
+    "id": "survey-1792573863834-w3yi",
+    "assetId": "0725694510015980008",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:11:03.834Z"
+  },
+  {
+    "id": "survey-1792573840350-xi1n",
+    "assetId": "0725694510015980009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:10:40.350Z"
+  },
+  {
+    "id": "survey-1792573796333-9tcq",
+    "assetId": "0725614310004010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:09:56.333Z"
+  },
+  {
+    "id": "survey-1792573770144-d2e6",
+    "assetId": "0725516515047250001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:09:30.144Z"
+  },
+  {
+    "id": "survey-1792573743972-txgl",
+    "assetId": "0725556530018020002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:09:03.971Z"
+  },
+  {
+    "id": "survey-1792573680483-uf8t",
+    "assetId": "0725603650007160001",
+    "roundId": "round-default",
+    "status": "อื่นๆ",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:08:00.483Z"
+  },
+  {
+    "id": "survey-1792573662985-y7se",
+    "assetId": "0725656515050070003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:07:42.985Z"
+  },
+  {
+    "id": "survey-1792573634847-p1c6",
+    "assetId": "0725653920005110010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:07:14.847Z"
+  },
+  {
+    "id": "survey-1792573559705-jv80",
+    "assetId": "0725627110006040100",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:05:59.705Z"
+  },
+  {
+    "id": "survey-1792573536104-z3xy",
+    "assetId": "0725607110007160022",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:05:36.104Z"
+  },
+  {
+    "id": "survey-1792573510793-rl44",
+    "assetId": "0725496530022180001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:05:10.793Z"
+  },
+  {
+    "id": "survey-1792573479394-h4n3",
+    "assetId": "0725607110013010173",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:04:39.394Z"
+  },
+  {
+    "id": "survey-1792573432947-dqip",
+    "assetId": "0725576670004060001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:03:52.947Z"
+  },
+  {
+    "id": "survey-1792573391583-bxu8",
+    "assetId": "0725697125004050072",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T09:03:11.583Z"
+  },
+  {
+    "id": "survey-1792571678873-pctb",
+    "assetId": "0725607110013010019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-21T08:34:38.873Z"
+  },
+  {
+    "id": "survey-1792571612309-6pex",
+    "assetId": "0725603920005990026",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-21T08:33:32.309Z"
+  },
+  {
+    "id": "survey-1792560442622-587g",
+    "assetId": "0725697125004050017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:27:22.622Z"
+  },
+  {
+    "id": "survey-1792560418896-dc5p",
+    "assetId": "0725697125004050054",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:26:58.896Z"
+  },
+  {
+    "id": "survey-1792560400085-zjhx",
+    "assetId": "0725606530025210061",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:26:40.085Z"
+  },
+  {
+    "id": "survey-1792560374112-4zg9",
+    "assetId": "0725697125004050013",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:26:14.112Z"
+  },
+  {
+    "id": "survey-1792560301492-k3co",
+    "assetId": "0725697125004050020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:25:01.492Z"
+  },
+  {
+    "id": "survey-1792560280087-dp2q",
+    "assetId": "0725607125004990015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:24:40.087Z"
+  },
+  {
+    "id": "survey-1792560252221-k6h0",
+    "assetId": "0725606530025210060",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:24:12.221Z"
+  },
+  {
+    "id": "survey-1792560206527-aaja",
+    "assetId": "0725697195004040004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:23:26.527Z"
+  },
+  {
+    "id": "survey-1792560160960-uc0h",
+    "assetId": "0725627110006040066",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:22:40.960Z"
+  },
+  {
+    "id": "survey-1792560131419-rsoq",
+    "assetId": "0725607110006130020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:22:11.419Z"
+  },
+  {
+    "id": "survey-1792560085841-bqn8",
+    "assetId": "0725636530021190004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:21:25.841Z"
+  },
+  {
+    "id": "survey-1792560058105-cu9m",
+    "assetId": "0725676530014080002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:20:58.105Z"
+  },
+  {
+    "id": "survey-1792560024599-mq26",
+    "assetId": "0725627110006040134",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:20:24.599Z"
+  },
+  {
+    "id": "survey-1792559985659-hjqe",
+    "assetId": "0725607110006130028",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:19:45.659Z"
+  },
+  {
+    "id": "survey-1792559960605-lvj0",
+    "assetId": "0725636530021190003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:19:20.605Z"
+  },
+  {
+    "id": "survey-1792559940461-axid",
+    "assetId": "0725607110007160015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:19:00.461Z"
+  },
+  {
+    "id": "survey-1792559912224-weni",
+    "assetId": "0725527195004990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:18:32.224Z"
+  },
+  {
+    "id": "survey-1792559889481-qq4i",
+    "assetId": "0725644140006050021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:18:09.481Z"
+  },
+  {
+    "id": "survey-1792559870069-qca0",
+    "assetId": "0725607110006130037",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:17:50.069Z"
+  },
+  {
+    "id": "survey-1792559845378-msjk",
+    "assetId": "0725697195004040003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:17:25.378Z"
+  },
+  {
+    "id": "survey-1792559808714-ixeo",
+    "assetId": "0725607110007160027",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:16:48.714Z"
+  },
+  {
+    "id": "survey-1792559779819-olz5",
+    "assetId": "0725627110006040105",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:16:19.819Z"
+  },
+  {
+    "id": "survey-1792559755453-wmia",
+    "assetId": "0725607110007160029",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:15:55.453Z"
+  },
+  {
+    "id": "survey-1792559716856-sadi",
+    "assetId": "0725607110007160014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:15:16.856Z"
+  },
+  {
+    "id": "survey-1792559646685-untx",
+    "assetId": "0725564140006990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T05:14:06.684Z"
+  },
+  {
+    "id": "survey-1792558764717-p6ea",
+    "assetId": "0725697125004050040",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:59:24.717Z"
+  },
+  {
+    "id": "survey-1792558734557-3r5y",
+    "assetId": "0725697125004050039",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:58:54.557Z"
+  },
+  {
+    "id": "survey-1792558702207-2yh2",
+    "assetId": "0725697125004050038",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:58:22.207Z"
+  },
+  {
+    "id": "survey-1792558645237-xlww",
+    "assetId": "0725607110007020027",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:57:25.236Z"
+  },
+  {
+    "id": "survey-1792558623215-fm83",
+    "assetId": "0725603920005110066",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:57:03.215Z"
+  },
+  {
+    "id": "survey-1792558558570-5wuh",
+    "assetId": "0725607110007160030",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:55:58.570Z"
+  },
+  {
+    "id": "survey-1792558500734-v9g5",
+    "assetId": "0725607125001070001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:55:00.734Z"
+  },
+  {
+    "id": "survey-1792558464368-a1bn",
+    "assetId": "0725607110006130030",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:54:24.368Z"
+  },
+  {
+    "id": "survey-1792558401180-20f0",
+    "assetId": "0725676640035010002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:53:21.180Z"
+  },
+  {
+    "id": "survey-1792558371080-4r93",
+    "assetId": "0725697125004050071",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:52:51.080Z"
+  },
+  {
+    "id": "survey-1792558338643-glea",
+    "assetId": "0725697125004050069",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:52:18.643Z"
+  },
+  {
+    "id": "survey-1792558310296-lvhg",
+    "assetId": "0725627110006040118",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:51:50.296Z"
+  },
+  {
+    "id": "survey-1792558258116-eh5b",
+    "assetId": "0725627110006040093",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:50:58.116Z"
+  },
+  {
+    "id": "survey-1792558189494-r8om",
+    "assetId": "0725627110006040111",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:49:49.494Z"
+  },
+  {
+    "id": "survey-1792558160634-bpal",
+    "assetId": "0725627110006040073",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:49:20.634Z"
+  },
+  {
+    "id": "survey-1792558119182-j6gj",
+    "assetId": "0725676640035010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:48:39.182Z"
+  },
+  {
+    "id": "survey-1792558085989-6rxf",
+    "assetId": "0725627110006040067",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:48:05.989Z"
+  },
+  {
+    "id": "survey-1792558018604-0po8",
+    "assetId": "0725627110006040113",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:46:58.604Z"
+  },
+  {
+    "id": "survey-1792557920065-46rl",
+    "assetId": "0725615805001020029",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:45:20.065Z"
+  },
+  {
+    "id": "survey-1792557778335-0ezb",
+    "assetId": "0725697125004050060",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:42:58.335Z"
+  },
+  {
+    "id": "survey-1792557744790-jv07",
+    "assetId": "0725697125004050057",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:42:24.790Z"
+  },
+  {
+    "id": "survey-1792557713518-861f",
+    "assetId": "0725627110006040103",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:41:53.518Z"
+  },
+  {
+    "id": "survey-1792557688374-o0tg",
+    "assetId": "0725697125004050059",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:41:28.374Z"
+  },
+  {
+    "id": "survey-1792557652947-480y",
+    "assetId": "0725697125004050058",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:40:52.946Z"
+  },
+  {
+    "id": "survey-1792557610624-watv",
+    "assetId": "0725697125004050056",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:40:10.624Z"
+  },
+  {
+    "id": "survey-1792557558484-ltbm",
+    "assetId": "0725697125004050053",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:39:18.484Z"
+  },
+  {
+    "id": "survey-1792557509938-8akp",
+    "assetId": "0725607110007020025",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:38:29.938Z"
+  },
+  {
+    "id": "survey-1792557475141-398h",
+    "assetId": "0725607110007160026",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:37:55.141Z"
+  },
+  {
+    "id": "survey-1792557434719-sckg",
+    "assetId": "0725446515999990005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:37:14.719Z"
+  },
+  {
+    "id": "survey-1792557280001-qrjj",
+    "assetId": "0725697125004050041",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:34:40.001Z"
+  },
+  {
+    "id": "survey-1792557245074-fy1s",
+    "assetId": "0725697125004050011",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:34:05.074Z"
+  },
+  {
+    "id": "survey-1792557224747-a68e",
+    "assetId": "0725697125004050023",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:33:44.747Z"
+  },
+  {
+    "id": "survey-1792557204156-xy8c",
+    "assetId": "0725697125004050042",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:33:24.156Z"
+  },
+  {
+    "id": "survey-1792557178439-phyj",
+    "assetId": "0725697125004050022",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:32:58.439Z"
+  },
+  {
+    "id": "survey-1792557146016-lxh4",
+    "assetId": "0725697125004050046",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:32:26.016Z"
+  },
+  {
+    "id": "survey-1792557116866-5n9j",
+    "assetId": "0725697125004050045",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:31:56.866Z"
+  },
+  {
+    "id": "survey-1792557091290-m5xb",
+    "assetId": "0725697125004050044",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:31:31.290Z"
+  },
+  {
+    "id": "survey-1792557065207-jy0j",
+    "assetId": "0725697125004050043",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:31:05.207Z"
+  },
+  {
+    "id": "survey-1792557042319-k7cu",
+    "assetId": "0725697125004050033",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:30:42.319Z"
+  },
+  {
+    "id": "survey-1792557017052-fztv",
+    "assetId": "0725697125004050032",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:30:17.052Z"
+  },
+  {
+    "id": "survey-1792556996825-rris",
+    "assetId": "0725697125004050034",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:29:56.825Z"
+  },
+  {
+    "id": "survey-1792556974269-1vta",
+    "assetId": "0725697125004050035",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:29:34.268Z"
+  },
+  {
+    "id": "survey-1792556947829-3v96",
+    "assetId": "0725697125004050037",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:29:07.829Z"
+  },
+  {
+    "id": "survey-1792556706795-woyz",
+    "assetId": "0725697125004050036",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:25:06.795Z"
+  },
+  {
+    "id": "survey-1792556668739-sk8z",
+    "assetId": "0725697125004050016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:24:28.739Z"
+  },
+  {
+    "id": "survey-1792556640469-3mut",
+    "assetId": "0725697125004050074",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:24:00.469Z"
+  },
+  {
+    "id": "survey-1792556616987-yly0",
+    "assetId": "0725697125004050031",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:23:36.987Z"
+  },
+  {
+    "id": "survey-1792556595311-2jpx",
+    "assetId": "0725697125004050030",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:23:15.311Z"
+  },
+  {
+    "id": "survey-1792556574367-2888",
+    "assetId": "0725697125004050029",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:22:54.367Z"
+  },
+  {
+    "id": "survey-1792556545345-zw0f",
+    "assetId": "0725697125004050028",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:22:25.345Z"
+  },
+  {
+    "id": "survey-1792556519371-4rcv",
+    "assetId": "0725697125004050027",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:21:59.371Z"
+  },
+  {
+    "id": "survey-1792556499245-img5",
+    "assetId": "0725697125004050026",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:21:39.245Z"
+  },
+  {
+    "id": "survey-1792556475965-jh7o",
+    "assetId": "0725697125004050025",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:21:15.965Z"
+  },
+  {
+    "id": "survey-1792556439604-vaov",
+    "assetId": "0725696530021190005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:20:39.604Z"
+  },
+  {
+    "id": "survey-1792556354806-v15i",
+    "assetId": "0725696530021190009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:19:14.806Z"
+  },
+  {
+    "id": "survey-1792556331230-7k7p",
+    "assetId": "0725636530021190001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:18:51.230Z"
+  },
+  {
+    "id": "survey-1792556274410-5xfz",
+    "assetId": "0725636530021190006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:17:54.410Z"
+  },
+  {
+    "id": "survey-1792556225420-dzax",
+    "assetId": "0725636530021190005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:17:05.420Z"
+  },
+  {
+    "id": "survey-1792556196946-2n8r",
+    "assetId": "0725696530021190006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:16:36.946Z"
+  },
+  {
+    "id": "survey-1792556169369-j45r",
+    "assetId": "0725696530021190003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:16:09.369Z"
+  },
+  {
+    "id": "survey-1792556129789-bi56",
+    "assetId": "0725636530021190002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:15:29.789Z"
+  },
+  {
+    "id": "survey-1792555567549-9jc5",
+    "assetId": "0725697195004040001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:06:07.549Z"
+  },
+  {
+    "id": "survey-1792555521264-ctro",
+    "assetId": "0725406515999990004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:05:21.264Z"
+  },
+  {
+    "id": "survey-1792555489695-wtnb",
+    "assetId": "0725607110007160017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:04:49.695Z"
+  },
+  {
+    "id": "survey-1792555441852-6xad",
+    "assetId": "0725683920005090003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:04:01.852Z"
+  },
+  {
+    "id": "survey-1792555418217-ugoa",
+    "assetId": "0725697125004050052",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:03:38.217Z"
+  },
+  {
+    "id": "survey-1792555387422-i4q2",
+    "assetId": "0725697125004050051",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:03:07.422Z"
+  },
+  {
+    "id": "survey-1792555352785-o1qv",
+    "assetId": "0725697125004050050",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:02:32.785Z"
+  },
+  {
+    "id": "survey-1792555316633-wf89",
+    "assetId": "0725697125004050012",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:01:56.633Z"
+  },
+  {
+    "id": "survey-1792555276963-77ps",
+    "assetId": "0725697125004050014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:01:16.963Z"
+  },
+  {
+    "id": "survey-1792555221010-ro4w",
+    "assetId": "0725603920005110067",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T04:00:21.010Z"
+  },
+  {
+    "id": "survey-1792555097316-xi7f",
+    "assetId": "0725603920005990024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:58:17.316Z"
+  },
+  {
+    "id": "survey-1792555003093-jsc7",
+    "assetId": "0725683920005090001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:56:43.092Z"
+  },
+  {
+    "id": "survey-1792554437517-3z8c",
+    "assetId": "0725627110006040080",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:47:17.517Z"
+  },
+  {
+    "id": "survey-1792554331032-kksz",
+    "assetId": "0725697125004050047",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:45:31.032Z"
+  },
+  {
+    "id": "survey-1792554250889-pqtd",
+    "assetId": "0725627110006040112",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:44:10.889Z"
+  },
+  {
+    "id": "survey-1792554222094-vko2",
+    "assetId": "0725627110006040117",
+    "roundId": "round-default",
+    "status": "ชำรุด",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:43:42.094Z"
+  },
+  {
+    "id": "survey-1792554167889-d114",
+    "assetId": "0725683920005090002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:42:47.889Z"
+  },
+  {
+    "id": "survey-1792554112124-0bw0",
+    "assetId": "0725637125004050006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:41:52.124Z"
+  },
+  {
+    "id": "survey-1792554033856-6kja",
+    "assetId": "0725627110006040075",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:40:33.856Z"
+  },
+  {
+    "id": "survey-1792553994144-mold",
+    "assetId": "0725637125004110003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:39:54.144Z"
+  },
+  {
+    "id": "survey-1792553829209-9zwm",
+    "assetId": "0725697125004050009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:37:09.209Z"
+  },
+  {
+    "id": "survey-1792553785799-gift",
+    "assetId": "0725697125004050049",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:36:25.799Z"
+  },
+  {
+    "id": "survey-1792553682435-uajj",
+    "assetId": "0725697125004050048",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:34:42.434Z"
+  },
+  {
+    "id": "survey-1792553630349-uqoh",
+    "assetId": "0725697125004050008",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:33:50.349Z"
+  },
+  {
+    "id": "survey-1792553599139-n0gx",
+    "assetId": "0725697125004050007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:33:19.139Z"
+  },
+  {
+    "id": "survey-1792553564742-q2t3",
+    "assetId": "0725697125004050015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:32:44.742Z"
+  },
+  {
+    "id": "survey-1792553519283-bice",
+    "assetId": "0725697125004050018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:31:59.283Z"
+  },
+  {
+    "id": "survey-1792553416177-aiwo",
+    "assetId": "0725607110006130036",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:30:16.176Z"
+  },
+  {
+    "id": "survey-1792553324950-qyz6",
+    "assetId": "0725627110006040095",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:28:44.950Z"
+  },
+  {
+    "id": "survey-1792553217494-bvs7",
+    "assetId": "0725653510003020001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:26:57.494Z"
+  },
+  {
+    "id": "survey-1792553141265-wo2j",
+    "assetId": "0725673510012010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:25:41.265Z"
+  },
+  {
+    "id": "survey-1792553100575-7uk0",
+    "assetId": "0725603920005990027",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:25:00.575Z"
+  },
+  {
+    "id": "survey-1792553069635-0amm",
+    "assetId": "0725603920005260018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:24:29.635Z"
+  },
+  {
+    "id": "survey-1792552978468-h450",
+    "assetId": "0725653650005300001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:22:58.468Z"
+  },
+  {
+    "id": "survey-1792552922865-lq8u",
+    "assetId": "0725653650005150002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:22:02.865Z"
+  },
+  {
+    "id": "survey-1792552882304-qqgb",
+    "assetId": "0725685805001020024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:21:22.304Z"
+  },
+  {
+    "id": "survey-1792552825719-jaw1",
+    "assetId": "0725697125004050010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:20:25.719Z"
+  },
+  {
+    "id": "survey-1792552398564-tfje",
+    "assetId": "0725697125004050021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-21T03:13:18.564Z"
+  },
+  {
+    "id": "survey-1792549193521-s86p",
+    "assetId": "0725606515045360002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T02:19:53.521Z"
+  },
+  {
+    "id": "survey-1792548958225-2ftj",
+    "assetId": "0725697195004040002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T02:15:58.224Z"
+  },
+  {
+    "id": "survey-1792548294094-f2m6",
+    "assetId": "0725607110007020024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T02:04:54.094Z"
+  },
+  {
+    "id": "survey-1792548259199-bcg4",
+    "assetId": "0725607110006130031",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T02:04:19.199Z"
+  },
+  {
+    "id": "survey-1792548172503-lqjt",
+    "assetId": "0725627110006040072",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T02:02:52.503Z"
+  },
+  {
+    "id": "survey-1792548104000-23a5",
+    "assetId": "0725603920005260014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T02:01:44.000Z"
+  },
+  {
+    "id": "survey-1792548073988-dpvs",
+    "assetId": "0725603920005260015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T02:01:13.988Z"
+  },
+  {
+    "id": "survey-1792548049527-g9wr",
+    "assetId": "0725603920005260016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T02:00:49.527Z"
+  },
+  {
+    "id": "survey-1792548013763-dsgi",
+    "assetId": "0725603920005990020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T02:00:13.762Z"
+  },
+  {
+    "id": "survey-1792547968110-cmc5",
+    "assetId": "0725603920005990021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T01:59:28.110Z"
+  },
+  {
+    "id": "survey-1792547938200-m89t",
+    "assetId": "0725456530003010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T01:58:58.200Z"
+  },
+  {
+    "id": "survey-1792547884377-s98n",
+    "assetId": "0725607440010990010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T01:58:04.377Z"
+  },
+  {
+    "id": "survey-1792547818002-fqed",
+    "assetId": "0725406530003010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T01:56:58.002Z"
+  },
+  {
+    "id": "survey-1792547745813-fz5m",
+    "assetId": "0725607440010010020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T01:55:45.813Z"
+  },
+  {
+    "id": "survey-1792547693535-mwiy",
+    "assetId": "0725627110006040083",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T01:54:53.535Z"
+  },
+  {
+    "id": "survey-1792547641930-4b52",
+    "assetId": "0725627110006040115",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T01:54:01.930Z"
+  },
+  {
+    "id": "survey-1792547605278-b2yx",
+    "assetId": "0725607110007020026",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T01:53:25.278Z"
+  },
+  {
+    "id": "survey-1792547565015-dui9",
+    "assetId": "0725607110006130027",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-21T01:52:45.015Z"
+  },
+  {
+    "id": "survey-1792498934146-b0a7akvme",
+    "assetId": "0725667730003090001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T12:22:14.146Z"
+  },
+  {
+    "id": "survey-1792498899587-aqz4cb8zx",
+    "assetId": "0725685820016010013",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T12:21:39.587Z"
+  },
+  {
+    "id": "survey-1792498699766-94xf23ird",
+    "assetId": "0725645805001030025",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T12:18:19.766Z"
+  },
+  {
+    "id": "survey-1792498627479-92imlsg53",
+    "assetId": "0725615805001010014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T12:17:07.479Z"
+  },
+  {
+    "id": "survey-1792498329810-qcxkpoxk3",
+    "assetId": "0725604240012020002",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T12:12:09.810Z"
+  },
+  {
+    "id": "survey-1792498044457-ejwaa203d",
+    "assetId": "0725607440011990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T12:07:24.457Z"
+  },
+  {
+    "id": "survey-1792497987873-7pspa9luk",
+    "assetId": "0725596730008990005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T12:06:27.873Z"
+  },
+  {
+    "id": "survey-1792497834884-5jpcebyqt",
+    "assetId": "0725607110007020028",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T12:03:54.884Z"
+  },
+  {
+    "id": "survey-1792497765234-m4yncsreg",
+    "assetId": "0725616530021070099",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T12:02:45.234Z"
+  },
+  {
+    "id": "survey-1792497642720-vr1olb2pv",
+    "assetId": "0725496515045360001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T12:00:42.719Z"
+  },
+  {
+    "id": "survey-1792497574809-9t97nl7ot",
+    "assetId": "0725476515999990006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:59:34.809Z"
+  },
+  {
+    "id": "survey-1792497204111-o25mihe8y",
+    "assetId": "0725697110007160043",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:53:24.111Z"
+  },
+  {
+    "id": "survey-1792497152336-4r0lxyytb",
+    "assetId": "0725694140003110005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:52:32.336Z"
+  },
+  {
+    "id": "survey-1792497082150-ykg6m6w1m",
+    "assetId": "0725685965001020006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:51:22.150Z"
+  },
+  {
+    "id": "survey-1792497048403-v6ifk5a22",
+    "assetId": "0725675820009040001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:50:48.402Z"
+  },
+  {
+    "id": "survey-1792496933829-r57qkn30k",
+    "assetId": "0725627105003090001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:48:53.829Z"
+  },
+  {
+    "id": "survey-1792496890354-9gtc8jhah",
+    "assetId": "0725607110013160001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:48:10.354Z"
+  },
+  {
+    "id": "survey-1792496832232-btw0yk66k",
+    "assetId": "0725607110006130018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:47:12.232Z"
+  },
+  {
+    "id": "survey-1792496704737-nlav4r9m0",
+    "assetId": "0725615805001020028",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:45:04.737Z"
+  },
+  {
+    "id": "survey-1792496602001-0g3nqz1xx",
+    "assetId": "0725606515003340005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:43:22.001Z"
+  },
+  {
+    "id": "survey-1792496398218-qoqm3hkpe",
+    "assetId": "0725634310001030003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T11:39:58.217Z"
+  },
+  {
+    "id": "survey-1792486321893-zuwqb9efz",
+    "assetId": "0725615805001010016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T08:52:01.893Z"
+  },
+  {
+    "id": "survey-1792486004969-gxxzjlson",
+    "assetId": "0725606515003340006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T08:46:44.969Z"
+  },
+  {
+    "id": "survey-1792485794198-7k9rqn5fe",
+    "assetId": "0725607910003990003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T08:43:14.198Z"
+  },
+  {
+    "id": "survey-1792485733387-jaww3bsoi",
+    "assetId": "0725604510007030010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T08:42:13.386Z"
+  },
+  {
+    "id": "survey-1792485240993-qqfsoxv9s",
+    "assetId": "0725694510015980011",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T08:34:00.993Z"
+  },
+  {
+    "id": "survey-1792485001876-k4ascfdqv",
+    "assetId": "0725697110013040025",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T08:30:01.876Z"
+  },
+  {
+    "id": "survey-1792484748058-46jmndcau",
+    "assetId": "0725637125004050004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T08:25:48.058Z"
+  },
+  {
+    "id": "survey-1792484710198-tn569h0yv",
+    "assetId": "0725637125004050003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T08:25:10.198Z"
+  },
+  {
+    "id": "survey-1792484625979-6vorq9l0i",
+    "assetId": "0725603920005260017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-20T08:23:45.978Z"
+  },
+  {
+    "id": "survey-1792484034896-99r3nug6n",
+    "assetId": "0725666515045320073",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T08:13:54.896Z"
+  },
+  {
+    "id": "survey-1792483652033-32bkof0c6",
+    "assetId": "0725627110006040087",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T08:07:32.033Z"
+  },
+  {
+    "id": "survey-1792483059398-k65lkkk7t",
+    "assetId": "0725666710005020016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:57:39.398Z"
+  },
+  {
+    "id": "survey-1792483036685-nj6qkatro",
+    "assetId": "0725666710005020015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:57:16.685Z"
+  },
+  {
+    "id": "survey-1792482955704-4bohgt0aj",
+    "assetId": "0725666710005020014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:55:55.704Z"
+  },
+  {
+    "id": "survey-1792482942321-cyi84smpq",
+    "assetId": "0725666710005020013",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:55:42.321Z"
+  },
+  {
+    "id": "survey-1792482908704-ei5h0j4od",
+    "assetId": "0725666710005020012",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:55:08.704Z"
+  },
+  {
+    "id": "survey-1792482898404-05vr9ddx7",
+    "assetId": "0725666710005020011",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:54:58.403Z"
+  },
+  {
+    "id": "survey-1792482888682-340227wnm",
+    "assetId": "0725666710005020010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:54:48.682Z"
+  },
+  {
+    "id": "survey-1792482865856-2kxottovt",
+    "assetId": "0725666710005020009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:54:25.856Z"
+  },
+  {
+    "id": "survey-1792482856223-jobsj44od",
+    "assetId": "0725666710005020008",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:54:16.223Z"
+  },
+  {
+    "id": "survey-1792482843122-5l8grz0y8",
+    "assetId": "0725666710005020007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:54:03.122Z"
+  },
+  {
+    "id": "survey-1792482833240-v4waeipcz",
+    "assetId": "0725666710005020006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:53:53.240Z"
+  },
+  {
+    "id": "survey-1792482823623-lha7ofpy8",
+    "assetId": "0725666710005020005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:53:43.623Z"
+  },
+  {
+    "id": "survey-1792482815390-4huq1ceg7",
+    "assetId": "0725666710005020004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:53:35.390Z"
+  },
+  {
+    "id": "survey-1792482795983-ocjnolgxm",
+    "assetId": "0725666710005020001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:53:15.983Z"
+  },
+  {
+    "id": "survey-1792482786366-qg4h66n3t",
+    "assetId": "0725666710005020002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:53:06.366Z"
+  },
+  {
+    "id": "survey-1792482771739-qu9bgeztl",
+    "assetId": "0725666710005020003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:52:51.739Z"
+  },
+  {
+    "id": "survey-1792482548497-g4j4vu50m",
+    "assetId": "0725616515045310008",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:49:08.497Z"
+  },
+  {
+    "id": "survey-1792482523897-lbr4k5qrk",
+    "assetId": "0725616515045310006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:48:43.897Z"
+  },
+  {
+    "id": "survey-1792482487481-vvhesica8",
+    "assetId": "0725616515045310027",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:48:07.481Z"
+  },
+  {
+    "id": "survey-1792482480161-0k5m2rnx9",
+    "assetId": "0725616515045310028",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:48:00.161Z"
+  },
+  {
+    "id": "survey-1792482466849-dvb4o2w1k",
+    "assetId": "0725616515045310029",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:47:46.849Z"
+  },
+  {
+    "id": "survey-1792482436761-3vs0ebssp",
+    "assetId": "0725616515045310030",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:47:16.761Z"
+  },
+  {
+    "id": "survey-1792482426737-q7fll4loy",
+    "assetId": "0725616515045310031",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:47:06.737Z"
+  },
+  {
+    "id": "survey-1792482402409-apgky63fh",
+    "assetId": "0725616515045310032",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:46:42.409Z"
+  },
+  {
+    "id": "survey-1792482387699-42s6ryazi",
+    "assetId": "0725616515045310033",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T07:46:27.697Z"
+  },
+  {
+    "id": "survey-1792482308708-x7b3qcf8h",
+    "assetId": "0725616515045310034",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:45:08.708Z"
+  },
+  {
+    "id": "survey-1792482270225-6btz447gr",
+    "assetId": "0725616515045310037",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:44:30.225Z"
+  },
+  {
+    "id": "survey-1792482260165-hbt8ii5wf",
+    "assetId": "0725616515045310038",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:44:20.165Z"
+  },
+  {
+    "id": "survey-1792482251095-vs6gzp3lg",
+    "assetId": "0725616515045310036",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:44:11.095Z"
+  },
+  {
+    "id": "survey-1792482229679-lp2d9l7tf",
+    "assetId": "0725616515045310015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:43:49.679Z"
+  },
+  {
+    "id": "survey-1792482191294-nmi54keb5",
+    "assetId": "0725616515045310014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:43:11.294Z"
+  },
+  {
+    "id": "survey-1792482167041-bsc5i9s7r",
+    "assetId": "0725616515045310016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:42:47.041Z"
+  },
+  {
+    "id": "survey-1792482160463-fzec1yw6m",
+    "assetId": "0725616515045310017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:42:40.463Z"
+  },
+  {
+    "id": "survey-1792482122151-4uravess1",
+    "assetId": "0725616515045310018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:42:02.151Z"
+  },
+  {
+    "id": "survey-1792482052003-6ieshe9xj",
+    "assetId": "0725616515045310020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:40:52.003Z"
+  },
+  {
+    "id": "survey-1792482041735-fighswk15",
+    "assetId": "0725616515045310019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:40:41.735Z"
+  },
+  {
+    "id": "survey-1792482030848-19qwi90gb",
+    "assetId": "0725616515045310035",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:40:30.848Z"
+  },
+  {
+    "id": "survey-1792482001460-hislg2t2z",
+    "assetId": "0725616515045310021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:40:01.460Z"
+  },
+  {
+    "id": "survey-1792481944950-ezftoulta",
+    "assetId": "0725616515045310022",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:39:04.950Z"
+  },
+  {
+    "id": "survey-1792481922023-3ify0mx8e",
+    "assetId": "0725616515045310023",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:38:42.021Z"
+  },
+  {
+    "id": "survey-1792481910165-baed6vbnt",
+    "assetId": "0725616515045310024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:38:30.165Z"
+  },
+  {
+    "id": "survey-1792481902598-0bfeo7jki",
+    "assetId": "0725616515045310025",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:38:22.598Z"
+  },
+  {
+    "id": "survey-1792481891327-2negwaao0",
+    "assetId": "0725616515045310026",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:38:11.327Z"
+  },
+  {
+    "id": "survey-1792481863686-epqqq63go",
+    "assetId": "0725616515045310001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:37:43.686Z"
+  },
+  {
+    "id": "survey-1792481851325-c4li81euq",
+    "assetId": "0725616515045310002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:37:31.325Z"
+  },
+  {
+    "id": "survey-1792481831270-xy6viqkki",
+    "assetId": "0725616515045310003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:37:11.270Z"
+  },
+  {
+    "id": "survey-1792481822947-tjnh7e602",
+    "assetId": "0725616515045310004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:37:02.947Z"
+  },
+  {
+    "id": "survey-1792481723040-en5oof2ro",
+    "assetId": "0725616515045310009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:35:23.040Z"
+  },
+  {
+    "id": "survey-1792481709312-da6zc46el",
+    "assetId": "0725616515045310005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:35:09.312Z"
+  },
+  {
+    "id": "survey-1792481582928-l3i0n8m2h",
+    "assetId": "0725616515045310012",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:33:02.928Z"
+  },
+  {
+    "id": "survey-1792481491687-tow0l9zb1",
+    "assetId": "0725616515045310007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:31:31.687Z"
+  },
+  {
+    "id": "survey-1792481073466-kx62yjwe4",
+    "assetId": "0725616515045310010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:24:33.466Z"
+  },
+  {
+    "id": "survey-1792481061444-vqcz3op0o",
+    "assetId": "0725616515045310011",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:24:21.444Z"
+  },
+  {
+    "id": "survey-1792481009982-973rxnykm",
+    "assetId": "0725616515045310013",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T07:23:29.981Z"
+  },
+  {
+    "id": "survey-1792475242083-2eyfr8oz4",
+    "assetId": "0725683740004010016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:47:22.083Z"
+  },
+  {
+    "id": "survey-1792475162951-95t9jc7j9",
+    "assetId": "0725697110013060004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:46:02.951Z"
+  },
+  {
+    "id": "survey-1792475140608-m5fkcqtzq",
+    "assetId": "0725607125002990009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:45:40.608Z"
+  },
+  {
+    "id": "survey-1792475115622-e0g7syl92",
+    "assetId": "0725627110013040009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:45:15.622Z"
+  },
+  {
+    "id": "survey-1792475043248-zmwqkw89b",
+    "assetId": "0725607110006130019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:44:03.248Z"
+  },
+  {
+    "id": "survey-1792474981468-2udspfffz",
+    "assetId": "0725595805001020044",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:43:01.468Z"
+  },
+  {
+    "id": "survey-1792474956902-idkud3863",
+    "assetId": "0725663510003020001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:42:36.902Z"
+  },
+  {
+    "id": "survey-1792474934935-gejj9cvc2",
+    "assetId": "0725556530018020001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:42:14.935Z"
+  },
+  {
+    "id": "survey-1792474652333-eluwu7wko",
+    "assetId": "0725536530022180003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:37:32.333Z"
+  },
+  {
+    "id": "survey-1792474586356-e7nxdfoxd",
+    "assetId": "0725607110006130035",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:36:26.355Z"
+  },
+  {
+    "id": "survey-1792474547301-8m970m21z",
+    "assetId": "0725513540009990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:35:47.301Z"
+  },
+  {
+    "id": "survey-1792474520056-6lyw2f532",
+    "assetId": "0725673540009020001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:35:20.056Z"
+  },
+  {
+    "id": "survey-1792474497690-eyr7jhric",
+    "assetId": "0725536530022180002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:34:57.690Z"
+  },
+  {
+    "id": "survey-1792474372199-srvnxawid",
+    "assetId": "0725697110013010039",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:32:52.199Z"
+  },
+  {
+    "id": "survey-1792474350053-t3ot4m6oj",
+    "assetId": "0725637110013010016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:32:30.053Z"
+  },
+  {
+    "id": "survey-1792473955743-7ldzpppbf",
+    "assetId": "0725604140001010007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:25:55.743Z"
+  },
+  {
+    "id": "survey-1792473857322-sflp515ze",
+    "assetId": "0725607110007020017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:24:17.322Z"
+  },
+  {
+    "id": "survey-1792473821493-u17tq2kui",
+    "assetId": "0725607110007020023",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:23:41.493Z"
+  },
+  {
+    "id": "survey-1792473701897-yvjmdwxes",
+    "assetId": "0725697125004050073",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:21:41.897Z"
+  },
+  {
+    "id": "survey-1792473632222-xgc832ou3",
+    "assetId": "0725686515047990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:20:32.221Z"
+  },
+  {
+    "id": "survey-1792473610477-m0lhirguh",
+    "assetId": "0725627110006040085",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:20:10.477Z"
+  },
+  {
+    "id": "survey-1792473585016-lz78zsjbu",
+    "assetId": "0725627110006040096",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:19:45.016Z"
+  },
+  {
+    "id": "survey-1792473557473-k59bns29n",
+    "assetId": "0725627110006040091",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:19:17.473Z"
+  },
+  {
+    "id": "survey-1792473525285-alsvdixa0",
+    "assetId": "0725636530014030004",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:18:45.285Z"
+  },
+  {
+    "id": "survey-1792473492618-c1f3x9aat",
+    "assetId": "0725603920005260021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:18:12.618Z"
+  },
+  {
+    "id": "survey-1792473441723-mn518i96t",
+    "assetId": "0725603920005260024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:17:21.723Z"
+  },
+  {
+    "id": "survey-1792473233244-ehv7sqhm9",
+    "assetId": "0725697110007020057",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:13:53.244Z"
+  },
+  {
+    "id": "survey-1792473200814-1k431zobc",
+    "assetId": "0725686515050030001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:13:20.814Z"
+  },
+  {
+    "id": "survey-1792473178352-pwzeunr8x",
+    "assetId": "0725686710005050026",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:12:58.352Z"
+  },
+  {
+    "id": "survey-1792473149447-qx6d01e4n",
+    "assetId": "0725607110007160023",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:12:29.447Z"
+  },
+  {
+    "id": "survey-1792473123212-q48xwyq8y",
+    "assetId": "0725603920005260013",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:12:03.212Z"
+  },
+  {
+    "id": "survey-1792473061720-40h2mjqwh",
+    "assetId": "0725646640026020005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:11:01.720Z"
+  },
+  {
+    "id": "survey-1792473009641-r50u0hgfs",
+    "assetId": "0725686710005030003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:10:09.641Z"
+  },
+  {
+    "id": "survey-1792472971044-5vvv2wgu4",
+    "assetId": "0725697110013060005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:09:31.044Z"
+  },
+  {
+    "id": "survey-1792472715780-d9w3rktc6",
+    "assetId": "0725627110006040138",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:05:15.780Z"
+  },
+  {
+    "id": "survey-1792472687930-huxfgllt9",
+    "assetId": "0725646530003010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:04:47.930Z"
+  },
+  {
+    "id": "survey-1792472660844-8shi9b9yr",
+    "assetId": "0725556530003010002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:04:20.844Z"
+  },
+  {
+    "id": "survey-1792472623225-tekug4gtk",
+    "assetId": "0725627110006040137",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:03:43.225Z"
+  },
+  {
+    "id": "survey-1792472588409-xxglhubd4",
+    "assetId": "0725607110006130021",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:03:08.409Z"
+  },
+  {
+    "id": "survey-1792472439430-qpugdhkb7",
+    "assetId": "0725607110007160024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:00:39.430Z"
+  },
+  {
+    "id": "survey-1792472412880-z7m9aig8q",
+    "assetId": "0725509999002990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T05:00:12.880Z"
+  },
+  {
+    "id": "survey-1792472384493-36be7y30l",
+    "assetId": "0725604140001010035",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T04:59:44.492Z"
+  },
+  {
+    "id": "survey-1792472264899-jqylm1u5b",
+    "assetId": "0725396515047250001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T04:57:44.899Z"
+  },
+  {
+    "id": "survey-1792472156265-onzd8fnke",
+    "assetId": "0725603650005150002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T04:55:56.264Z"
+  },
+  {
+    "id": "survey-1792472091850-bolx5h5r4",
+    "assetId": "0725546515047990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T04:54:51.849Z"
+  },
+  {
+    "id": "survey-1792471158908-4daim7rxc",
+    "assetId": "0725607110007020020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T04:39:18.908Z"
+  },
+  {
+    "id": "survey-1792471062812-riqvo3rf1",
+    "assetId": "0725627110006040089",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T04:37:42.812Z"
+  },
+  {
+    "id": "survey-1792471032402-28enbupvs",
+    "assetId": "0725665805001020006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T04:37:12.402Z"
+  },
+  {
+    "id": "survey-1792470930335-cnz2gqh47",
+    "assetId": "0725606515003340002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-20T04:35:30.335Z"
+  },
+  {
+    "id": "survey-1792470855314-qh9d30g6t",
+    "assetId": "0725606515003340003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "ปุณยนุช แต่งผิว",
+    "timestamp": "2026-10-20T04:34:15.313Z"
+  },
+  {
+    "id": "survey-1792470769291-7v8w2jr8e",
+    "assetId": "0725696710005030007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T04:32:49.291Z"
+  },
+  {
+    "id": "survey-1792470680043-cyc9o7r8m",
+    "assetId": "0725666515045320075",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T04:31:20.043Z"
+  },
+  {
+    "id": "survey-1792470518582-q5es1pchg",
+    "assetId": "0725627110006040090",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T04:28:38.582Z"
+  },
+  {
+    "id": "survey-1792470493901-hj3a1uh07",
+    "assetId": "0725607110007020019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T04:28:13.901Z"
+  },
+  {
+    "id": "survey-1792470316815-rc5gnmrqp",
+    "assetId": "0725617125004050005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T04:25:16.815Z"
+  },
+  {
+    "id": "survey-1792470226164-kfpkcauhf",
+    "assetId": "0725617125004050006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T04:23:46.163Z"
+  },
+  {
+    "id": "survey-1792470154144-kppo929g5",
+    "assetId": "0725617125004050007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T04:22:34.143Z"
+  },
+  {
+    "id": "survey-1792469988060-n57v0fdjv",
+    "assetId": "0725617125004050008",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T04:19:48.059Z"
+  },
+  {
+    "id": "survey-1792469857658-jbh4d2zvf",
+    "assetId": "0725603920005260023",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-20T04:17:37.658Z"
+  },
+  {
+    "id": "survey-1792469538278-sw9rxifrn",
+    "assetId": "0725666515045320074",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-20T04:12:18.278Z"
+  },
+  {
+    "id": "survey-1792410834172-da93syv2h",
+    "assetId": "0725603740004010002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:53:54.172Z"
+  },
+  {
+    "id": "survey-1792410770677-voc9t0pm6",
+    "assetId": "0725603740004010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:52:50.676Z"
+  },
+  {
+    "id": "survey-1792410612190-619vu6qru",
+    "assetId": "0725697110013010026",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:50:12.190Z"
+  },
+  {
+    "id": "survey-1792410589519-ccq0azqe0",
+    "assetId": "0725697110013010021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:49:49.519Z"
+  },
+  {
+    "id": "survey-1792410537636-du9knyhot",
+    "assetId": "0725607110014990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:48:57.635Z"
+  },
+  {
+    "id": "survey-1792410481244-m7mernwnz",
+    "assetId": "0725647440001030005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:48:01.244Z"
+  },
+  {
+    "id": "survey-1792410456104-uslj6il3r",
+    "assetId": "0725697110007020048",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:47:36.104Z"
+  },
+  {
+    "id": "survey-1792410372223-3j9z8gtpz",
+    "assetId": "0725697110006020134",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:46:12.223Z"
+  },
+  {
+    "id": "survey-1792410334224-r8n3w94jc",
+    "assetId": "0725697110006020142",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:45:34.224Z"
+  },
+  {
+    "id": "survey-1792410293813-gqm1nanvv",
+    "assetId": "0725606530014130020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:44:53.813Z"
+  },
+  {
+    "id": "survey-1792410263958-87as2xvwt",
+    "assetId": "0725606530014130019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:44:23.958Z"
+  },
+  {
+    "id": "survey-1792410233260-3jujj95p7",
+    "assetId": "0725627110006040136",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:43:53.260Z"
+  },
+  {
+    "id": "survey-1792410185448-t5100fg2b",
+    "assetId": "0725697110007020055",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:43:05.448Z"
+  },
+  {
+    "id": "survey-1792410137258-634zrs6sn",
+    "assetId": "0725697110013010041",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:42:17.258Z"
+  },
+  {
+    "id": "survey-1792410094782-e151gp9s3",
+    "assetId": "0725697110013010042",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:41:34.782Z"
+  },
+  {
+    "id": "survey-1792410054431-fciz3jgs4",
+    "assetId": "0725697110013010033",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:40:54.431Z"
+  },
+  {
+    "id": "survey-1792410026599-azn8t6fvu",
+    "assetId": "0725697110013010032",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:40:26.599Z"
+  },
+  {
+    "id": "survey-1792409989950-8dbk6i71m",
+    "assetId": "0725697110013010031",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:39:49.950Z"
+  },
+  {
+    "id": "survey-1792409691925-m233tqsko",
+    "assetId": "0725697110007020049",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:34:51.925Z"
+  },
+  {
+    "id": "survey-1792409627655-vozxkv1p1",
+    "assetId": "0725614120001990069",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:33:47.655Z"
+  },
+  {
+    "id": "survey-1792409567035-bc7kvnixp",
+    "assetId": "0725509999001990002",
+    "roundId": "round-default",
+    "status": "ขอป้ายรหัสใหม่",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:32:47.035Z"
+  },
+  {
+    "id": "survey-1792409454787-o3pc02s2w",
+    "assetId": "0725634310001030001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:30:54.787Z"
+  },
+  {
+    "id": "survey-1792408982055-gkckqc9w6",
+    "assetId": "0725697110013010037",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:23:02.055Z"
+  },
+  {
+    "id": "survey-1792408950719-hn41qjnf9",
+    "assetId": "0725697110013010038",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:22:30.719Z"
+  },
+  {
+    "id": "survey-1792408804116-qpzbuqjq5",
+    "assetId": "0725604410004020001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:20:04.116Z"
+  },
+  {
+    "id": "survey-1792408405404-h7pca7ltb",
+    "assetId": "0725697110013040018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:13:25.404Z"
+  },
+  {
+    "id": "survey-1792408360804-49rbor95d",
+    "assetId": "0725697110013040017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:12:40.804Z"
+  },
+  {
+    "id": "survey-1792408270703-lbn1n8jcx",
+    "assetId": "0725697110013040015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:11:10.703Z"
+  },
+  {
+    "id": "survey-1792408134627-bc41n1lk3",
+    "assetId": "0725697110013040016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:08:54.627Z"
+  },
+  {
+    "id": "survey-1792408056112-aaqnbxuzi",
+    "assetId": "0725697110013040013",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:07:36.112Z"
+  },
+  {
+    "id": "survey-1792408025402-lr942jjtb",
+    "assetId": "0725697110013040014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:07:05.402Z"
+  },
+  {
+    "id": "survey-1792407962571-gn80mgm1n",
+    "assetId": "0725697110013040012",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:06:02.571Z"
+  },
+  {
+    "id": "survey-1792407909584-v6pzu4yhe",
+    "assetId": "0725697110013060002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:05:09.584Z"
+  },
+  {
+    "id": "survey-1792407780478-krbgxmpcw",
+    "assetId": "0725697110013040020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:03:00.478Z"
+  },
+  {
+    "id": "survey-1792407724545-9lmjwyqqs",
+    "assetId": "0725607110013110010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T11:02:04.545Z"
+  },
+  {
+    "id": "survey-1792407511196-w534ua7my",
+    "assetId": "0725614120001990073",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:58:31.196Z"
+  },
+  {
+    "id": "survey-1792407439436-86vl4mgvk",
+    "assetId": "0725686530021040001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:57:19.436Z"
+  },
+  {
+    "id": "survey-1792407349044-acvfwuzuy",
+    "assetId": "0725637125004110001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:55:49.044Z"
+  },
+  {
+    "id": "survey-1792407294724-ydmvwknnm",
+    "assetId": "0725603920005990018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:54:54.724Z"
+  },
+  {
+    "id": "survey-1792407261603-11kmpzhqf",
+    "assetId": "0725633920005080009",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:54:21.603Z"
+  },
+  {
+    "id": "survey-1792407232934-6uayqnyny",
+    "assetId": "0725637125004050001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:53:52.934Z"
+  },
+  {
+    "id": "survey-1792407194181-4z2moiaha",
+    "assetId": "0725633920005080010",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:53:14.181Z"
+  },
+  {
+    "id": "survey-1792407159389-tny9h08ep",
+    "assetId": "0725627125004110005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:52:39.388Z"
+  },
+  {
+    "id": "survey-1792407107161-x04ha3a1o",
+    "assetId": "0725637125004050005",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:51:47.161Z"
+  },
+  {
+    "id": "survey-1792407038896-tasdf4j89",
+    "assetId": "0725623540009040001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:50:38.896Z"
+  },
+  {
+    "id": "survey-1792406962700-l69448g9h",
+    "assetId": "0725627110006040107",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:49:22.700Z"
+  },
+  {
+    "id": "survey-1792406919142-cljc0o21u",
+    "assetId": "0725607110007020018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:48:39.142Z"
+  },
+  {
+    "id": "survey-1792406774529-ph27kb3yp",
+    "assetId": "0725607110013040033",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:46:14.529Z"
+  },
+  {
+    "id": "survey-1792406669198-znwbawiz7",
+    "assetId": "0725614120001990074",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:44:29.198Z"
+  },
+  {
+    "id": "survey-1792406169915-oprnbeb5q",
+    "assetId": "0725697110013040024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:36:09.915Z"
+  },
+  {
+    "id": "survey-1792406134208-mwr69a83p",
+    "assetId": "0725697110013040026",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:35:34.208Z"
+  },
+  {
+    "id": "survey-1792405854481-ozbbgwjlm",
+    "assetId": "0725607110013010016",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:30:54.481Z"
+  },
+  {
+    "id": "survey-1792405806775-k9xh1makg",
+    "assetId": "0725607110013010017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:30:06.775Z"
+  },
+  {
+    "id": "survey-1792405755659-72usiqrcr",
+    "assetId": "0725607110013010018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:29:15.659Z"
+  },
+  {
+    "id": "survey-1792405599703-4juvzr15x",
+    "assetId": "0725697110013010048",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:26:39.703Z"
+  },
+  {
+    "id": "survey-1792405561879-5av11lbfq",
+    "assetId": "0725697110013040021",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:26:01.879Z"
+  },
+  {
+    "id": "survey-1792405527383-fkanl4rkf",
+    "assetId": "0725697110013040019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:25:27.383Z"
+  },
+  {
+    "id": "survey-1792405332005-3jqaeqjxk",
+    "assetId": "0725697110013040022",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:22:12.005Z"
+  },
+  {
+    "id": "survey-1792405302079-1gsqj5x7e",
+    "assetId": "0725697110013040023",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:21:42.079Z"
+  },
+  {
+    "id": "survey-1792405261867-id3brog3f",
+    "assetId": "0725607110013040026",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:21:01.866Z"
+  },
+  {
+    "id": "survey-1792404999252-qokop5x3p",
+    "assetId": "0725614120001990068",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:16:39.252Z"
+  },
+  {
+    "id": "survey-1792404961578-17og7qdcy",
+    "assetId": "0725697110013010020",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:16:01.578Z"
+  },
+  {
+    "id": "survey-1792404867700-n5yyjnepv",
+    "assetId": "0725627110006040077",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:14:27.700Z"
+  },
+  {
+    "id": "survey-1792404709507-se1fv1mij",
+    "assetId": "0725697110013010034",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:11:49.507Z"
+  },
+  {
+    "id": "survey-1792404676714-fjhcrnvnt",
+    "assetId": "0725697110013010028",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:11:16.714Z"
+  },
+  {
+    "id": "survey-1792404640777-mqn2nhiio",
+    "assetId": "0725697110013010029",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:10:40.777Z"
+  },
+  {
+    "id": "survey-1792404602912-zojut2nyo",
+    "assetId": "0725697110013010035",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:10:02.912Z"
+  },
+  {
+    "id": "survey-1792404570326-2j55h798n",
+    "assetId": "0725697110013010036",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:09:30.326Z"
+  },
+  {
+    "id": "survey-1792404543649-7l62eza29",
+    "assetId": "0725627110006040082",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:09:03.649Z"
+  },
+  {
+    "id": "survey-1792404462620-nn32zryiy",
+    "assetId": "0725627110006040069",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T10:07:42.619Z"
+  },
+  {
+    "id": "survey-1792403353884-3ut6mbi3d",
+    "assetId": "0725697110013010018",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T09:49:13.884Z"
+  },
+  {
+    "id": "survey-1792398967078-nc14j9802",
+    "assetId": "0725615805001010015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พิพัฒน์พงษ์ อำนักมณี",
+    "timestamp": "2026-10-19T08:36:07.077Z"
+  },
+  {
+    "id": "survey-1792393772008-whpxdmn0h",
+    "assetId": "0725667440022010001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "อนันต์พร จังกอบพัฒนา",
+    "timestamp": "2026-10-19T07:09:32.008Z"
+  },
+  {
+    "id": "survey-1792384918893-tb3ugz7r9",
+    "assetId": "0725606515014050001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-19T04:41:58.893Z"
+  },
+  {
+    "id": "survey-1792384874850-4d5pko82q",
+    "assetId": "0725697110013010027",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-19T04:41:14.850Z"
+  },
+  {
+    "id": "survey-1791970159803-rmjpfqa9m",
+    "assetId": "0725697110013010030",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-14T09:29:19.802Z"
+  },
+  {
+    "id": "survey-1791970155501-ukdo4gwgy",
+    "assetId": "0725697110013010046",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:29:15.501Z"
+  },
+  {
+    "id": "survey-1791970115913-cal98wwmz",
+    "assetId": "0725697110007020054",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:28:35.913Z"
+  },
+  {
+    "id": "survey-1791970019511-t62ntmd2n",
+    "assetId": "0725697110007020053",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:26:59.511Z"
+  },
+  {
+    "id": "survey-1791969941441-at9ihyui5",
+    "assetId": "0725697110013010044",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:25:41.441Z"
+  },
+  {
+    "id": "survey-1791969910995-r7huyh4dw",
+    "assetId": "0725697110007020058",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:25:10.995Z"
+  },
+  {
+    "id": "survey-1791969875339-gt8j1zlgj",
+    "assetId": "0725697110013010024",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-14T09:24:35.339Z"
+  },
+  {
+    "id": "survey-1791969825909-olffo2600",
+    "assetId": "0725697110013010025",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:23:45.909Z"
+  },
+  {
+    "id": "survey-1791969790194-pj73pga68",
+    "assetId": "0725697110013010045",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:23:10.194Z"
+  },
+  {
+    "id": "survey-1791969741393-37s0w1ven",
+    "assetId": "0725697110013010023",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:22:21.393Z"
+  },
+  {
+    "id": "survey-1791969701728-s683ke80a",
+    "assetId": "0725697110013010022",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:21:41.728Z"
+  },
+  {
+    "id": "survey-1791969652323-y3iatnfmk",
+    "assetId": "0725697110007020051",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:20:52.322Z"
+  },
+  {
+    "id": "survey-1791969594053-bccw3kiv3",
+    "assetId": "0725697110007020050",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-14T09:19:54.053Z"
+  },
+  {
+    "id": "survey-1791969433593-54rjhb8d0",
+    "assetId": "0725604140001010006",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-14T09:17:13.592Z"
+  },
+  {
+    "id": "survey-1791969344859-64aph3fm6",
+    "assetId": "0725697110013010047",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-14T09:15:44.859Z"
+  },
+  {
+    "id": "survey-1791883525531-yfoacm3qt",
+    "assetId": "0725614120001990070",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-13T09:25:25.531Z"
+  },
+  {
+    "id": "survey-1791883466155-i31fvk6v2",
+    "assetId": "0725607110013010014",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-13T09:24:26.155Z"
+  },
+  {
+    "id": "survey-1791883437509-2ipgk4klz",
+    "assetId": "0725607110013010015",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-13T09:23:57.509Z"
+  },
+  {
+    "id": "survey-1791883408142-ggbg1fvlc",
+    "assetId": "0725666710005090001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-13T09:23:28.142Z"
+  },
+  {
+    "id": "survey-1791770778449-a63whid5g",
+    "assetId": "0725635805001020022",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-10-12T02:06:18.448Z"
+  },
+  {
+    "id": "survey-1791336992945-4okmidyle",
+    "assetId": "0725647110013040002",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-07T01:36:32.944Z"
+  },
+  {
+    "id": "survey-1791336651540-bn64gzueg",
+    "assetId": "0725606110008990001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "พีรวัส พัฒนประยูรวงศ์",
+    "timestamp": "2026-10-07T01:30:51.540Z"
+  },
+  {
+    "id": "survey-1791336561715-6axfq7f5k",
+    "assetId": "0725607110007050007",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-07T01:29:21.715Z"
+  },
+  {
+    "id": "survey-1791264315636-wc012kv7q",
+    "assetId": "0725623930001030017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-06T05:25:15.635Z"
+  },
+  {
+    "id": "survey-1791205362167-jtwgs929y",
+    "assetId": "0725697110013010017",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-05T13:02:42.166Z"
+  },
+  {
+    "id": "survey-1791205230663-upd6tj2h3",
+    "assetId": "0725697110007020052",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-10-05T13:00:30.663Z"
+  },
+  {
+    "id": "survey-1790338654476-58w77gww1",
+    "assetId": "0725697110013010043",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Peravas P",
+    "timestamp": "2026-09-25T12:17:34.475Z"
+  },
+  {
+    "id": "survey-1790070885687-ai9us19ff",
+    "assetId": "0725697110007030003",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-09-22T09:54:45.687Z"
+  },
+  {
+    "id": "survey-1789965124459-fap0w32ca",
+    "assetId": "0725697110006020132",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-09-21T04:32:04.459Z"
+  },
+  {
+    "id": "survey-1789964923212-5hltbs2a4",
+    "assetId": "0725697110006020135",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-09-21T04:28:43.212Z"
+  },
+  {
+    "id": "survey-1789964415622-moeax0owy",
+    "assetId": "0725697110013010019",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-09-21T04:20:15.622Z"
+  },
+  {
+    "id": "survey-1789963321626-xfydwlye0",
+    "assetId": "0725697110006020136",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-09-21T04:02:01.626Z"
+  },
+  {
+    "id": "survey-1789963246822-176qce8er",
+    "assetId": "0725697110006020137",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-09-21T04:00:46.822Z"
+  },
+  {
+    "id": "survey-1789963153124-ss4zi8nzh",
+    "assetId": "0725697110006020138",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-09-21T03:59:13.124Z"
+  },
+  {
+    "id": "survey-1785404873089-17icryb2z",
+    "assetId": "8850718801381",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "Operator",
+    "timestamp": "2026-07-30T09:47:53.089Z"
+  },
+  {
+    "id": "survey-1785383248783-2uzip45gd",
+    "assetId": "6901-001-0001",
+    "roundId": "round-default",
+    "status": "ใช้งานได้",
+    "operator": "IT OPERATOR",
+    "timestamp": "2026-07-30T03:47:28.782Z"
+  }
+];

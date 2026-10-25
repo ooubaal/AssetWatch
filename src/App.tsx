@@ -368,8 +368,8 @@ function App() {
   const [refreshToastMsg, setRefreshToastMsg] = useState<string | null>(null);
   const lastRefreshClickRef = useRef<number>(0);
 
-  const handleDeviceRefresh = async (forceFull: boolean | React.MouseEvent = false) => {
-    const isFull = typeof forceFull === 'boolean' ? forceFull : false;
+  const handleDeviceRefresh = async (forceFull: boolean | React.MouseEvent = true) => {
+    const isFull = typeof forceFull === 'boolean' ? forceFull : true;
     const now = Date.now();
     if (isDeviceRefreshing || now - lastRefreshClickRef.current < 4000) {
       return;

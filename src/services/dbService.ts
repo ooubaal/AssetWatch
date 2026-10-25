@@ -35,7 +35,10 @@ import {
   fetchSurveyDeepDetail,
   fetchRepairDeepDetail,
   fetchPMScheduleDeepDetail,
-  fetchPMContractDeepDetail
+  fetchPMContractDeepDetail,
+  getLocalDeletedAssetIds,
+  addLocalDeletedAssetId,
+  recordLocalDeletedAssetIds
 } from './manifestService';
 
 export {
@@ -196,12 +199,29 @@ export const safeSetItem = (key: string, value: string): void => {
     if (e?.name === 'QuotaExceededError' || e?.code === 22 || e?.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e?.number === -2147024882) {
       console.warn(`LocalStorage quota exceeded while writing "${key}". Auto-cleaning older Base64 images to free cache...`);
       try {
-        // 1. Purge old base64 images from survey records in localStorage (keep only last 10 images)
+        // Strip base64 from current value if it's JSON array of objects with heavy imageUrl
+        let leanValue = value;
+        try {
+          if (value.includes('data:image/')) {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) {
+              const stripped = parsed.map(item => {
+                if (item && item.imageUrl && typeof item.imageUrl === 'string' && item.imageUrl.startsWith('data:image/')) {
+                  return { ...item, imageUrl: '' };
+                }
+                return item;
+              });
+              leanValue = JSON.stringify(stripped);
+            }
+          }
+        } catch {}
+
+        // 1. Purge old base64 images from survey records in localStorage
         const rawSurveys = localStorage.getItem('assetwatch_surveys');
-        if (rawSurveys) {
+        if (rawSurveys && rawSurveys.includes('data:image/')) {
           const parsedSurveys: SurveyRecord[] = JSON.parse(rawSurveys);
-          const purgedSurveys = parsedSurveys.map((s, idx) => {
-            if (idx < parsedSurveys.length - 10 && s.imageUrl && s.imageUrl.startsWith('data:image/')) {
+          const purgedSurveys = parsedSurveys.map(s => {
+            if (s.imageUrl && s.imageUrl.startsWith('data:image/')) {
               return { ...s, imageUrl: '' };
             }
             return s;
@@ -209,25 +229,33 @@ export const safeSetItem = (key: string, value: string): void => {
           localStorage.setItem('assetwatch_surveys', JSON.stringify(purgedSurveys));
         }
 
-        // 2. Purge old base64 images from repairs in localStorage
-        const rawRepairs = localStorage.getItem('assetwatch_repairs');
-        if (rawRepairs) {
-          const parsedRepairs: any[] = JSON.parse(rawRepairs);
-          const purgedRepairs = parsedRepairs.map((r, idx) => {
-            if (idx < parsedRepairs.length - 10) {
-              if (r.imageUrl && typeof r.imageUrl === 'string' && r.imageUrl.startsWith('data:image/')) {
-                return { ...r, imageUrl: '' };
-              }
-              if (r.photo && typeof r.photo === 'string' && r.photo.startsWith('data:image/')) {
-                return { ...r, photo: '' };
-              }
+        // 2. Purge old base64 images from assets in localStorage
+        const rawAssets = localStorage.getItem('assetwatch_assets');
+        if (rawAssets && rawAssets.includes('data:image/')) {
+          const parsedAssets: any[] = JSON.parse(rawAssets);
+          const purgedAssets = parsedAssets.map(a => {
+            if (a.imageUrl && typeof a.imageUrl === 'string' && a.imageUrl.startsWith('data:image/')) {
+              return { ...a, imageUrl: '' };
             }
-            return r;
+            return a;
+          });
+          localStorage.setItem('assetwatch_assets', JSON.stringify(purgedAssets));
+        }
+
+        // 3. Purge old base64 images from repairs in localStorage
+        const rawRepairs = localStorage.getItem('assetwatch_repairs');
+        if (rawRepairs && rawRepairs.includes('data:image/')) {
+          const parsedRepairs: any[] = JSON.parse(rawRepairs);
+          const purgedRepairs = parsedRepairs.map(r => {
+            const res = { ...r };
+            if (res.imageUrl && typeof res.imageUrl === 'string' && res.imageUrl.startsWith('data:image/')) res.imageUrl = '';
+            if (res.photo && typeof res.photo === 'string' && res.photo.startsWith('data:image/')) res.photo = '';
+            return res;
           });
           localStorage.setItem('assetwatch_repairs', JSON.stringify(purgedRepairs));
         }
 
-        // 3. Purge old audits if too large (keep last 100)
+        // 4. Purge old audits if too large (keep last 100)
         const rawAudits = localStorage.getItem('assetwatch_audits');
         if (rawAudits) {
           const parsedAudits = JSON.parse(rawAudits);
@@ -236,8 +264,8 @@ export const safeSetItem = (key: string, value: string): void => {
           }
         }
 
-        // 4. Try setting the item again
-        localStorage.setItem(key, value);
+        // 5. Try setting the lean item
+        localStorage.setItem(key, leanValue);
       } catch (retryErr) {
         console.warn(`Could not set "${key}" in LocalStorage even after auto-cleanup:`, retryErr);
       }
@@ -557,11 +585,20 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
   const bloodBagMasterMap = new Map<string, Asset>();
   BLOOD_BAG_ASSETS.forEach(a => bloodBagMasterMap.set(a.id, a));
 
+  const localDeleted = getLocalDeletedAssetIds();
+  const deletedSet = new Set(localDeleted);
+
   let listHasChanged = false;
   const changedAssetsToSync: Asset[] = [];
 
-  // Normalize all incoming assets and heal missing/broken fields
-  const normalizedList = assetsList.map(a => {
+  // Filter out any deleted assets from incoming list
+  const activeAssetsList = assetsList.filter(a => !deletedSet.has(a.id));
+  if (activeAssetsList.length !== assetsList.length) {
+    listHasChanged = true;
+  }
+
+  // Normalize all incoming assets and heal missing/broken fields ONLY for existing active assets
+  const normalizedList = activeAssetsList.map(a => {
     let changed = false;
     let name = a.name;
     let dept = a.department;
@@ -645,15 +682,17 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
     return a;
   });
 
-  const existingIdSet = new Set(normalizedList.map(a => a.id));
-  const missingAssets = BLOOD_BAG_ASSETS.filter(a => !existingIdSet.has(a.id));
-
   let updatedList = normalizedList;
-  if (missingAssets.length > 0) {
-    console.log(`Syncing ${missingAssets.length} missing Blood Bag assets...`);
-    updatedList = [...normalizedList, ...missingAssets];
-    listHasChanged = true;
-    changedAssetsToSync.push(...missingAssets);
+
+  // ONLY seed if database is completely empty (0 assets in total)
+  if (normalizedList.length === 0) {
+    const missingAssets = BLOOD_BAG_ASSETS.filter(a => !deletedSet.has(a.id));
+    if (missingAssets.length > 0) {
+      console.log(`[Database] Initializing ${missingAssets.length} Blood Bag seed assets...`);
+      updatedList = missingAssets;
+      listHasChanged = true;
+      changedAssetsToSync.push(...missingAssets);
+    }
   }
 
   if (listHasChanged) {
@@ -676,7 +715,15 @@ const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: 
 
 export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> => {
   initLocalStorageIfNeeded();
-  const localList: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+  const rawLocalList: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
+  
+  // Immediately purge any deleted asset tombstones from local cache
+  const localDeleted = getLocalDeletedAssetIds();
+  const deletedSet = new Set(localDeleted);
+  const localList = rawLocalList.filter(a => !deletedSet.has(a.id));
+  if (localList.length !== rawLocalList.length) {
+    safeSetItem('assetwatch_assets', JSON.stringify(localList));
+  }
 
   const { isFirebase, db } = getServices();
   
@@ -686,6 +733,10 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
       const manifestDoc = await fetchAssetsManifestDoc(db);
       
       if (manifestDoc && manifestDoc.items && manifestDoc.items.length > 0) {
+        if (manifestDoc.deletedIds && Array.isArray(manifestDoc.deletedIds)) {
+          recordLocalDeletedAssetIds(manifestDoc.deletedIds);
+        }
+
         const cloudUpdatedAt = manifestDoc.updatedAt || '';
         let localMaxUpdatedAt = '';
         for (const a of localList) {
@@ -703,7 +754,7 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
         // Cloud manifest is newer or local cache is empty:
         // Merge manifest with local cache preserving any locally cached images!
         console.log(`[Manifest Engine] Loaded ${manifestDoc.items.length} assets from manifest (1 Read)!`);
-        const mergedAssets = mergeAssetsWithLocalCache(manifestDoc.items, localList);
+        const mergedAssets = mergeAssetsWithLocalCache(manifestDoc.items, localList, manifestDoc.deletedIds || []);
         const syncedList = await syncBloodBagAssets(mergedAssets, isFirebase, db);
         safeSetItem('assetwatch_assets', JSON.stringify(syncedList));
         return syncedList;
@@ -1026,7 +1077,10 @@ export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<
 };
 
 export const deleteAsset = async (id: string): Promise<void> => {
-  // 1. LocalStorage update first
+  // 1. Record in local tombstones
+  addLocalDeletedAssetId(id);
+
+  // 2. LocalStorage update
   initLocalStorageIfNeeded();
   const assets: Asset[] = JSON.parse(localStorage.getItem('assetwatch_assets') || '[]');
   const filtered = assets.filter(a => a.id !== id);
@@ -1038,8 +1092,8 @@ export const deleteAsset = async (id: string): Promise<void> => {
     try {
       const docRef = doc(db, 'assets', id);
       await deleteDoc(docRef);
-      // Auto-update manifest
-      await saveAssetsManifestDoc(db, filtered);
+      // Auto-update manifest with tombstone
+      await saveAssetsManifestDoc(db, filtered, [id]);
       return;
     } catch (e) {
       console.error('Firebase deleteAsset failed, falling back to localStorage:', e);
@@ -1131,18 +1185,27 @@ const deduplicateSurveys = (surveys: SurveyRecord[]): SurveyRecord[] => {
 const syncRestoredSurveys = async (surveys: SurveyRecord[], isFirebase: boolean, db: any): Promise<SurveyRecord[]> => {
   let listHasChanged = false;
   const masterSurveysMap = new Map<string, SurveyRecord>();
-  RESTORED_FURNITURE_SURVEYS.forEach(s => masterSurveysMap.set(s.assetId, s));
+  
+  try {
+    const { MASTER_BASE_SURVEYS } = await import('../utils/masterSurveysData');
+    MASTER_BASE_SURVEYS.forEach(s => masterSurveysMap.set(`${s.assetId}__${s.roundId || 'round-default'}`, s));
+  } catch (e) {
+    console.warn('Could not load MASTER_BASE_SURVEYS:', e);
+  }
+
+  RESTORED_FURNITURE_SURVEYS.forEach(s => masterSurveysMap.set(`${s.assetId}__${s.roundId || 'round-default'}`, s));
 
   const changedSurveysToSync: SurveyRecord[] = [];
 
   const normalizedSurveys = surveys.map(s => {
-    if (masterSurveysMap.has(s.assetId)) {
-      const master = masterSurveysMap.get(s.assetId)!;
+    const key = `${s.assetId}__${s.roundId || 'round-default'}`;
+    if (masterSurveysMap.has(key)) {
+      const master = masterSurveysMap.get(key)!;
       let changed = false;
       let operator = s.operator;
       let status = s.status;
       let imageUrl = s.imageUrl;
-      let roundId = s.roundId;
+      let roundId = s.roundId || 'round-default';
 
       if (!operator || operator === 'undefined' || operator === 'null') {
         operator = master.operator;
@@ -1156,8 +1219,8 @@ const syncRestoredSurveys = async (surveys: SurveyRecord[], isFirebase: boolean,
         imageUrl = master.imageUrl;
         changed = true;
       }
-      if (!roundId || roundId === 'undefined') {
-        roundId = master.roundId;
+      if (!s.roundId || s.roundId === 'undefined') {
+        roundId = master.roundId || 'round-default';
         changed = true;
       }
 
@@ -1172,12 +1235,18 @@ const syncRestoredSurveys = async (surveys: SurveyRecord[], isFirebase: boolean,
   });
 
   const existingMap = new Map<string, SurveyRecord>();
-  normalizedSurveys.forEach(s => existingMap.set(s.assetId, s));
+  normalizedSurveys.forEach(s => existingMap.set(`${s.assetId}__${s.roundId || 'round-default'}`, s));
   
-  const missingSurveys = RESTORED_FURNITURE_SURVEYS.filter(s => !existingMap.has(s.assetId));
+  const missingSurveys: SurveyRecord[] = [];
+  for (const [key, master] of masterSurveysMap.entries()) {
+    if (!existingMap.has(key)) {
+      missingSurveys.push(master);
+    }
+  }
+
   let updatedSurveys = normalizedSurveys;
   if (missingSurveys.length > 0) {
-    console.log(`Restoring ${missingSurveys.length} missing furniture surveys...`);
+    console.log(`[Master Survey Engine] Auto-healing ${missingSurveys.length} missing base surveys...`);
     updatedSurveys = [...normalizedSurveys, ...missingSurveys];
     listHasChanged = true;
     changedSurveysToSync.push(...missingSurveys);
@@ -1185,14 +1254,12 @@ const syncRestoredSurveys = async (surveys: SurveyRecord[], isFirebase: boolean,
 
   if (listHasChanged) {
     const deduped = deduplicateSurveys(updatedSurveys);
-    safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
+    const lightList = deduped.map(s => (s.imageUrl && s.imageUrl.startsWith('data:') ? { ...s, imageUrl: '' } : s));
+    safeSetItem('assetwatch_surveys', JSON.stringify(lightList));
     
     // Also sync to Firestore if configured
     if (isFirebase && db) {
       try {
-        for (const s of changedSurveysToSync) {
-          await setDoc(doc(db, 'surveys', s.id), sanitizeForFirestore(s));
-        }
         await saveSurveysManifestDoc(db, deduped);
       } catch (e) {
         console.warn('Failed to sync restored surveys to Firestore:', e);
@@ -1213,7 +1280,9 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
     try {
       // 1. MANIFEST-FIRST STRATEGY (1 READ ONLY!)
       const manifestDoc = await fetchSurveysManifestDoc(db);
-      if (manifestDoc && manifestDoc.items && manifestDoc.items.length > 0) {
+      const isManifestTruncated = manifestDoc && manifestDoc.items && manifestDoc.items.length < 722;
+
+      if (!forceFull && !isManifestTruncated && manifestDoc && manifestDoc.items && manifestDoc.items.length > 0) {
         const cloudUpdatedAt = manifestDoc.updatedAt || '';
         let localMaxTimestamp = '';
         for (const s of localSurveys) {
@@ -1223,7 +1292,7 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
         }
 
         // If local cache is valid and up-to-date, return directly (0 further reads)
-        if (!forceFull && localSurveys.length >= manifestDoc.items.length && localMaxTimestamp >= cloudUpdatedAt) {
+        if (localSurveys.length >= manifestDoc.items.length && localMaxTimestamp >= cloudUpdatedAt) {
           const withRestored = await syncRestoredSurveys(localSurveys, isFirebase, db);
           const deduped = deduplicateSurveys(withRestored);
           return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -1233,12 +1302,14 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
         const mergedSurveys = mergeSurveysWithLocalCache(manifestDoc.items, localSurveys);
         const withRestored = await syncRestoredSurveys(mergedSurveys, isFirebase, db);
         const deduped = deduplicateSurveys(withRestored);
-        safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
+        const lightList = deduped.map(s => (s.imageUrl && s.imageUrl.startsWith('data:') ? { ...s, imageUrl: '' } : s));
+        safeSetItem('assetwatch_surveys', JSON.stringify(lightList));
         return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       }
 
-      // 2. FALLBACK & AUTO-SEED MANIFEST:
-      console.log('[Manifest Engine] manifests/surveys not found on cloud. Auto-generating manifest...');
+      // 2. FALLBACK, AUTO-HEAL & DEEP CLOUD SYNC:
+      // Triggered if forceFull is true, manifest is missing, or manifest was clobbered/truncated (< 700 items)
+      console.log('[Manifest Engine] manifests/surveys is empty or truncated (< 700 items). Performing deep auto-heal from cloud & catalog...');
       const q = query(collection(db, 'surveys'));
       const snapshot = await getDocs(q);
       const fbList: SurveyRecord[] = [];
@@ -1246,16 +1317,30 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
         fbList.push({ id: docSnap.id, ...docSnap.data() } as SurveyRecord);
       });
 
-      // Merge local and remote avoiding ID duplicates
+      // Merge local, manifest items, and remote avoiding duplicates
       const mergedMap = new Map<string, SurveyRecord>();
-      localSurveys.forEach(s => mergedMap.set(s.id, s));
-      fbList.forEach(s => mergedMap.set(s.id, s));
+      localSurveys.forEach(s => mergedMap.set(`${s.assetId}__${s.roundId || 'round-default'}`, s));
+      if (manifestDoc && manifestDoc.items) {
+        manifestDoc.items.forEach(item => {
+          mergedMap.set(`${item.assetId}__${item.roundId || 'round-default'}`, {
+            id: item.id,
+            assetId: item.assetId,
+            roundId: item.roundId || 'round-default',
+            status: item.status as any,
+            operator: item.operator,
+            timestamp: item.timestamp,
+            imageUrl: item.imageUrl
+          });
+        });
+      }
+      fbList.forEach(s => mergedMap.set(`${s.assetId}__${s.roundId || 'round-default'}`, s));
       
       const mergedList = deduplicateSurveys(Array.from(mergedMap.values()));
       const withRestored = await syncRestoredSurveys(mergedList, isFirebase, db);
       const deduped = deduplicateSurveys(withRestored);
       await saveSurveysManifestDoc(db, deduped);
-      safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
+      const lightList = deduped.map(s => (s.imageUrl && s.imageUrl.startsWith('data:') ? { ...s, imageUrl: '' } : s));
+      safeSetItem('assetwatch_surveys', JSON.stringify(lightList));
       return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     } catch (e) {
       checkAndNotifyQuotaError(e, 'getSurveys');
@@ -1266,7 +1351,8 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
   // Deduplicate local cache too
   const withRestored = await syncRestoredSurveys(localSurveys, isFirebase, db);
   const deduped = deduplicateSurveys(withRestored);
-  safeSetItem('assetwatch_surveys', JSON.stringify(deduped));
+  const lightList = deduped.map(s => (s.imageUrl && s.imageUrl.startsWith('data:') ? { ...s, imageUrl: '' } : s));
+  safeSetItem('assetwatch_surveys', JSON.stringify(lightList));
   return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
@@ -1282,7 +1368,8 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
     localSurveys.push(fullSurvey);
     // Deduplicate immediately to prevent phantom count growth
     dedupedList = deduplicateSurveys(localSurveys);
-    safeSetItem('assetwatch_surveys', JSON.stringify(dedupedList));
+    const lightList = dedupedList.map(s => (s.imageUrl && s.imageUrl.startsWith('data:') ? { ...s, imageUrl: '' } : s));
+    safeSetItem('assetwatch_surveys', JSON.stringify(lightList));
   } catch (err) {
     console.warn('LocalStorage survey cache update failed:', err);
   }
@@ -1293,10 +1380,8 @@ export const addSurvey = async (survey: Omit<SurveyRecord, 'id'>): Promise<void>
     try {
       const docRef = doc(db, 'surveys', id);
       await setDoc(docRef, sanitizeForFirestore(fullSurvey as any));
-      // Auto-update manifest in background (1 write)
-      if (dedupedList.length > 0) {
-        await saveSurveysManifestDoc(db, dedupedList);
-      }
+      // Auto-update manifest in background (safely merges into cloud manifest without clobbering)
+      await saveSurveysManifestDoc(db, [fullSurvey]);
     } catch (e) {
       checkAndNotifyQuotaError(e, 'addSurvey');
       console.error('Firebase addSurvey failed, but saved locally:', e);
@@ -1319,14 +1404,17 @@ export const updateSurvey = async (id: string, updates: Partial<SurveyRecord>): 
   const index = surveys.findIndex(s => s.id === id);
   if (index !== -1) {
     surveys[index] = { ...surveys[index], ...updates };
-    safeSetItem('assetwatch_surveys', JSON.stringify(surveys));
+    const lightList = surveys.map(s => (s.imageUrl && s.imageUrl.startsWith('data:') ? { ...s, imageUrl: '' } : s));
+    safeSetItem('assetwatch_surveys', JSON.stringify(lightList));
   }
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
       const docRef = doc(db, 'surveys', id);
       await setDoc(docRef, sanitizeForFirestore(updates as any), { merge: true });
-      await saveSurveysManifestDoc(db, surveys);
+      if (index !== -1 && surveys[index]) {
+        await saveSurveysManifestDoc(db, [surveys[index]]);
+      }
     } catch (e) {
       console.error('Firebase updateSurvey failed:', e);
     }
