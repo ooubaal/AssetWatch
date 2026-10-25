@@ -737,6 +737,11 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
           recordLocalDeletedAssetIds(manifestDoc.deletedIds);
         }
 
+        const currentDeleted = getLocalDeletedAssetIds();
+        const curDeletedSet = new Set(currentDeleted);
+        const hasTombstonedInCloud = manifestDoc.items.some(it => curDeletedSet.has(it.id));
+        const cloudNeedsTombstoneUpdate = !manifestDoc.deletedIds || currentDeleted.some(id => !manifestDoc.deletedIds?.includes(id));
+
         const cloudUpdatedAt = manifestDoc.updatedAt || '';
         let localMaxUpdatedAt = '';
         for (const a of localList) {
@@ -745,18 +750,31 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
           }
         }
 
-        // If local cache is valid and up-to-date, return directly (0 further reads)
-        if (!forceFull && localList.length >= manifestDoc.items.length && localMaxUpdatedAt >= cloudUpdatedAt) {
+        // If local cache is valid and up-to-date and cloud has no tombstoned items, return directly (0 further reads)
+        if (!forceFull && !hasTombstonedInCloud && localList.length >= manifestDoc.items.length && localMaxUpdatedAt >= cloudUpdatedAt) {
           const syncedLocal = await syncBloodBagAssets(localList, isFirebase, db);
           return syncedLocal;
         }
 
-        // Cloud manifest is newer or local cache is empty:
-        // Merge manifest with local cache preserving any locally cached images!
+        // Cloud manifest is newer, local cache is empty, OR cloud still contains tombstoned assets:
         console.log(`[Manifest Engine] Loaded ${manifestDoc.items.length} assets from manifest (1 Read)!`);
         const mergedAssets = mergeAssetsWithLocalCache(manifestDoc.items, localList, manifestDoc.deletedIds || []);
         const syncedList = await syncBloodBagAssets(mergedAssets, isFirebase, db);
         safeSetItem('assetwatch_assets', JSON.stringify(syncedList));
+
+        // If cloud contained deleted items or was missing tombstones, actively clean Firestore!
+        if (hasTombstonedInCloud || cloudNeedsTombstoneUpdate) {
+          try {
+            for (const delId of currentDeleted) {
+              await deleteDoc(doc(db, 'assets', delId)).catch(() => {});
+            }
+            await saveAssetsManifestDoc(db, syncedList, currentDeleted);
+            console.log(`[Manifest Engine] Actively purged tombstones from cloud Firestore: ${currentDeleted.join(', ')}`);
+          } catch (err) {
+            console.warn('Failed to clean cloud tombstones:', err);
+          }
+        }
+
         return syncedList;
       }
 
@@ -1307,19 +1325,20 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
         return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       }
 
-      // 2. FALLBACK, AUTO-HEAL & DEEP CLOUD SYNC:
-      // Triggered if forceFull is true, manifest is missing, or manifest was clobbered/truncated (< 700 items)
-      console.log('[Manifest Engine] manifests/surveys is empty or truncated (< 700 items). Performing deep auto-heal from cloud & catalog...');
-      const q = query(collection(db, 'surveys'));
-      const snapshot = await getDocs(q);
-      const fbList: SurveyRecord[] = [];
-      snapshot.forEach((docSnap) => {
-        fbList.push({ id: docSnap.id, ...docSnap.data() } as SurveyRecord);
-      });
-
-      // Merge local, manifest items, and remote avoiding duplicates
+      // 2. AUTO-HEAL WITH MASTER BASELINE & MANIFEST MERGE:
+      // If manifest is empty, missing, or truncated (< 722 items), auto-heal using 722 verified master surveys
+      console.log(`[Manifest Engine] manifests/surveys is empty or truncated (${manifestDoc?.items?.length || 0} items). Auto-healing to 722+ verified baseline surveys...`);
       const mergedMap = new Map<string, SurveyRecord>();
-      localSurveys.forEach(s => mergedMap.set(`${s.assetId}__${s.roundId || 'round-default'}`, s));
+
+      // A. Master Base Surveys (722 verified physical surveys)
+      try {
+        const { MASTER_BASE_SURVEYS } = await import('../utils/masterSurveysData');
+        MASTER_BASE_SURVEYS.forEach(s => mergedMap.set(`${s.assetId}__${s.roundId || 'round-default'}`, s));
+      } catch (e) {
+        console.warn('Could not load MASTER_BASE_SURVEYS in auto-heal:', e);
+      }
+
+      // B. Merge cloud manifest items (preserving recent surveys from other devices)
       if (manifestDoc && manifestDoc.items) {
         manifestDoc.items.forEach(item => {
           mergedMap.set(`${item.assetId}__${item.roundId || 'round-default'}`, {
@@ -1333,8 +1352,10 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
           });
         });
       }
-      fbList.forEach(s => mergedMap.set(`${s.assetId}__${s.roundId || 'round-default'}`, s));
-      
+
+      // C. Merge local surveys
+      localSurveys.forEach(s => mergedMap.set(`${s.assetId}__${s.roundId || 'round-default'}`, s));
+
       const mergedList = deduplicateSurveys(Array.from(mergedMap.values()));
       const withRestored = await syncRestoredSurveys(mergedList, isFirebase, db);
       const deduped = deduplicateSurveys(withRestored);
