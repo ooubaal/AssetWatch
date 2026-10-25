@@ -21,6 +21,27 @@ interface BarcodeScannerProps {
 // Global teardown lock to prevent hardware camera collisions across rapid unmount/mount cycles
 let activeCameraTeardownPromise: Promise<void> | null = null;
 
+export const waitForGlobalCameraTeardown = async (): Promise<void> => {
+  if (activeCameraTeardownPromise) {
+    try {
+      await activeCameraTeardownPromise;
+    } catch {}
+  }
+  try {
+    document.querySelectorAll('[id^="assetwatch-qr-reader"] video').forEach((vid: any) => {
+      try { vid.pause(); } catch {}
+      if (vid.srcObject) {
+        try {
+          (vid.srcObject as MediaStream).getTracks().forEach(t => {
+            try { t.stop(); } catch {}
+          });
+          vid.srcObject = null;
+        } catch {}
+      }
+    });
+  } catch {}
+};
+
 // Built-in Web Audio API scanner beep (identical to handheld Honeywell/Zebra scanners)
 const playScannerBeep = (isSuccess = true) => {
   try {

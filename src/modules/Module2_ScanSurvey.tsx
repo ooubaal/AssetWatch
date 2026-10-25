@@ -877,21 +877,25 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         
         {/* Left Column: Barcode scanner camera */}
         <div className="scanner-column">
-          {!isCameraActive ? (
+          {!isCameraActive || isInAppCameraOpen ? (
             <div className="scan-placeholder glass-panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '0.85rem' }}>
               <Camera size={44} color="var(--text-muted)" style={{ opacity: 0.6 }} />
-              <h3>กล้องสแกนเนอร์ปิดทำงานอยู่</h3>
+              <h3>{isInAppCameraOpen ? 'กำลังเปิดกล้องถ่ายภาพสภาพครุภัณฑ์' : 'กล้องสแกนเนอร์ปิดทำงานอยู่'}</h3>
               <p style={{ maxWidth: '280px', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', lineHeight: 1.4 }}>
-                สแตนด์บายกล้องปิดไว้ชั่วคราวเพื่อประหยัดแบตเตอรี่และความเป็นส่วนตัว คุณสามารถเปิดกล้องเมื่อพร้อมเดินสายสแกนบาร์โค้ดครุภัณฑ์
+                {isInAppCameraOpen
+                  ? 'ระบบพักกล้องสแกนบาร์โค้ดชั่วคราว เพื่อคืนสิทธิ์ฮาร์ดแวร์กล้องให้ระบบถ่ายภาพด่วน'
+                  : 'สแตนด์บายกล้องปิดไว้ชั่วคราวเพื่อประหยัดแบตเตอรี่และความเป็นส่วนตัว คุณสามารถเปิดกล้องเมื่อพร้อมเดินสายสแกนบาร์โค้ดครุภัณฑ์'}
               </p>
-              <button 
-                type="button" 
-                className="btn btn-primary animate-pulse" 
-                onClick={() => setIsCameraActive(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem' }}
-              >
-                <Camera size={14} /> 📸 เปิดใช้งานกล้องตรวจนับ
-              </button>
+              {!isInAppCameraOpen && (
+                <button 
+                  type="button" 
+                  className="btn btn-primary animate-pulse" 
+                  onClick={() => setIsCameraActive(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem' }}
+                >
+                  <Camera size={14} /> 📸 เปิดใช้งานกล้องตรวจนับ
+                </button>
+              )}
 
               {localStorage.getItem('assetwatch_db_mode') !== 'firebase' && (
                 <div style={{

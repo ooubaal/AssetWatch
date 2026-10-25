@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, X, Zap, ZapOff, RotateCcw, Check, RefreshCw, AlertCircle } from 'lucide-react';
+import { waitForGlobalCameraTeardown } from './BarcodeScanner';
 
 export interface InAppCameraModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const InAppCameraModal: React.FC<InAppCameraModalProps> = ({
   const [isCapturing, setIsCapturing] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fallbackNativeInputRef = useRef<HTMLInputElement>(null);
   const isMountedRef = useRef(true);
 
   // Stop current active media stream safely
@@ -56,7 +58,16 @@ export const InAppCameraModal: React.FC<InAppCameraModalProps> = ({
     setCapturedFile(null);
   }, [capturedBlobUrl]);
 
-  // Start in-app camera stream
+  // Handler for fallback native camera capture
+  const handleNativeFallbackChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      onCapture(file);
+      onClose();
+    }
+  };
+
+  // Start in-app camera stream with multi-tier fallback and hardware lock mitigation
   const startCamera = useCallback(async (deviceId?: string) => {
     setIsInitializing(true);
     setErrorMsg(null);
@@ -68,7 +79,27 @@ export const InAppCameraModal: React.FC<InAppCameraModalProps> = ({
         stream.getTracks().forEach(track => {
           try { track.stop(); } catch {}
         });
+        setStream(null);
       }
+
+      // 1. Wait for global teardown from scanner if any
+      await waitForGlobalCameraTeardown();
+
+      // 2. Extra safety: release any active video streams in DOM
+      document.querySelectorAll('video').forEach(vid => {
+        if (vid !== videoRef.current && vid.srcObject) {
+          try {
+            (vid.srcObject as MediaStream).getTracks().forEach(track => {
+              try { track.stop(); } catch {}
+            });
+            vid.srcObject = null;
+          } catch {}
+        }
+      });
+
+      // 3. Grace period for Android Camera HAL (Hardware Abstraction Layer) to release driver
+      await new Promise(r => setTimeout(r, 280));
+      if (!isMountedRef.current) return;
 
       // Enumerate cameras if not already populated
       try {
@@ -79,7 +110,11 @@ export const InAppCameraModal: React.FC<InAppCameraModalProps> = ({
         }
       } catch {}
 
-      const constraints: MediaStreamConstraints = {
+      let mediaStream: MediaStream | null = null;
+      let lastError: any = null;
+
+      // Tier 1: Try with preferred facingMode and ideal resolution
+      const tier1Constraints: MediaStreamConstraints = {
         audio: false,
         video: deviceId 
           ? {
@@ -94,7 +129,45 @@ export const InAppCameraModal: React.FC<InAppCameraModalProps> = ({
             }
       };
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia(tier1Constraints);
+      } catch (err1: any) {
+        lastError = err1;
+        console.warn('InAppCamera: Tier 1 constraints failed, attempting fallback...', err1);
+        
+        // Wait 350ms if error was NotReadableError (hardware busy)
+        await new Promise(r => setTimeout(r, 350));
+        if (!isMountedRef.current) return;
+
+        // Tier 2: Try relaxed facingMode: 'environment' without resolution constraints
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: { facingMode: 'environment' }
+          });
+        } catch (err2: any) {
+          lastError = err2;
+          console.warn('InAppCamera: Tier 2 constraints failed, attempting generic video...', err2);
+          
+          await new Promise(r => setTimeout(r, 300));
+          if (!isMountedRef.current) return;
+
+          // Tier 3: Generic fallback to any video camera
+          try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+              audio: false,
+              video: true
+            });
+          } catch (err3: any) {
+            lastError = err3;
+          }
+        }
+      }
+
+      if (!mediaStream) {
+        throw lastError || new Error('Could not start video stream');
+      }
+
       if (!isMountedRef.current) {
         mediaStream.getTracks().forEach(t => t.stop());
         return;
@@ -267,16 +340,41 @@ export const InAppCameraModal: React.FC<InAppCameraModalProps> = ({
         {/* Viewfinder Area */}
         <div className="inapp-camera-body">
           {errorMsg ? (
-            <div className="inapp-camera-error">
-              <AlertCircle size={36} color="var(--danger)" />
-              <p>{errorMsg}</p>
-              <button 
-                type="button" 
-                className="btn btn-primary"
-                onClick={() => startCamera(selectedCameraId || undefined)}
-              >
-                <RefreshCw size={14} /> ลองเปิดกล้องอีกครั้ง
-              </button>
+            <div className="inapp-camera-error" style={{ textAlign: 'center', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+              <AlertCircle size={44} color="var(--danger)" />
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', maxWidth: '280px', lineHeight: 1.4, margin: 0 }}>
+                {errorMsg}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', maxWidth: '280px', marginTop: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-primary"
+                  onClick={() => startCamera(selectedCameraId || undefined)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', width: '100%', padding: '0.6rem', fontSize: '0.85rem' }}
+                >
+                  <RefreshCw size={15} /> ลองเปิดกล้องอีกครั้ง
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={() => fallbackNativeInputRef.current?.click()}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                    width: '100%',
+                    padding: '0.6rem',
+                    fontSize: '0.85rem',
+                    borderColor: 'var(--primary)',
+                    color: 'var(--primary)',
+                    background: 'rgba(59, 130, 246, 0.08)',
+                    fontWeight: 650
+                  }}
+                >
+                  <Camera size={15} /> 📸 ถ่ายด้วยกล้องมาตรฐานของเครื่อง
+                </button>
+              </div>
             </div>
           ) : capturedBlobUrl ? (
             /* Review captured photo */
@@ -339,6 +437,16 @@ export const InAppCameraModal: React.FC<InAppCameraModalProps> = ({
           )}
         </div>
 
+        {/* Hidden Fallback File/Camera Input */}
+        <input 
+          ref={fallbackNativeInputRef}
+          type="file" 
+          accept="image/*" 
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={handleNativeFallbackChange}
+        />
+
         {/* Footer Action Bar */}
         <div className="inapp-camera-footer">
           {capturedBlobUrl ? (
@@ -359,7 +467,7 @@ export const InAppCameraModal: React.FC<InAppCameraModalProps> = ({
               </button>
             </div>
           ) : (
-            <div className="inapp-shutter-row">
+            <div className="inapp-shutter-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
               <button 
                 type="button" 
                 className="inapp-shutter-btn"
@@ -368,6 +476,29 @@ export const InAppCameraModal: React.FC<InAppCameraModalProps> = ({
                 title="กดถ่ายรูป"
               >
                 <div className="shutter-inner-dot"></div>
+              </button>
+
+              <button
+                type="button"
+                className="btn-camera-util"
+                onClick={() => fallbackNativeInputRef.current?.click()}
+                title="สลับไปใช้กล้องมาตรฐานของมือถือ (Native Camera)"
+                style={{
+                  position: 'absolute',
+                  right: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontSize: '0.72rem',
+                  padding: '0.4rem 0.65rem',
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '20px',
+                  color: '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                <Camera size={13} /> กล้องระบบ
               </button>
             </div>
           )}
