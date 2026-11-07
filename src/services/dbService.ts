@@ -275,86 +275,299 @@ export const safeSetItem = (key: string, value: string): void => {
   }
 };
 
-// --- DYNAMIC IMAGE & PDF COMPRESSION HELPER (HD CLARITY & MINIMAL STORAGE SIZE) ---
+// --- DYNAMIC IMAGE & PDF COMPRESSION HELPER (HD CLARITY & MINIMAL STORAGE SIZE LIKE PDF24) ---
 
-// Helper to render PDF file to an HD compressed image
-export const renderPdfToHdImage = async (file: File): Promise<File> => {
-  return new Promise(async (resolve) => {
+// Safe loader for PDF.js (local public/vendor first, fallback to CDN)
+export const loadPdfJsLibrary = async (): Promise<any> => {
+  if ((window as any).pdfjsLib) {
+    return (window as any).pdfjsLib;
+  }
+
+  const base = (import.meta as any).env?.BASE_URL || './';
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  const localScript = `${cleanBase}vendor/pdf.min.js`;
+  const localWorker = `${cleanBase}vendor/pdf.worker.min.js`;
+  const cdnScript = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+  const cdnWorker = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const injectScript = (src: string) => new Promise<void>((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Failed to load script ${src}`));
+    document.head.appendChild(s);
+  });
+
+  try {
+    await injectScript(localScript);
+  } catch {
     try {
-      // Load pdfjsLib dynamically from CDN if not already on window
-      if (!(window as any).pdfjsLib) {
-        await new Promise<void>((res, rej) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-          script.onload = () => {
-            try {
-              (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            } catch {}
-            res();
-          };
-          script.onerror = () => rej(new Error('Cannot load PDF library'));
-          document.head.appendChild(script);
-        });
-      }
+      await injectScript(cdnScript);
+    } catch (e) {
+      console.warn('Could not inject CDN PDF script:', e);
+    }
+  }
 
-      const pdfjsLib = (window as any).pdfjsLib;
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      const page = await pdf.getPage(1);
+  const pdfjsLib = (window as any).pdfjsLib;
+  if (!pdfjsLib) {
+    throw new Error('PDF.js library is not available');
+  }
 
-      // Render at scale 2.0 (HD resolution ~150-200 DPI) for ultra-crisp readable text and tables
-      const viewport = page.getViewport({ scale: 2.0 });
+  // Configure worker with fallback
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = localWorker;
+  } catch {
+    try {
+      const workerBlob = new Blob([`importScripts(${JSON.stringify(cdnWorker)});`], { type: 'application/javascript' });
+      pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(workerBlob);
+    } catch {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = cdnWorker;
+    }
+  }
+
+  return pdfjsLib;
+};
+
+// Pure JS multi-page PDF generator embedding compressed JPEG streams (PDF 1.4 standard)
+export const createPdfFromJpegs = (
+  pages: Array<{ bytes: Uint8Array; width: number; height: number }>
+): Uint8Array => {
+  if (pages.length === 0) {
+    throw new Error('No pages to generate PDF');
+  }
+
+  const chunks: Uint8Array[] = [];
+  const offsets: number[] = [];
+  let currentOffset = 0;
+
+  const encoder = new TextEncoder();
+  const writeStr = (str: string) => {
+    const bytes = encoder.encode(str);
+    chunks.push(bytes);
+    currentOffset += bytes.length;
+  };
+
+  const writeBytes = (bytes: Uint8Array) => {
+    chunks.push(bytes);
+    currentOffset += bytes.length;
+  };
+
+  writeStr('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+
+  const catalogObjNum = 1;
+  const pagesObjNum = 2;
+  const pageObjNums: Array<{ pageNum: number; contentNum: number; imgNum: number }> = [];
+  let nextObjNum = 3;
+
+  for (let i = 0; i < pages.length; i++) {
+    const pageNum = nextObjNum++;
+    const contentNum = nextObjNum++;
+    const imgNum = nextObjNum++;
+    pageObjNums.push({ pageNum, contentNum, imgNum });
+  }
+
+  // Object 1: Catalog
+  offsets[catalogObjNum] = currentOffset;
+  writeStr(`${catalogObjNum} 0 obj\n<< /Type /Catalog /Pages ${pagesObjNum} 0 R >>\nendobj\n`);
+
+  // Object 2: Pages tree
+  offsets[pagesObjNum] = currentOffset;
+  const kidsStr = pageObjNums.map(p => `${p.pageNum} 0 R`).join(' ');
+  writeStr(`${pagesObjNum} 0 obj\n<< /Type /Pages /Kids [${kidsStr}] /Count ${pages.length} >>\nendobj\n`);
+
+  // Individual Pages, content streams, and embedded JPEG XObjects
+  for (let i = 0; i < pages.length; i++) {
+    const p = pageObjNums[i];
+    const pageData = pages[i];
+    
+    // Standard A4 width = 595.28 pt, height calculated proportionally
+    const ptWidth = 595.28;
+    const ptHeight = Math.round((pageData.height / (pageData.width || 1)) * ptWidth * 100) / 100;
+
+    // Page Object
+    offsets[p.pageNum] = currentOffset;
+    writeStr(
+      `${p.pageNum} 0 obj\n<< /Type /Page /Parent ${pagesObjNum} 0 R ` +
+      `/MediaBox [0 0 ${ptWidth} ${ptHeight}] ` +
+      `/Resources << /XObject << /Im1 ${p.imgNum} 0 R >> >> ` +
+      `/Contents ${p.contentNum} 0 R >>\nendobj\n`
+    );
+
+    // Content Stream Object
+    const contentStream = `q\n${ptWidth} 0 0 ${ptHeight} 0 0 cm\n/Im1 Do\nQ\n`;
+    offsets[p.contentNum] = currentOffset;
+    writeStr(`${p.contentNum} 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}endstream\nendobj\n`);
+
+    // Image XObject with raw DCTDecode (standard JPEG)
+    offsets[p.imgNum] = currentOffset;
+    writeStr(
+      `${p.imgNum} 0 obj\n<< /Type /XObject /Subtype /Image ` +
+      `/Width ${pageData.width} /Height ${pageData.height} ` +
+      `/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode ` +
+      `/Length ${pageData.bytes.length} >>\nstream\n`
+    );
+    writeBytes(pageData.bytes);
+    writeStr('\nendstream\nendobj\n');
+  }
+
+  // Cross-reference table (xref)
+  const xrefOffset = currentOffset;
+  writeStr(`xref\n0 ${nextObjNum}\n0000000000 65535 f \n`);
+  for (let i = 1; i < nextObjNum; i++) {
+    const off = String(offsets[i] || 0).padStart(10, '0');
+    writeStr(`${off} 00000 n \n`);
+  }
+
+  // Trailer
+  writeStr(`trailer\n<< /Size ${nextObjNum} /Root ${catalogObjNum} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
+
+  // Merge chunks into a single Uint8Array
+  const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
+  const result = new Uint8Array(totalLength);
+  let pos = 0;
+  for (const c of chunks) {
+    result.set(c, pos);
+    pos += c.length;
+  }
+  return result;
+};
+
+export interface PdfCompressionResult {
+  file: File;
+  previewUrl: string; // HD JPEG data URL of page 1 for sharp UI preview
+  pageCount: number;
+  originalSize: number;
+  compressedSize: number;
+  reductionPercent: number;
+}
+
+// Full multi-page PDF compressor mimicking PDF24 (ultra-small file size with HD text readability)
+export const compressPdfDocument = async (
+  file: File,
+  maxWidth = 1400,
+  quality = 0.76,
+  onProgress?: (current: number, total: number) => void
+): Promise<PdfCompressionResult> => {
+  try {
+    const pdfjsLib = await loadPdfJsLibrary();
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pageCount = pdf.numPages || 1;
+
+    const pageJpegs: Array<{ bytes: Uint8Array; width: number; height: number }> = [];
+    let firstPagePreview = '';
+
+    for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
+      onProgress?.(pageNum, pageCount);
+      const page = await pdf.getPage(pageNum);
+
+      // Render at high resolution scale (scale 1.5 - 2.0 provides ~150-180 DPI for ultra-crisp readable 8-12pt text)
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+      const targetScale = Math.min(2.5, Math.max(1.5, maxWidth / (unscaledViewport.width || 1)));
+      const viewport = page.getViewport({ scale: targetScale });
+
       const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(file);
-        return;
-      }
+      if (!ctx) continue;
 
-      // Draw pure white background to avoid transparent PDF issues
+      // Pure white background (prevents transparent PDF page rendering black)
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      // Fit maximum width to 1400px while maintaining crystal-clear sharpness
-      let finalCanvas = canvas;
-      const maxWidth = 1400;
+      // Fit to maxWidth if larger
+      let renderCanvas = canvas;
       if (canvas.width > maxWidth) {
         const scale = maxWidth / canvas.width;
-        const resizedCanvas = document.createElement('canvas');
-        resizedCanvas.width = maxWidth;
-        resizedCanvas.height = Math.round(canvas.height * scale);
-        const rCtx = resizedCanvas.getContext('2d');
-        if (rCtx) {
-          rCtx.fillStyle = '#ffffff';
-          rCtx.fillRect(0, 0, resizedCanvas.width, resizedCanvas.height);
-          rCtx.imageSmoothingEnabled = true;
-          rCtx.imageSmoothingQuality = 'high';
-          rCtx.drawImage(canvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
-          finalCanvas = resizedCanvas;
+        const downCanvas = document.createElement('canvas');
+        downCanvas.width = maxWidth;
+        downCanvas.height = Math.round(canvas.height * scale);
+        const dCtx = downCanvas.getContext('2d');
+        if (dCtx) {
+          dCtx.fillStyle = '#ffffff';
+          dCtx.fillRect(0, 0, downCanvas.width, downCanvas.height);
+          dCtx.imageSmoothingEnabled = true;
+          dCtx.imageSmoothingQuality = 'high';
+          dCtx.drawImage(canvas, 0, 0, downCanvas.width, downCanvas.height);
+          renderCanvas = downCanvas;
         }
       }
 
-      finalCanvas.toBlob((blob) => {
-        if (blob) {
-          const cleanName = file.name.replace(/\.[^/.]+$/, "");
-          const compressedFile = new File([blob], `${cleanName}_HD.jpg`, {
-            type: 'image/jpeg',
-            lastModified: Date.now()
-          });
-          resolve(compressedFile);
-        } else {
-          resolve(file);
-        }
-      }, 'image/jpeg', 0.80); // 0.80 provides HD text sharpness with tiny ~60-110KB file size
-    } catch (e) {
-      console.warn('PDF to HD Image conversion fallback, using original file:', e);
-      resolve(file);
+      if (pageNum === 1) {
+        firstPagePreview = renderCanvas.toDataURL('image/jpeg', 0.82);
+      }
+
+      // Convert canvas to compressed JPEG bytes
+      const jpegBlob = await new Promise<Blob | null>((res) => 
+        renderCanvas.toBlob(res, 'image/jpeg', quality)
+      );
+
+      if (jpegBlob) {
+        const jpegArrayBuffer = await jpegBlob.arrayBuffer();
+        pageJpegs.push({
+          bytes: new Uint8Array(jpegArrayBuffer),
+          width: renderCanvas.width,
+          height: renderCanvas.height
+        });
+      }
     }
-  });
+
+    if (pageJpegs.length === 0) {
+      throw new Error('Failed to render any PDF pages');
+    }
+
+    // Assemble pages back into a compressed PDF document
+    const compressedBytes = createPdfFromJpegs(pageJpegs);
+    const compressedBlob = new Blob([compressedBytes as any], { type: 'application/pdf' });
+    const compressedFile = new File([compressedBlob], file.name.endsWith('.pdf') ? file.name : `${file.name}.pdf`, {
+      type: 'application/pdf',
+      lastModified: Date.now()
+    });
+
+    const originalSize = file.size;
+    const compressedSize = compressedFile.size;
+    const reductionPercent = Math.max(0, Math.round(((originalSize - compressedSize) / originalSize) * 100));
+
+    return {
+      file: compressedSize < originalSize ? compressedFile : file,
+      previewUrl: firstPagePreview,
+      pageCount,
+      originalSize,
+      compressedSize: Math.min(originalSize, compressedSize),
+      reductionPercent
+    };
+  } catch (err) {
+    console.warn('PDF compression fallback to original file:', err);
+    return {
+      file,
+      previewUrl: '',
+      pageCount: 1,
+      originalSize: file.size,
+      compressedSize: file.size,
+      reductionPercent: 0
+    };
+  }
+};
+
+// Helper returning a compressed PDF File directly
+export const compressPdfFile = async (file: File, maxWidth = 1400, quality = 0.76): Promise<File> => {
+  const result = await compressPdfDocument(file, maxWidth, quality);
+  return result.file;
+};
+
+// Helper to render PDF file to an HD compressed image (first page)
+export const renderPdfToHdImage = async (file: File): Promise<File> => {
+  const res = await compressPdfDocument(file, 1400, 0.80);
+  if (res.previewUrl) {
+    const blob = await (await fetch(res.previewUrl)).blob();
+    const cleanName = file.name.replace(/\.[^/.]+$/, "");
+    return new File([blob], `${cleanName}_HD.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
+  }
+  return file;
 };
 
 export const compressImage = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.75): Promise<File> => {
@@ -503,7 +716,7 @@ export const compressFileOrPdf = async (file: File, maxWidth = 1400, maxHeight =
 
   const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
   if (isPdf) {
-    return await renderPdfToHdImage(file);
+    return await compressPdfFile(file, maxWidth, quality);
   }
 
   if (file.type.startsWith('image/')) {

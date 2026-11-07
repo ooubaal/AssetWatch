@@ -74,7 +74,7 @@ const ModuleLoadingFallback = () => (
 );
 
 import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLocationConfig, UserAccount, INITIAL_USERS, PMContract, PMSchedule, PMNotification, SparePart } from './utils/mockData';
-import { X, Camera, AlertCircle, AlertTriangle, Lock, Bell, MapPin, Building, Trash2, RotateCw, CheckCircle2 } from 'lucide-react';
+import { X, Camera, AlertCircle, AlertTriangle, Lock, Bell, MapPin, Building, Trash2, RotateCw, CheckCircle2, User as UserIcon } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
 function App() {
@@ -107,7 +107,13 @@ function App() {
   const [rounds, setRounds] = useState<SurveyRound[]>([]);
   const [activeRound, setActiveRound] = useState<SurveyRound | null>(null);
   const [departments, setDepartments] = useState<DepartmentLocationConfig[]>([]);
-  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [users, setUsers] = useState<UserAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem('assetwatch_users');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_USERS;
+  });
   
   // PM & CM States
   const [contracts, setContracts] = useState<PMContract[]>([]);
@@ -128,10 +134,61 @@ function App() {
     return null;
   });
 
+  // Role & Department Scoped Notifications for Top Navigation Bell
+  const userNotifications = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+      return pmNotifications;
+    }
+    const userDept = currentUser.department;
+    if (!userDept) return pmNotifications;
+
+    return pmNotifications.filter(notif => {
+      if (notif.department) return notif.department === userDept;
+      if (notif.assetId) {
+        const a = assets.find(item => item.id === notif.assetId);
+        return a?.department === userDept;
+      }
+      for (const asset of assets) {
+        if (notif.title.includes(asset.id) || notif.message.includes(asset.id)) {
+          return asset.department === userDept;
+        }
+      }
+      for (const c of contracts) {
+        if (notif.title.includes(c.contractNumber) || notif.message.includes(c.contractNumber) || notif.message.includes(c.title)) {
+          if (c.department && c.department === userDept) return true;
+          if (c.assetIds && c.assetIds.some(id => assets.find(a => a.id === id)?.department === userDept)) return true;
+          return false;
+        }
+      }
+      return false;
+    });
+  }, [pmNotifications, currentUser, assets, contracts]);
+
   // Login form state
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  const userSelectOptions = useMemo(() => {
+    return users.map(u => {
+      const roleText = u.role === 'admin' 
+        ? '👑 แอดมินสูงสุด' 
+        : u.role === 'manager' 
+          ? '💼 ผู้บริหาร' 
+          : u.role === 'head' 
+            ? `👔 หัวหน้า (${u.department || 'ไม่ระบุฝ่าย'})` 
+            : `🔧 ปฏิบัติงาน (${u.department || 'ไม่ระบุฝ่าย'})`;
+
+      return {
+        value: u.username,
+        label: `${u.name} (${u.username})`,
+        sublabel: roleText,
+        badge: u.isBlocked ? '🚫 ถูกระงับสิทธิ์' : undefined
+      };
+    });
+  }, [users]);
 
   // Prefilled Asset ID used for onboarding scanned unregistered barcodes
   const [prefilledAssetId, setPrefilledAssetId] = useState<string | null>(null);
@@ -225,6 +282,8 @@ function App() {
     warningLimit.setDate(warningLimit.getDate() + 7);
     const warningLimitStr = warningLimit.toISOString().split('T')[0];
 
+    const assetsMap = new Map(assets.map(a => [a.id, a]));
+
     // 1. Check PM schedules
     for (const s of scheds) {
       if (s.status === 'pending') {
@@ -236,6 +295,7 @@ function App() {
           const exists = notifs.some(n => n.type === notifType && n.message.includes(s.assetId));
           
           if (!exists) {
+            const targetAsset = assetsMap.get(s.assetId);
             const newNotif: PMNotification = {
               id: `notif-${Date.now()}-${s.id}`,
               title: isOverdue ? `🔴 แผน PM เลยกำหนดตรวจเช็ค (${s.assetId})` : `📅 ใกล้ถึงกำหนดบำรุงรักษา PM (${s.assetId})`,
@@ -245,7 +305,9 @@ function App() {
               targetDate: todayStr,
               isRead: false,
               type: notifType,
-              linkTo: 'module10_pm'
+              linkTo: 'module10_pm',
+              assetId: s.assetId,
+              department: targetAsset?.department || ''
             };
             await addPMNotification(newNotif);
           }
@@ -262,6 +324,11 @@ function App() {
       if (c.endDate >= todayStr && c.endDate <= ninetyDaysLimitStr) {
         const exists = notifs.some(n => n.type === 'contract_expiring' && n.message.includes(c.contractNumber));
         if (!exists) {
+          let contractDept = c.department || '';
+          if (!contractDept && c.assetIds && c.assetIds.length > 0) {
+            const firstAsset = assetsMap.get(c.assetIds[0]);
+            contractDept = firstAsset?.department || '';
+          }
           const newNotif: PMNotification = {
             id: `notif-${Date.now()}-${c.id}`,
             title: `⚠️ สัญญา PM ใกล้หมดอายุ (${c.contractNumber})`,
@@ -269,7 +336,8 @@ function App() {
             targetDate: todayStr,
             isRead: false,
             type: 'contract_expiring',
-            linkTo: 'module10_pm'
+            linkTo: 'module10_pm',
+            department: contractDept
           };
           await addPMNotification(newNotif);
         }
@@ -339,13 +407,14 @@ function App() {
         setPmNotifications(allPMNotifs);
         setSpareParts(allSpareParts);
 
-        // Automated check and notification generation (only on initial load or once every 10 mins)
+        // Automated check and notification generation (runs non-blocking in background to ensure fast UI sync)
         const now = Date.now();
         if (forcePMCheck || now - lastPMCheckRef.current > 10 * 60 * 1000) {
           lastPMCheckRef.current = now;
-          await checkAndGeneratePMNotifications(allSchedules, allPMNotifs, allContracts);
-          const updatedPMNotifs = await getPMNotifications();
-          setPmNotifications(updatedPMNotifs);
+          checkAndGeneratePMNotifications(allSchedules, allPMNotifs, allContracts)
+            .then(() => getPMNotifications())
+            .then(updated => setPmNotifications(updated))
+            .catch(err => console.warn('Background PM check skipped:', err));
         }
 
         const active = allRounds.find(r => r.status === 'active');
@@ -414,9 +483,15 @@ function App() {
       setIsInitialSyncing(true);
       setSyncStatusSuccess(false);
 
+      // Auto-dismiss safety timer so user never gets stuck waiting forever
+      const syncTimeout = setTimeout(() => {
+        setIsInitialSyncing(false);
+      }, 4000);
+
       // On app mount, perform Smart Delta Sync (0 full reads if cache is already present)
       fetchAllData(true, false)
         .then(() => {
+          clearTimeout(syncTimeout);
           setSyncStatusSuccess(true);
           setTimeout(() => {
             setIsInitialSyncing(false);
@@ -424,8 +499,11 @@ function App() {
           }, 1200);
         })
         .catch(() => {
+          clearTimeout(syncTimeout);
           setIsInitialSyncing(false);
         });
+
+      return () => clearTimeout(syncTimeout);
     }
   }, [isSetupWizardNeeded]);
 
@@ -631,6 +709,11 @@ function App() {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+
+    if (!loginUsername.trim()) {
+      setLoginError('กรุณาเลือกหรือระบุชื่อผู้ใช้งาน');
+      return;
+    }
 
     // Fetch the absolute latest users from Firestore/Database to ensure real-time password sync across devices!
     let latestUsers = users;
@@ -951,7 +1034,14 @@ function App() {
     setDepartments(prev => [...prev.filter(d => d.id !== newDept.id), newDept]);
   };
 
-  const handleUpdateDepartment = async (id: string, name: string, locations: string[], locationCreators?: Record<string, string>) => {
+  const handleUpdateDepartment = async (
+    id: string, 
+    name: string, 
+    locations: string[], 
+    locationCreators?: Record<string, string>,
+    mapUrl?: string,
+    mapName?: string
+  ) => {
     const updates: Partial<DepartmentLocationConfig> = {
       name: name.trim(),
       locations: locations.map(l => l.trim()).filter(Boolean)
@@ -959,6 +1049,21 @@ function App() {
     if (locationCreators !== undefined) {
       updates.locationCreators = locationCreators;
     }
+    if (mapUrl !== undefined) {
+      updates.mapUrl = mapUrl;
+    }
+    if (mapName !== undefined) {
+      updates.mapName = mapName;
+    }
+    await updateDepartment(id, updates);
+    setDepartments(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+  };
+
+  const handleUpdateDepartmentMap = async (id: string, mapUrl: string, mapName?: string) => {
+    const updates: Partial<DepartmentLocationConfig> = { 
+      mapUrl, 
+      ...(mapName !== undefined ? { mapName } : {}) 
+    };
     await updateDepartment(id, updates);
     setDepartments(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
   };
@@ -1182,31 +1287,39 @@ function App() {
               
               <div className="form-group">
                 <label className="form-label">👤 ชื่อผู้ใช้งาน (Username)</label>
-                <select 
-                  className="form-select monospace-input" 
+                <SearchableSelect
+                  options={userSelectOptions}
                   value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
-                  required
-                  style={{ cursor: 'pointer' }}
-                >
-                  <option value="">-- เลือกชื่อผู้ใช้งาน (Select User) --</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.username}>
-                      {u.name} ({u.username}) — {u.role === 'admin' ? '👑 แอดมินสูงสุด' : u.role === 'manager' ? '💼 ผู้บริหาร' : u.role === 'head' ? `👔 หัวหน้า (${u.department})` : `🔧 ปฏิบัติงาน (${u.department})`} {u.isBlocked ? '🚫 [ถูกระงับสิทธิ์]' : ''}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => {
+                    setLoginUsername(val);
+                    if (loginError) setLoginError(null);
+                    if (val) {
+                      setTimeout(() => passwordInputRef.current?.focus(), 80);
+                    }
+                  }}
+                  placeholder="-- เลือกหรือพิมพ์ค้นหาผู้ใช้งาน (Select User) --"
+                  searchPlaceholder="🔍 ค้นหาด้วยชื่อ, รหัส, แผนก, หรือตำแหน่ง..."
+                  allowCustom={false}
+                  clearable={true}
+                  icon={<UserIcon size={16} color="var(--primary)" />}
+                  triggerStyle={{
+                    height: '42px',
+                    fontSize: '0.875rem'
+                  }}
+                />
               </div>
 
               <div className="form-group" style={{ marginTop: '0.85rem' }}>
                 <label className="form-label">🔑 รหัสผ่าน (Password)</label>
                 <input 
+                  ref={passwordInputRef}
                   type="password" 
                   className="form-input" 
                   placeholder="ป้อนรหัสผ่าน..."
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   required
+                  style={{ height: '42px', fontSize: '0.875rem' }}
                 />
               </div>
 
@@ -1484,7 +1597,7 @@ function App() {
                   title="การแจ้งเตือนบำรุงรักษา"
                 >
                   <Bell size={16} />
-                  {pmNotifications.filter(n => !n.isRead).length > 0 && (
+                  {userNotifications.filter(n => !n.isRead).length > 0 && (
                     <span style={{
                       position: 'absolute',
                       top: '-4px',
@@ -1501,7 +1614,7 @@ function App() {
                       justifyContent: 'center',
                       boxShadow: '0 0 0 2px var(--bg-secondary)'
                     }}>
-                      {pmNotifications.filter(n => !n.isRead).length}
+                      {userNotifications.filter(n => !n.isRead).length}
                     </span>
                   )}
                 </button>
@@ -1525,12 +1638,12 @@ function App() {
                     boxShadow: 'var(--shadow-lg)'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.35rem' }}>
-                      <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>🔔 การแจ้งเตือนบำรุงรักษา ({pmNotifications.filter(n => !n.isRead).length})</h4>
-                      {pmNotifications.filter(n => !n.isRead).length > 0 && (
+                      <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>🔔 การแจ้งเตือนบำรุงรักษา ({userNotifications.filter(n => !n.isRead).length})</h4>
+                      {userNotifications.filter(n => !n.isRead).length > 0 && (
                         <button 
                           className="btn btn-ghost btn-xs" 
                           onClick={async () => {
-                            for (const n of pmNotifications) {
+                            for (const n of userNotifications) {
                               if (!n.isRead) {
                                 await handleUpdatePMNotification(n.id, { isRead: true });
                               }
@@ -1543,12 +1656,12 @@ function App() {
                       )}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {pmNotifications.length === 0 ? (
+                      {userNotifications.length === 0 ? (
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem 0' }}>
                           ไม่มีแจ้งเตือนบำรุงรักษา
                         </div>
                       ) : (
-                        pmNotifications.map(notif => (
+                        userNotifications.map(notif => (
                           <div 
                             key={notif.id} 
                             onClick={async () => {
@@ -1656,6 +1769,7 @@ function App() {
                 surveys={surveys}
                 rounds={rounds}
                 activeRound={activeRound}
+                departments={departments}
                 onAddSurvey={handleAddSurvey}
                 onUpdateAssetStatus={handleUpdateAssetStatus}
                 onLogAudit={handleLogAudit}
@@ -1667,6 +1781,7 @@ function App() {
                 currentUser={currentUser}
                 onRefreshDevice={handleDeviceRefresh}
                 isRefreshing={isDeviceRefreshing || isInitialSyncing}
+                onUpdateDeptMap={handleUpdateDepartmentMap}
               />
             )}
             {currentTab === 'module3' && (
@@ -1764,6 +1879,7 @@ function App() {
                 onAddDept={handleCreateDepartment}
                 onUpdateDept={handleUpdateDepartment}
                 onDeleteDept={handleDeleteDepartment}
+                onUpdateDeptMap={handleUpdateDepartmentMap}
                 currentUser={currentUser}
               />
             )}
@@ -1946,8 +2062,8 @@ function App() {
         </div>
       )}
 
-      {/* Global Syncing Popup Alert Modal */}
-      {(isInitialSyncing || isDeviceRefreshing) && (
+      {/* Global Syncing Popup Alert Modal (Only shown after user logs in to avoid cluttering login screen) */}
+      {currentUser && (isInitialSyncing || isDeviceRefreshing) && (
         <div className="global-sync-popup-backdrop animate-fade-in">
           <div className={`global-sync-popup-card ${syncStatusSuccess ? 'sync-success-state' : ''}`}>
             <div className="sync-popup-icon-bubble">

@@ -18,15 +18,18 @@ import {
   UserCheck, 
   Search,
   Sparkles,
-  Info
+  Info,
+  Map
 } from 'lucide-react';
 import { DepartmentLocationConfig, UserAccount } from '../utils/mockData';
+import { DepartmentMapModal } from '../components/DepartmentMapModal';
 
 interface Module8DepartmentsProps {
   departments: DepartmentLocationConfig[];
   onAddDept: (name: string, locations: string[], createdBy?: string) => Promise<void>;
-  onUpdateDept: (id: string, name: string, locations: string[], locationCreators?: Record<string, string>) => Promise<void>;
+  onUpdateDept: (id: string, name: string, locations: string[], locationCreators?: Record<string, string>, mapUrl?: string, mapName?: string) => Promise<void>;
   onDeleteDept: (id: string) => Promise<void>;
+  onUpdateDeptMap?: (id: string, mapUrl: string, mapName?: string) => Promise<void>;
   currentUser: UserAccount | null;
 }
 
@@ -35,6 +38,7 @@ export const Module8_Departments: React.FC<Module8DepartmentsProps> = ({
   onAddDept,
   onUpdateDept,
   onDeleteDept,
+  onUpdateDeptMap,
   currentUser
 }) => {
   // Role & Scope Definitions
@@ -51,6 +55,9 @@ export const Module8_Departments: React.FC<Module8DepartmentsProps> = ({
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Department Map Lightbox / Modal state
+  const [viewingMapDept, setViewingMapDept] = useState<DepartmentLocationConfig | null>(null);
 
   // Filtering & Search states
   const [deptFilterTab, setDeptFilterTab] = useState<'my' | 'all'>((isHead || isUser) ? 'my' : 'all');
@@ -321,6 +328,23 @@ export const Module8_Departments: React.FC<Module8DepartmentsProps> = ({
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       alert('ไม่สามารถลบแผนกได้');
+    }
+  };
+
+  const handleUpdateMap = async (deptId: string, mapUrl: string, mapName?: string) => {
+    try {
+      if (onUpdateDeptMap) {
+        await onUpdateDeptMap(deptId, mapUrl, mapName);
+      } else {
+        const targetDept = departments.find(d => d.id === deptId);
+        if (targetDept) {
+          await onUpdateDept(deptId, targetDept.name, targetDept.locations, targetDept.locationCreators, mapUrl, mapName);
+        }
+      }
+      setSuccessMsg(mapUrl ? 'อัปเดตรูปภาพแผนที่ประจำฝ่ายเรียบร้อยแล้ว' : 'ลบรูปภาพแผนที่ประจำฝ่ายเรียบร้อยแล้ว');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err: any) {
+      alert('เกิดข้อผิดพลาดในการบันทึกรูปภาพแผนที่: ' + (err?.message || 'กรุณาลองใหม่อีกครั้ง'));
     }
   };
 
@@ -631,6 +655,16 @@ export const Module8_Departments: React.FC<Module8DepartmentsProps> = ({
                           </div>
                         </div>
 
+                        <button 
+                          type="button" 
+                          className="btn-action-icon" 
+                          onClick={() => setViewingMapDept(dept)} 
+                          title={dept.mapUrl ? "ดูรูปภาพแผนผังและตำแหน่งห้องของฝ่ายนี้" : "ยังไม่มีแผนที่ (คลิกเพื่อดู/อัปโหลด)"}
+                          style={{ color: dept.mapUrl ? 'var(--primary)' : 'inherit', opacity: dept.mapUrl ? 1 : 0.65 }}
+                        >
+                          <Map size={14} />
+                        </button>
+
                         {allowEditDeptName && (
                           <button 
                             type="button" 
@@ -665,13 +699,36 @@ export const Module8_Departments: React.FC<Module8DepartmentsProps> = ({
 
                 {/* Department Card Body - Rooms list */}
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                     <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 700 }}>
                       🏢 ห้อง / สถานที่จัดเก็บ ({dept.locations.length})
                     </span>
-                    <span style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>
-                      {allowAddRoom ? '💡 เลื่อน/แก้ไข/จัดการห้อง' : '🔒 อ่านอย่างเดียว'}
-                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-xs"
+                      onClick={() => setViewingMapDept(dept)}
+                      title={dept.mapUrl ? `เปิดดูรูปภาพแผนผังและตำแหน่งห้องของฝ่าย "${dept.name}"` : `อัปโหลดหรือเปิดดูแผนผังห้องของฝ่าย "${dept.name}"`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        fontSize: '0.7rem',
+                        padding: '0.2rem 0.55rem',
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        background: dept.mapUrl ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-secondary)',
+                        color: dept.mapUrl ? 'var(--primary)' : 'var(--text-secondary)',
+                        border: dept.mapUrl ? '1px solid rgba(59, 130, 246, 0.45)' : '1px dashed var(--border)',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Map size={12} />
+                      <span>{dept.mapUrl ? '🗺️ แผนที่ผังห้อง' : '🗺️ แนบ/ดูผังห้อง'}</span>
+                      {dept.mapUrl && (
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                      )}
+                    </button>
                   </div>
                   
                   {dept.locations.length === 0 ? (
@@ -844,6 +901,17 @@ export const Module8_Departments: React.FC<Module8DepartmentsProps> = ({
           })
         )}
       </div>
+
+      {/* Department Map Lightbox / Viewer Modal */}
+      {viewingMapDept && (
+        <DepartmentMapModal
+          isOpen={Boolean(viewingMapDept)}
+          onClose={() => setViewingMapDept(null)}
+          department={departments.find(d => d.id === viewingMapDept.id) || viewingMapDept}
+          canManageMap={canEditDeptName(viewingMapDept)}
+          onUpdateMap={handleUpdateMap}
+        />
+      )}
 
       <style>{`
         .dept-card:hover {

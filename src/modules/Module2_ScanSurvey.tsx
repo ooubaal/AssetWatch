@@ -34,19 +34,22 @@ import {
   CameraOff,
   ImageOff,
   X,
-  Save
+  Save,
+  Map as MapIcon
 } from 'lucide-react';
-import { Asset, SurveyRecord, SurveyRound, UserAccount } from '../utils/mockData';
+import { Asset, SurveyRecord, SurveyRound, UserAccount, DepartmentLocationConfig } from '../utils/mockData';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
 import { uploadImage, compressFileOrPdf, isDefaultPlaceholder, isFirestoreQuotaError, fetchAssetImageOnDemand, cleanAssetNote } from '../services/dbService';
 import { InAppCameraModal } from '../components/InAppCameraModal';
+import { DepartmentMapModal } from '../components/DepartmentMapModal';
 
 interface Module2ScanSurveyProps {
   assets: Asset[];
   surveys: SurveyRecord[];
   rounds: SurveyRound[];
   activeRound: SurveyRound | null;
+  departments?: DepartmentLocationConfig[];
   onAddSurvey: (survey: Omit<SurveyRecord, 'id'>) => Promise<void>;
   onUpdateAssetStatus: (id: string, status: Asset['status'], updates?: Partial<Asset>) => Promise<void>;
   onLogAudit: (trail: { assetId: string; assetName: string; action: any; operator: string; details: string }) => Promise<void>;
@@ -58,6 +61,7 @@ interface Module2ScanSurveyProps {
   currentUser: UserAccount | null;
   onRefreshDevice?: () => Promise<void> | void;
   isRefreshing?: boolean;
+  onUpdateDeptMap?: (id: string, mapUrl: string, mapName?: string) => Promise<void>;
 }
 
 export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
@@ -65,6 +69,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   surveys,
   rounds,
   activeRound,
+  departments = [],
   onAddSurvey,
   onUpdateAssetStatus,
   onLogAudit,
@@ -75,7 +80,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   onReopenSurveyRound,
   currentUser,
   onRefreshDevice,
-  isRefreshing = false
+  isRefreshing = false,
+  onUpdateDeptMap
 }) => {
   const [operator, setOperator] = useState(() => localStorage.getItem('assetwatch_operator') || 'ผู้ตรวจการทั่วไป');
 
@@ -189,6 +195,13 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [isNewScanNeeded, setIsNewScanNeeded] = useState<boolean>(() => !initialDraft?.assetId);
   const [isDraftRestoredNotice, setIsDraftRestoredNotice] = useState<boolean>(() => Boolean(initialDraft?.assetId));
   const [isInAppCameraOpen, setIsInAppCameraOpen] = useState(false);
+  const [viewingDeptMap, setViewingDeptMap] = useState<DepartmentLocationConfig | null>(null);
+
+  // Look up department config for currently scanned asset
+  const scannedDeptConfig = useMemo(() => {
+    if (!scannedAsset?.department) return null;
+    return departments.find(d => (d.name || '').toLowerCase() === (scannedAsset.department || '').toLowerCase()) || null;
+  }, [scannedAsset?.department, departments]);
 
   // Survey Round Manager States
   const [newRoundName, setNewRoundName] = useState('');
@@ -1272,7 +1285,36 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">📍 ยืนยันสถานที่จัดเก็บ/ติดตั้ง (เปลี่ยนได้หากพัสดุย้ายห้อง)</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  <label className="form-label" style={{ margin: 0 }}>📍 ยืนยันสถานที่จัดเก็บ/ติดตั้ง (เปลี่ยนได้หากพัสดุย้ายห้อง)</label>
+                  {scannedDeptConfig && (
+                    <button
+                      type="button"
+                      className="btn btn-xs"
+                      onClick={() => setViewingDeptMap(scannedDeptConfig)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        fontSize: '0.7rem',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: scannedDeptConfig.mapUrl ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-secondary)',
+                        color: scannedDeptConfig.mapUrl ? 'var(--primary)' : 'var(--text-secondary)',
+                        border: scannedDeptConfig.mapUrl ? '1px solid rgba(59, 130, 246, 0.4)' : '1px dashed var(--border)',
+                        fontWeight: 650,
+                        cursor: 'pointer'
+                      }}
+                      title="คลิกเพื่อดูรูปภาพแผนผังและตำแหน่งห้องของฝ่ายนี้"
+                    >
+                      <MapIcon size={12} />
+                      <span>{scannedDeptConfig.mapUrl ? '🗺️ ดูผังห้อง' : '🗺️ แผนผังห้อง'}</span>
+                      {scannedDeptConfig.mapUrl && (
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                      )}
+                    </button>
+                  )}
+                </div>
                 <SearchableSelect
                   options={uniqueLocationsInList}
                   value={selectedLocation}
@@ -3213,6 +3255,20 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           </div>
         </div>,
         document.body
+      )}
+      {/* Department Map Lightbox / Viewer Modal (for inspecting room layouts during survey) */}
+      {viewingDeptMap && (
+        <DepartmentMapModal
+          isOpen={Boolean(viewingDeptMap)}
+          onClose={() => setViewingDeptMap(null)}
+          department={departments?.find(d => d.id === viewingDeptMap.id) || viewingDeptMap}
+          canManageMap={currentUser?.role === 'admin' || currentUser?.role === 'manager' || (currentUser?.role === 'head' && (viewingDeptMap.name || '').toLowerCase() === (currentUser?.department || '').toLowerCase())}
+          onUpdateMap={onUpdateDeptMap}
+          onSelectRoom={(room) => {
+            setSelectedLocation(room);
+            setCustomLocation('');
+          }}
+        />
       )}
     </div>
   );

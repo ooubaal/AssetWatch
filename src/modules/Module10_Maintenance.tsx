@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Wrench, Calendar, FileText, Bell, Plus, CheckCircle, Clock, AlertTriangle, 
   Trash2, Phone, User, Building, ExternalLink, Printer, ChevronLeft, ChevronRight, Camera, Search, ArrowRight, RefreshCw, Edit3 
 } from 'lucide-react';
 import { Asset, PMContract, PMSchedule, PMNotification, RepairCase, UserAccount } from '../utils/mockData';
-import { uploadImage, compressFileOrPdf, updateAsset, fetchPMScheduleDeepDetail, fetchPMContractDeepDetail } from '../services/dbService';
+import { uploadImage, compressFileOrPdf, compressPdfDocument, updateAsset, fetchPMScheduleDeepDetail, fetchPMContractDeepDetail } from '../services/dbService';
 import { SearchableSelect } from '../components/SearchableSelect';
 
 interface Module10MaintenanceProps {
@@ -68,6 +68,64 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       setSelectedDeptFilter(currentUser.department);
     }
   }, [currentUser, isOrgWideUser]);
+
+  // Effective department for current user
+  const effectiveDept = isOrgWideUser ? selectedDeptFilter : (currentUser?.department || 'all');
+
+  // Map of all assets by ID for quick O(1) department lookups
+  const assetMap = useMemo(() => new Map(assets.map(a => [a.id, a])), [assets]);
+
+  // Check if a contract belongs to the current effective department
+  const isContractInDept = useCallback((c: PMContract) => {
+    if (effectiveDept === 'all') return true;
+    if (c.department && c.department === effectiveDept) return true;
+    if (c.assetIds && c.assetIds.some(id => assetMap.get(id)?.department === effectiveDept)) return true;
+    if (schedules.some(s => s.contractId === c.id && assetMap.get(s.assetId)?.department === effectiveDept)) return true;
+    return false;
+  }, [effectiveDept, assetMap, schedules]);
+
+  // Check if a schedule belongs to the current effective department
+  const isScheduleInDept = useCallback((s: PMSchedule) => {
+    if (effectiveDept === 'all') return true;
+    const asset = assetMap.get(s.assetId);
+    if (asset) return asset.department === effectiveDept;
+    const contract = contracts.find(c => c.id === s.contractId);
+    return Boolean(contract && isContractInDept(contract));
+  }, [effectiveDept, assetMap, contracts, isContractInDept]);
+
+  // Check if a notification belongs to the current effective department
+  const isNotificationInDept = useCallback((notif: PMNotification) => {
+    if (effectiveDept === 'all') return true;
+    if (notif.department) return notif.department === effectiveDept;
+    if (notif.assetId) return assetMap.get(notif.assetId)?.department === effectiveDept;
+
+    for (const asset of assets) {
+      if (notif.title.includes(asset.id) || notif.message.includes(asset.id)) {
+        return asset.department === effectiveDept;
+      }
+    }
+
+    for (const c of contracts) {
+      if (notif.title.includes(c.contractNumber) || notif.message.includes(c.contractNumber) || notif.message.includes(c.title)) {
+        return isContractInDept(c);
+      }
+    }
+
+    return false;
+  }, [effectiveDept, assetMap, assets, contracts, isContractInDept]);
+
+  // Scoped datasets for Dashboard & Overview
+  const scopedContracts = useMemo(() => {
+    return contracts.filter(isContractInDept);
+  }, [contracts, isContractInDept]);
+
+  const scopedSchedules = useMemo(() => {
+    return schedules.filter(isScheduleInDept);
+  }, [schedules, isScheduleInDept]);
+
+  const scopedNotifications = useMemo(() => {
+    return notifications.filter(isNotificationInDept);
+  }, [notifications, isNotificationInDept]);
 
   // Modal Dialog states
   const [selectedSchedule, setSelectedSchedule] = useState<PMSchedule | null>(null);
@@ -358,9 +416,14 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       if (!isCorrectMonth) return false;
 
       // Filter by department
-      if (selectedDeptFilter !== 'all') {
-        const asset = assets.find(a => a.id === s.assetId);
-        if (asset && asset.department !== selectedDeptFilter) return false;
+      if (effectiveDept !== 'all') {
+        const asset = assetMap.get(s.assetId);
+        if (asset) {
+          if (asset.department !== effectiveDept) return false;
+        } else {
+          const contract = contracts.find(c => c.id === s.contractId);
+          if (!contract || !isContractInDept(contract)) return false;
+        }
       }
 
       return true;
@@ -453,19 +516,35 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       setCompressingProof(true);
       try {
-        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
-        setProofFile(compressed);
-        setProofInfo({
-          name: file.name,
-          size: `${Math.round(compressed.size / 1024)} KB`,
-          isPdf
-        });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setProofPreview(reader.result as string);
+        if (isPdf) {
+          const res = await compressPdfDocument(file, 1400, 0.76);
+          setProofFile(res.file);
+          const compKb = Math.round(res.compressedSize / 1024);
+          setProofInfo({
+            name: file.name,
+            size: `${compKb} KB${res.reductionPercent > 0 ? ` (ลด ${res.reductionPercent}%)` : ''}`,
+            isPdf: true
+          });
+          setProofPreview(res.previewUrl);
           setCompressingProof(false);
-        };
-        reader.readAsDataURL(compressed);
+        } else {
+          const compressed = await compressFileOrPdf(file, 1400, 1400, 0.80);
+          setProofFile(compressed);
+          const origKb = Math.round(file.size / 1024);
+          const compKb = Math.round(compressed.size / 1024);
+          const savings = Math.max(0, Math.round(((origKb - compKb) / (origKb || 1)) * 100));
+          setProofInfo({
+            name: file.name,
+            size: `${compKb} KB${savings > 0 ? ` (ลด ${savings}%)` : ''}`,
+            isPdf: false
+          });
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setProofPreview(reader.result as string);
+            setCompressingProof(false);
+          };
+          reader.readAsDataURL(compressed);
+        }
       } catch (err) {
         console.error('Proof file compression failed:', err);
         setProofFile(file);
@@ -760,14 +839,28 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
       const file = e.target.files[0];
       setUploadingContractFile(true);
       try {
-        // Automatically compress image/pdf to HD with small size
-        const compressed = await compressFileOrPdf(file, 1400, 1400, 0.78);
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        let compressed = file;
+        let displayName = file.name;
+
+        if (isPdf) {
+          const res = await compressPdfDocument(file, 1400, 0.76);
+          compressed = res.file;
+          const compKb = Math.round(res.compressedSize / 1024);
+          displayName = `${file.name} (${compKb} KB${res.reductionPercent > 0 ? `, ลด ${res.reductionPercent}%` : ''})`;
+        } else {
+          compressed = await compressFileOrPdf(file, 1400, 1400, 0.78);
+          const origKb = Math.round(file.size / 1024);
+          const compKb = Math.round(compressed.size / 1024);
+          const savings = Math.max(0, Math.round(((origKb - compKb) / (origKb || 1)) * 100));
+          displayName = `${file.name} (${compKb} KB${savings > 0 ? `, ลด ${savings}%` : ''})`;
+        }
         
         // Convert to url via uploadImage (base64 fallback is automatic!)
         const url = await uploadImage(compressed, 'contracts');
         
         setContractAttachmentUrl(url);
-        setContractAttachmentName(file.name);
+        setContractAttachmentName(displayName);
       } catch (err) {
         console.error('Contract file compression/upload failed:', err);
         alert('เกิดข้อผิดพลาดในการประมวลผลไฟล์แนบ: ' + (err instanceof Error ? err.message : String(err)));
@@ -1118,26 +1211,43 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         for (const file of selectedFiles) {
           const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
           let processedFile = file;
-          if (!isPdf) {
+          let previewUrl = '';
+          let sizeLabel = '';
+
+          if (isPdf) {
+            try {
+              const res = await compressPdfDocument(file, 1400, 0.76);
+              processedFile = res.file;
+              previewUrl = res.previewUrl;
+              const compKb = Math.round(res.compressedSize / 1024);
+              sizeLabel = `${compKb} KB${res.reductionPercent > 0 ? ` (ลด ${res.reductionPercent}%)` : ''}`;
+            } catch {
+              processedFile = file;
+              sizeLabel = `${Math.round(file.size / 1024)} KB`;
+            }
+          } else {
             try {
               processedFile = await compressFileOrPdf(file, 1400, 1400, 0.80);
             } catch {
               processedFile = file;
             }
+            const origKb = Math.round(file.size / 1024);
+            const compKb = Math.round(processedFile.size / 1024);
+            const savings = Math.max(0, Math.round(((origKb - compKb) / (origKb || 1)) * 100));
+            sizeLabel = `${compKb} KB${savings > 0 ? ` (ลด ${savings}%)` : ''}`;
+            previewUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(processedFile);
+            });
           }
+
           newFiles.push(processedFile);
-
-          const previewUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(processedFile);
-          });
-
           newPreviews.push({
             url: previewUrl,
             name: file.name,
             isPdf,
-            size: `${Math.round(processedFile.size / 1024)} KB`
+            size: sizeLabel
           });
         }
         setSymptomProofFiles(prev => [...prev, ...newFiles]);
@@ -1166,26 +1276,43 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         for (const file of selectedFiles) {
           const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
           let processedFile = file;
-          if (!isPdf) {
+          let previewUrl = '';
+          let sizeLabel = '';
+
+          if (isPdf) {
+            try {
+              const res = await compressPdfDocument(file, 1400, 0.76);
+              processedFile = res.file;
+              previewUrl = res.previewUrl;
+              const compKb = Math.round(res.compressedSize / 1024);
+              sizeLabel = `${compKb} KB${res.reductionPercent > 0 ? ` (ลด ${res.reductionPercent}%)` : ''}`;
+            } catch {
+              processedFile = file;
+              sizeLabel = `${Math.round(file.size / 1024)} KB`;
+            }
+          } else {
             try {
               processedFile = await compressFileOrPdf(file, 1400, 1400, 0.80);
             } catch {
               processedFile = file;
             }
+            const origKb = Math.round(file.size / 1024);
+            const compKb = Math.round(processedFile.size / 1024);
+            const savings = Math.max(0, Math.round(((origKb - compKb) / (origKb || 1)) * 100));
+            sizeLabel = `${compKb} KB${savings > 0 ? ` (ลด ${savings}%)` : ''}`;
+            previewUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(processedFile);
+            });
           }
+
           newFiles.push(processedFile);
-
-          const previewUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(processedFile);
-          });
-
           newPreviews.push({
             url: previewUrl,
             name: file.name,
             isPdf,
-            size: `${Math.round(processedFile.size / 1024)} KB`
+            size: sizeLabel
           });
         }
         setSendProofFiles(prev => [...prev, ...newFiles]);
@@ -1214,26 +1341,43 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         for (const file of selectedFiles) {
           const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
           let processedFile = file;
-          if (!isPdf) {
+          let previewUrl = '';
+          let sizeLabel = '';
+
+          if (isPdf) {
+            try {
+              const res = await compressPdfDocument(file, 1400, 0.76);
+              processedFile = res.file;
+              previewUrl = res.previewUrl;
+              const compKb = Math.round(res.compressedSize / 1024);
+              sizeLabel = `${compKb} KB${res.reductionPercent > 0 ? ` (ลด ${res.reductionPercent}%)` : ''}`;
+            } catch {
+              processedFile = file;
+              sizeLabel = `${Math.round(file.size / 1024)} KB`;
+            }
+          } else {
             try {
               processedFile = await compressFileOrPdf(file, 1400, 1400, 0.80);
             } catch {
               processedFile = file;
             }
+            const origKb = Math.round(file.size / 1024);
+            const compKb = Math.round(processedFile.size / 1024);
+            const savings = Math.max(0, Math.round(((origKb - compKb) / (origKb || 1)) * 100));
+            sizeLabel = `${compKb} KB${savings > 0 ? ` (ลด ${savings}%)` : ''}`;
+            previewUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(processedFile);
+            });
           }
+
           newFiles.push(processedFile);
-
-          const previewUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(processedFile);
-          });
-
           newPreviews.push({
             url: previewUrl,
             name: file.name,
             isPdf,
-            size: `${Math.round(processedFile.size / 1024)} KB`
+            size: sizeLabel
           });
         }
         setReceiveProofFiles(prev => [...prev, ...newFiles]);
@@ -1262,26 +1406,43 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         for (const file of selectedFiles) {
           const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
           let processedFile = file;
-          if (!isPdf) {
+          let previewUrl = '';
+          let sizeLabel = '';
+
+          if (isPdf) {
+            try {
+              const res = await compressPdfDocument(file, 1400, 0.76);
+              processedFile = res.file;
+              previewUrl = res.previewUrl;
+              const compKb = Math.round(res.compressedSize / 1024);
+              sizeLabel = `${compKb} KB${res.reductionPercent > 0 ? ` (ลด ${res.reductionPercent}%)` : ''}`;
+            } catch {
+              processedFile = file;
+              sizeLabel = `${Math.round(file.size / 1024)} KB`;
+            }
+          } else {
             try {
               processedFile = await compressFileOrPdf(file, 1400, 1400, 0.80);
             } catch {
               processedFile = file;
             }
+            const origKb = Math.round(file.size / 1024);
+            const compKb = Math.round(processedFile.size / 1024);
+            const savings = Math.max(0, Math.round(((origKb - compKb) / (origKb || 1)) * 100));
+            sizeLabel = `${compKb} KB${savings > 0 ? ` (ลด ${savings}%)` : ''}`;
+            previewUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(processedFile);
+            });
           }
+
           newFiles.push(processedFile);
-
-          const previewUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(processedFile);
-          });
-
           newPreviews.push({
             url: previewUrl,
             name: file.name,
             isPdf,
-            size: `${Math.round(processedFile.size / 1024)} KB`
+            size: sizeLabel
           });
         }
         setCmEditProofFiles(prev => [...prev, ...newFiles]);
@@ -1693,19 +1854,55 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       {/* Tab 1: Dashboard */}
       {activeTab === 'dashboard' && (
-        <div className="dashboard-pm-tab animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="dashboard-pm-tab animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+          {/* Department Scope Info Banner */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', background: 'var(--bg-secondary)', padding: '0.75rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 700 }}>
+              <Building size={16} color="var(--primary)" />
+              <span>ขอบเขตข้อมูลหน่วยงาน/ฝ่าย:</span>
+              {!isOrgWideUser ? (
+                <span className="badge badge-primary" style={{ fontSize: '0.8rem', padding: '0.25rem 0.65rem' }}>
+                  🏢 {currentUser?.department || 'ไม่ระบุฝ่าย'} (สิทธิ์: {currentUser?.role === 'head' ? 'หัวหน้าฝ่าย' : 'ผู้ปฏิบัติงาน'})
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                  (สิทธิ์ผู้บริหาร/แอดมิน - สามารถดูภาพรวมทั้งศูนย์ฯ หรือเลือกกรองดูเฉพาะฝ่ายได้)
+                </span>
+              )}
+            </div>
+
+            {isOrgWideUser && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <select 
+                  className="form-select filter-select"
+                  value={selectedDeptFilter}
+                  onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                  style={{ height: '34px', fontSize: '0.825rem', minWidth: '220px' }}
+                >
+                  <option value="all">🌐 ทุกหน่วยงาน (ภาพรวมทั้งองค์กร)</option>
+                  {Array.from(new Set(assets.map(a => a.department).filter(Boolean))).map(dept => (
+                    <option key={dept} value={dept}>🏢 ฝ่าย: {dept}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
           {/* Stats Bar */}
           <div className="grid-cols-3">
             <div className="stat-card glass-panel" style={{ borderLeft: '4px solid var(--primary)' }}>
               <div className="stat-card-title">📝 โครงการสัญญา PM ที่คุมอยู่</div>
-              <div className="stat-card-value" style={{ color: 'var(--primary)' }}>{contracts.length} <span className="stat-unit">สัญญา</span></div>
-              <div className="stat-card-desc">คู่สัญญากลุ่มซ่อมไอทีและแอร์ระบบ</div>
+              <div className="stat-card-value" style={{ color: 'var(--primary)' }}>{scopedContracts.length} <span className="stat-unit">สัญญา</span></div>
+              <div className="stat-card-desc">
+                {!isOrgWideUser || selectedDeptFilter !== 'all' ? `คู่สัญญาประจำ ${effectiveDept}` : 'คู่สัญญากลุ่มซ่อมไอทีและแอร์ระบบ'}
+              </div>
             </div>
 
             <div className="stat-card glass-panel" style={{ borderLeft: '4px solid var(--success)' }}>
               <div className="stat-card-title">🟢 บำรุงรักษาเสร็จสิ้นปีนี้</div>
               <div className="stat-card-value" style={{ color: 'var(--success)' }}>
-                {schedules.filter(s => s.status === 'completed' && s.completedDate?.startsWith(new Date().getFullYear().toString())).length}
+                {scopedSchedules.filter(s => s.status === 'completed' && s.completedDate?.startsWith(new Date().getFullYear().toString())).length}
                 <span className="stat-unit"> รอบงาน</span>
               </div>
               <div className="stat-card-desc">ตรวจสอบประวัติผ่านตารางครบถ้วน</div>
@@ -1714,7 +1911,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
             <div className="stat-card glass-panel" style={{ borderLeft: '4px solid var(--danger)' }}>
               <div className="stat-card-title">🔴 ตรวจสภาพเลยกำหนด (Overdue)</div>
               <div className="stat-card-value" style={{ color: 'var(--danger)' }}>
-                {schedules.filter(s => {
+                {scopedSchedules.filter(s => {
                   const todayStr = new Date().toISOString().split('T')[0];
                   return s.status === 'pending' && s.plannedDate < todayStr;
                 }).length}
@@ -1730,15 +1927,18 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               <div className="selection-list-panel glass-panel" style={{ maxHeight: '450px' }}>
                 <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                   <h3 style={{ fontSize: '1rem', fontWeight: 700 }}><Bell size={16} style={{ display: 'inline', marginRight: '0.25rem', color: 'var(--warning)' }} /> แจ้งเตือนบำรุงรักษาระบบ (Alert Timeline)</h3>
+                  {!isOrgWideUser && (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>เฉพาะ {currentUser?.department}</span>
+                  )}
                 </div>
 
                 <div className="notifications-timeline-scroll" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '0.25rem' }}>
-                  {notifications.length === 0 ? (
+                  {scopedNotifications.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-muted)' }}>
                       ไม่มีการแจ้งเตือนบำรุงรักษาครุภัณฑ์ในขณะนี้
                     </div>
                   ) : (
-                    notifications.map(notif => (
+                    scopedNotifications.map(notif => (
                       <div key={notif.id} className="notification-card-item" style={{ background: 'var(--bg-primary)', padding: '0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', borderLeft: `4.5px solid ${notif.type === 'pm_overdue' ? 'var(--danger)' : 'var(--warning)'}` }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                           <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{notif.title}</strong>
@@ -1764,10 +1964,13 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
               <div className="survey-form-panel glass-panel" style={{ minHeight: '400px', padding: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                   <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>📅 รายการแผน PM ในเดือนนี้นัดหมาย</h3>
+                  {!isOrgWideUser && (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>เฉพาะ {currentUser?.department}</span>
+                  )}
                 </div>
 
                 <div className="upcoming-pm-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {schedules.filter(s => {
+                  {scopedSchedules.filter(s => {
                     const today = new Date();
                     const yearStr = today.getFullYear().toString();
                     const monthStr = String(today.getMonth() + 1).padStart(2, '0');
@@ -1777,7 +1980,7 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
                       ไม่มีแผนเข้าตรวจบำรุงรักษา PM ในเดือนนี้เพิ่มเติม
                     </div>
                   ) : (
-                    schedules.filter(s => {
+                    scopedSchedules.filter(s => {
                       const today = new Date();
                       const yearStr = today.getFullYear().toString();
                       const monthStr = String(today.getMonth() + 1).padStart(2, '0');
@@ -2795,8 +2998,9 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                           (r.notes && r.notes.toLowerCase().includes(q)) ||
                                           (r.repairCompany && r.repairCompany.toLowerCase().includes(q));
                     
-                    const asset = assets.find(a => a.id === r.assetId);
-                    const matchesDept = selectedDeptFilter === 'all' || (asset && asset.department === selectedDeptFilter);
+                    const asset = assetMap.get(r.assetId);
+                    const itemDept = (asset && asset.department) || r.department || '';
+                    const matchesDept = effectiveDept === 'all' || (itemDept && itemDept === effectiveDept);
 
                     return matchesSearch && matchesDept;
                   });
@@ -4163,7 +4367,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             <SearchableSelect
               label="🔍 เลือกครุภัณฑ์ที่จะส่งซ่อม"
               options={assets
-                .filter(a => a.status !== 'รอจำหน่าย' && (currentUser?.role !== 'user' || a.department === currentUser.department))
+                .filter(a => a.status !== 'รอจำหน่าย' && (isOrgWideUser || a.department === currentUser?.department))
                 .map(asset => ({
                   value: asset.id,
                   label: `${asset.id} - ${asset.name}${asset.department ? ` (${asset.department})` : ''}${asset.location ? ` [${asset.location}]` : ''}`

@@ -84,6 +84,8 @@ export interface DepartmentLocationConfig {
   createdBy?: string;
   createdAt?: string;
   locationCreators?: Record<string, string>; // roomName -> creator username or name
+  mapUrl?: string; // URL or base64 data string of the floor plan / map
+  mapName?: string; // Optional custom name or filename for the map
 }
 
 export interface SparePartTransaction {
@@ -515,6 +517,8 @@ export interface PMNotification {
   isRead: boolean;
   type: 'pm_upcoming' | 'pm_overdue' | 'repair_alert' | 'contract_expiring';
   linkTo: string;
+  department?: string;
+  assetId?: string;
 }
 
 export const INITIAL_CONTRACTS: PMContract[] = [
@@ -884,7 +888,9 @@ export const INITIAL_NOTIFICATIONS: PMNotification[] = [
     targetDate: "2026-09-08",
     isRead: false,
     type: "pm_upcoming",
-    linkTo: "pm_cm"
+    linkTo: "pm_cm",
+    assetId: "6901-001-0001",
+    department: "ฝ่ายเทคโนโลยีสารสนเทศ"
   }
 ];
 
