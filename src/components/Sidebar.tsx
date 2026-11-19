@@ -108,9 +108,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button 
               className="theme-toggle-btn" 
               onClick={() => onRefreshDevice()} 
-              title="รีเฟรชและซิงค์ข้อมูลเครื่องนี้"
+              disabled={isRefreshing}
+              title={isRefreshing ? "กำลังซิงค์ข้อมูล..." : "รีเฟรชและซิงค์ข้อมูลเครื่องนี้"}
               aria-label="Refresh and sync device"
-              style={{ color: 'var(--primary)' }}
+              style={{ color: 'var(--primary)', cursor: isRefreshing ? 'not-allowed' : 'pointer', opacity: isRefreshing ? 0.7 : 1 }}
             >
               <RotateCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
             </button>
@@ -207,10 +208,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="theme-switch" 
               onClick={() => onRefreshDevice()}
               disabled={isRefreshing}
-              style={{ marginBottom: '0.4rem', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+              style={{ 
+                marginBottom: '0.4rem', 
+                borderColor: 'var(--primary)', 
+                color: 'var(--primary)',
+                cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                opacity: isRefreshing ? 0.75 : 1
+              }}
             >
               <RotateCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-              <span>{isRefreshing ? 'กำลังซิงค์เครื่องนี้...' : '🔄 ซิงค์ข้อมูลเครื่องนี้'}</span>
+              <span>{isRefreshing ? 'กำลังซิงค์ข้อมูล (Loading)...' : '🔄 ซิงค์ข้อมูลเครื่องนี้'}</span>
             </button>
           )}
 

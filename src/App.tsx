@@ -349,11 +349,19 @@ function App() {
   const lastPMCheckRef = useRef<number>(0);
   const fetchAllDataPromiseRef = useRef<Promise<void> | null>(null);
 
+  // Global Synchronizing State & Success Flash (prevents duplicate actions across app)
+  const [isGlobalSyncing, setIsGlobalSyncing] = useState(false);
+  const [globalSyncSuccess, setGlobalSyncSuccess] = useState(false);
+  const globalSyncTimerRef = useRef<any>(null);
+
   // Load data from Firestore/LocalStorage (Universal Delta Sync enabled)
   const fetchAllData = async (forcePMCheck = false, forceFull = false) => {
     if (fetchAllDataPromiseRef.current) {
       return fetchAllDataPromiseRef.current;
     }
+
+    setIsGlobalSyncing(true);
+    setGlobalSyncSuccess(false);
 
     const fetchPromise = (async () => {
       try {
@@ -419,10 +427,17 @@ function App() {
 
         const active = allRounds.find(r => r.status === 'active');
         setActiveRound(active || null);
+
+        setGlobalSyncSuccess(true);
+        if (globalSyncTimerRef.current) clearTimeout(globalSyncTimerRef.current);
+        globalSyncTimerRef.current = setTimeout(() => {
+          setGlobalSyncSuccess(false);
+        }, 1800);
       } catch (e) {
         console.error('Error fetching datasets:', e);
       } finally {
         fetchAllDataPromiseRef.current = null;
+        setIsGlobalSyncing(false);
       }
     })();
 
@@ -437,10 +452,14 @@ function App() {
   const [refreshToastMsg, setRefreshToastMsg] = useState<string | null>(null);
   const lastRefreshClickRef = useRef<number>(0);
 
+  // Unified Sync State: active during initial boot, manual refresh, or background updates
+  const isSyncing = isInitialSyncing || isDeviceRefreshing || isGlobalSyncing;
+  const isSyncSuccess = syncStatusSuccess || globalSyncSuccess;
+
   const handleDeviceRefresh = async (forceFull: boolean | React.MouseEvent = true) => {
     const isFull = typeof forceFull === 'boolean' ? forceFull : true;
     const now = Date.now();
-    if (isDeviceRefreshing || now - lastRefreshClickRef.current < 4000) {
+    if (isSyncing || now - lastRefreshClickRef.current < 4000) {
       return;
     }
     lastRefreshClickRef.current = now;
@@ -1329,8 +1348,13 @@ function App() {
                 </div>
               )}
 
-              <button type="submit" className="btn btn-primary w-full" style={{ marginTop: '1.25rem', height: '42px', fontSize: '0.95rem' }}>
-                🚀 ลงชื่อเข้าใช้งานระบบ
+              <button 
+                type="submit" 
+                className="btn btn-primary w-full" 
+                disabled={isInitialSyncing && users.length === 0}
+                style={{ marginTop: '1.25rem', height: '42px', fontSize: '0.95rem', cursor: (isInitialSyncing && users.length === 0) ? 'wait' : 'pointer' }}
+              >
+                {isInitialSyncing && users.length === 0 ? '🔄 กำลังโหลดข้อมูลระบบ...' : '🚀 ลงชื่อเข้าใช้งานระบบ'}
               </button>
 
             </form>
@@ -1518,7 +1542,7 @@ function App() {
             currentUser={currentUser}
             onLogout={handleLogout}
             onRefreshDevice={handleDeviceRefresh}
-            isRefreshing={isDeviceRefreshing}
+            isRefreshing={isSyncing}
           />
 
           {/* Main Content Area */}
@@ -1536,18 +1560,37 @@ function App() {
               background: 'var(--bg-secondary)',
               position: 'relative'
             }}>
-              {/* Left Side: Status Info or Refresh Toast */}
+              {/* Left Side: Status Info, Sync Warning or Refresh Toast */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                {refreshToastMsg ? (
+                {isSyncing ? (
                   <span className="animate-fade-in" style={{ 
-                    color: refreshToastMsg.startsWith('✓') ? 'var(--success)' : 'var(--primary)', 
+                    color: 'var(--primary)', 
                     fontWeight: 650, 
                     display: 'inline-flex', 
                     alignItems: 'center', 
-                    gap: '5px' 
+                    gap: '6px',
+                    background: 'rgba(59, 130, 246, 0.12)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    padding: '0.2rem 0.65rem',
+                    borderRadius: '20px'
                   }}>
-                    {refreshToastMsg.startsWith('✓') && <CheckCircle2 size={16} color="var(--success)" />}
-                    {refreshToastMsg}
+                    <RotateCw size={14} className="animate-spin text-primary" />
+                    <span>กำลังซิงค์ข้อมูล (Loading data... กำลังปรับปรุงข้อมูล)</span>
+                  </span>
+                ) : (refreshToastMsg || isSyncSuccess) ? (
+                  <span className="animate-fade-in" style={{ 
+                    color: 'var(--success)', 
+                    fontWeight: 650, 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    padding: '0.2rem 0.65rem',
+                    borderRadius: '20px'
+                  }}>
+                    <CheckCircle2 size={16} color="var(--success)" />
+                    {refreshToastMsg || '✓ ซิงค์ข้อมูลล่าสุดสำเร็จแล้ว'}
                   </span>
                 ) : (
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -1563,8 +1606,8 @@ function App() {
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={handleDeviceRefresh}
-                  disabled={isDeviceRefreshing}
-                  title="รีเฟรชและซิงค์ข้อมูลเครื่องนี้กับระบบกลาง"
+                  disabled={isSyncing}
+                  title={isSyncing ? "ระบบกำลังซิงค์ข้อมูล โปรดรอสักครู่..." : "รีเฟรชและซิงค์ข้อมูลเครื่องนี้กับระบบกลาง"}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1574,12 +1617,13 @@ function App() {
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border)',
                     background: 'var(--bg-primary)',
-                    color: 'var(--primary)',
-                    cursor: isDeviceRefreshing ? 'wait' : 'pointer'
+                    color: isSyncing ? 'var(--text-muted)' : 'var(--primary)',
+                    cursor: isSyncing ? 'not-allowed' : 'pointer',
+                    opacity: isSyncing ? 0.75 : 1
                   }}
                 >
-                  <RotateCw size={14} className={isDeviceRefreshing ? 'animate-spin' : ''} />
-                  <span>{isDeviceRefreshing ? 'กำลังซิงค์...' : '🔄 ซิงค์เครื่องนี้'}</span>
+                  <RotateCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+                  <span>{isSyncing ? 'กำลังซิงค์...' : '🔄 ซิงค์เครื่องนี้'}</span>
                 </button>
 
                 {/* Notification Bell */}
@@ -1780,7 +1824,7 @@ function App() {
                 onReopenSurveyRound={handleReopenSurveyRound}
                 currentUser={currentUser}
                 onRefreshDevice={handleDeviceRefresh}
-                isRefreshing={isDeviceRefreshing || isInitialSyncing}
+                isRefreshing={isSyncing}
                 onUpdateDeptMap={handleUpdateDepartmentMap}
               />
             )}
@@ -2062,37 +2106,43 @@ function App() {
         </div>
       )}
 
+      {/* ⚡ Top-Edge Nano Loading Progress Bar across entire viewport */}
+      {isSyncing && (
+        <div className="top-nano-loading-bar" role="progressbar" aria-label="ระบบกำลังซิงค์ข้อมูล" />
+      )}
+
       {/* Global Syncing Popup Alert Modal (Only shown after user logs in to avoid cluttering login screen) */}
-      {currentUser && (isInitialSyncing || isDeviceRefreshing) && (
-        <div className="global-sync-popup-backdrop animate-fade-in">
-          <div className={`global-sync-popup-card ${syncStatusSuccess ? 'sync-success-state' : ''}`}>
+      {currentUser && (isSyncing || isSyncSuccess) && (
+        <div className="global-sync-popup-backdrop animate-fade-in" role="status" aria-live="polite">
+          <div className={`global-sync-popup-card ${isSyncSuccess ? 'sync-success-state' : ''}`}>
             <div className="sync-popup-icon-bubble">
-              {syncStatusSuccess ? (
+              {isSyncSuccess ? (
                 <CheckCircle2 size={24} color="#10b981" />
               ) : (
                 <RotateCw size={24} className="animate-spin text-primary" />
               )}
             </div>
             <div className="sync-popup-text">
-              <h4>{syncStatusSuccess ? '✓ ซิงค์ข้อมูลล่าสุดสำเร็จ!' : 'กำลังซิงค์ข้อมูลกับระบบคลาวด์...'}</h4>
+              <h4>{isSyncSuccess ? '✓ ซิงค์ข้อมูลล่าสุดสำเร็จ!' : '🔄 กำลังซิงค์ข้อมูล... (Loading)'}</h4>
               <p>
-                {syncStatusSuccess 
-                  ? 'ข้อมูลครุภัณฑ์และผลการสำรวจล่าสุดพร้อมใช้งานแล้ว' 
-                  : 'ระบบกำลังดึงข้อมูลและอัปเดตความก้าวหน้าล่าสุด โปรดรอสักครู่'}
+                {isSyncSuccess 
+                  ? 'ข้อมูลครุภัณฑ์และรายการบำรุงรักษาล่าสุดพร้อมใช้งานแล้ว' 
+                  : 'ระบบกำลังดึงข้อมูลและอัปเดตความก้าวหน้าล่าสุด เพื่อป้องกันการบันทึกซ้ำซ้อน โปรดรอสักครู่'}
               </p>
-              {!syncStatusSuccess && (
+              {!isSyncSuccess && (
                 <div className="sync-popup-progress-track">
                   <div className="sync-popup-progress-bar"></div>
                 </div>
               )}
             </div>
-            {!syncStatusSuccess && (
+            {!isSyncSuccess && (
               <button 
                 type="button" 
                 className="btn-sync-dismiss"
                 onClick={() => {
                   setIsInitialSyncing(false);
                   setIsDeviceRefreshing(false);
+                  setIsGlobalSyncing(false);
                 }}
                 title="ปิดการแจ้งเตือน"
               >
@@ -2186,6 +2236,24 @@ function App() {
       )}
 
       <style>{`
+        .top-nano-loading-bar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3.5px;
+          background: linear-gradient(90deg, #3b82f6, #06b6d4, #10b981, #3b82f6);
+          background-size: 200% 100%;
+          animation: nano-shimmer 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+          z-index: 9999999;
+          box-shadow: 0 0 10px rgba(59, 130, 246, 0.7), 0 0 4px rgba(6, 182, 212, 0.5);
+        }
+
+        @keyframes nano-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+
         .global-sync-popup-backdrop {
           position: fixed;
           top: 16px;
