@@ -179,18 +179,23 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   // Filtered asset list for Contract modal search
   const filteredModalAssets = useMemo(() => {
     return assets.filter(a => {
-      if (a.status === 'รอจำหน่าย') return false;
+      // Allow searching or editing any asset, including those awaiting disposal
+      if (a.status === 'รอจำหน่าย' && !selectedAssetIds.includes(a.id) && !modalAssetSearch.trim()) return false;
       if ((currentUser?.role === 'head' || currentUser?.role === 'operator' || currentUser?.role === 'user') && a.department !== currentUser.department) return false;
       if (!modalAssetSearch.trim()) return true;
       const term = modalAssetSearch.toLowerCase().trim();
+      const cleanTerm = term.replace(/[^a-zA-Z0-9\u0E00-\u0E7F]/g, '');
+      const cleanId = (a.id || '').replace(/[^a-zA-Z0-9]/g, '');
+      const matchId = (a.id || '').toLowerCase().includes(term) ||
+        (cleanTerm.length >= 3 && (cleanId.includes(cleanTerm) || cleanId.replace(/^0+/, '').includes(cleanTerm.replace(/^0+/, '')) || cleanTerm.replace(/^0+/, '').includes(cleanId.replace(/^0+/, ''))));
       return (
-        (a.id || '').toLowerCase().includes(term) ||
+        matchId ||
         (a.name || '').toLowerCase().includes(term) ||
         (a.location && a.location.toLowerCase().includes(term)) ||
         (a.department && a.department.toLowerCase().includes(term))
       );
     });
-  }, [assets, currentUser, modalAssetSearch]);
+  }, [assets, currentUser, modalAssetSearch, selectedAssetIds]);
 
   // Asset-Based PM Tab States
   const [assetPMSearch, setAssetPMSearch] = useState('');
@@ -200,12 +205,11 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
   // Logbook Modal States
   const [selectedLogbookAsset, setSelectedLogbookAsset] = useState<Asset | null>(null);
   const [isLogbookOpen, setIsLogbookOpen] = useState(false);
+  const [logbookViewMode, setLogbookViewMode] = useState<'single' | 'contract'>('single');
 
   // Filtered asset list for Tab 3 (Asset-Based Maintenance & Logbook)
   const filteredAssetPMList = useMemo(() => {
     return assets.filter(asset => {
-      if (asset.status === 'รอจำหน่าย') return false;
-      
       // Dept filter
       if (selectedDeptFilter !== 'all' && asset.department !== selectedDeptFilter) {
         return false;
@@ -223,6 +227,12 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
         ? (latestContract.contractNumber ? latestContract.contractNumber.startsWith('INT-PM-') : false) 
         : (assetSchedules.length > 0);
 
+      // NEVER hide assets that have active PM plans/contracts/schedules even if status is 'รอจำหน่าย'
+      // Only hide non-planned 'รอจำหน่าย' assets when browsing without search
+      if (asset.status === 'รอจำหน่าย' && !hasPlan && !assetPMSearch.trim()) {
+        return false;
+      }
+
       if (assetPMTypeFilter === 'has_plan' && !hasPlan) return false;
       if (assetPMTypeFilter === 'no_plan' && hasPlan) return false;
       if (assetPMTypeFilter === 'outsource' && (!hasPlan || isInternal)) return false;
@@ -230,19 +240,26 @@ export const Module10_Maintenance: React.FC<Module10MaintenanceProps> = ({
 
       if (!assetPMSearch.trim()) return true;
       const term = assetPMSearch.toLowerCase().trim();
-      const vendor = latestContract ? (latestContract.vendorName || '').toLowerCase() : '';
-      const contractNo = latestContract ? (latestContract.contractNumber || '').toLowerCase() : '';
-      const contractTitle = latestContract ? (latestContract.title || '').toLowerCase() : '';
+      const cleanTerm = term.replace(/[^a-zA-Z0-9\u0E00-\u0E7F]/g, '');
+      const cleanId = (asset.id || '').replace(/[^a-zA-Z0-9]/g, '');
+
+      const matchId = (asset.id || '').toLowerCase().includes(term) ||
+        (cleanTerm.length >= 3 && (cleanId.includes(cleanTerm) || cleanId.replace(/^0+/, '').includes(cleanTerm.replace(/^0+/, '')) || cleanTerm.replace(/^0+/, '').includes(cleanId.replace(/^0+/, ''))));
+
+      const matchContracts = assetContracts.some(c => 
+        (c.contractNumber && c.contractNumber.toLowerCase().includes(term)) ||
+        (c.title && c.title.toLowerCase().includes(term)) ||
+        (c.vendorName && c.vendorName.toLowerCase().includes(term)) ||
+        (c.contactPerson && c.contactPerson.toLowerCase().includes(term))
+      );
 
       return (
-        (asset.id || '').toLowerCase().includes(term) ||
+        matchId ||
         (asset.name || '').toLowerCase().includes(term) ||
         (asset.note && asset.note.toLowerCase().includes(term)) ||
         (asset.location && asset.location.toLowerCase().includes(term)) ||
         (asset.department && asset.department.toLowerCase().includes(term)) ||
-        vendor.includes(term) ||
-        contractNo.includes(term) ||
-        contractTitle.includes(term)
+        matchContracts
       );
     });
   }, [assets, contracts, schedules, selectedDeptFilter, assetPMTypeFilter, assetPMSearch]);
@@ -2470,7 +2487,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                   className={`btn btn-xs ${assetPMTypeFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
                   style={{ border: '1px solid var(--border)', fontSize: '0.75rem' }}
                 >
-                  ทั้งหมด ({assets.filter(a => a.status !== 'รอจำหน่าย' && (selectedDeptFilter === 'all' || a.department === selectedDeptFilter)).length})
+                  ทั้งหมด ({assets.filter(a => (a.status !== 'รอจำหน่าย' || contracts.some(c => c.assetIds?.includes(a.id)) || schedules.some(s => s.assetId === a.id)) && (selectedDeptFilter === 'all' || a.department === selectedDeptFilter)).length})
                 </button>
                 <button 
                   onClick={() => setAssetPMTypeFilter('has_plan')} 
@@ -2545,6 +2562,16 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                           <span className="badge badge-muted" style={{ fontSize: '0.7rem' }}>
                             📍 {asset.location || asset.department}
                           </span>
+                          {asset.status === 'รอจำหน่าย' && (
+                            <span className="badge badge-warning" style={{ fontSize: '0.675rem' }}>
+                              ⚠️ รอจำหน่าย
+                            </span>
+                          )}
+                          {asset.status === 'ชำรุด' && (
+                            <span className="badge badge-danger" style={{ fontSize: '0.675rem' }}>
+                              🚨 ชำรุด
+                            </span>
+                          )}
                         </div>
 
                         {/* Status Pointers / Plans Count */}
@@ -2778,6 +2805,53 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                     </button>
                                   )}
                                 </div>
+
+                                {/* Linked co-assets in the same contract */}
+                                {contract.assetIds && contract.assetIds.length > 1 && (
+                                  <div style={{ background: 'rgba(59, 130, 246, 0.06)', padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px dashed rgba(59, 130, 246, 0.3)', fontSize: '0.725rem', marginTop: '0.2rem' }}>
+                                    <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                      <span>🔗 สัญญาร่วม {contract.assetIds.length} เครื่อง:</span>
+                                      <span style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>(คลิกเพื่อเปิดดูสมุดประวัติ)</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                                      {contract.assetIds.map(coId => {
+                                        const coAsset = assets.find(a => a.id === coId);
+                                        const isSelf = coId === asset.id;
+                                        return (
+                                          <button
+                                            key={coId}
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (!isSelf && coAsset) {
+                                                setSelectedLogbookAsset(coAsset);
+                                                setIsLogbookOpen(true);
+                                              }
+                                            }}
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: '0.25rem',
+                                              padding: '0.2rem 0.5rem',
+                                              borderRadius: '4px',
+                                              fontSize: '0.7rem',
+                                              background: isSelf ? 'var(--primary)' : 'var(--bg-secondary)',
+                                              border: isSelf ? '1px solid var(--primary)' : '1px solid var(--border)',
+                                              color: isSelf ? '#fff' : 'var(--text-primary)',
+                                              cursor: isSelf ? 'default' : 'pointer',
+                                              fontWeight: isSelf ? 700 : 500,
+                                              transition: 'all 0.15s ease'
+                                            }}
+                                            title={isSelf ? 'ครุภัณฑ์เครื่องปัจจุบัน' : `คลิกเพื่อเปิดสมุดประวัติ Logbook ของ ${coAsset?.name || coId}`}
+                                          >
+                                            <code>{coId}</code> {coAsset ? (coAsset.name.length > 18 ? `${coAsset.name.slice(0, 18)}...` : coAsset.name) : ''}
+                                            {!isSelf && <span style={{ color: 'var(--primary)', fontSize: '0.65rem' }}>📖 เปิดดู</span>}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem', color: 'var(--text-secondary)' }}>
                                   <div>
@@ -4323,6 +4397,11 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                         />
                         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           <strong style={{ color: 'var(--primary)', fontFamily: 'monospace' }}>{asset.id}</strong> - {asset.name}
+                          {asset.status === 'รอจำหน่าย' && (
+                            <span className="badge badge-warning" style={{ fontSize: '0.625rem', padding: '0.05rem 0.3rem', marginLeft: '0.35rem' }}>
+                              ⚠️ รอจำหน่าย
+                            </span>
+                          )}
                         </span>
                         <span className="badge badge-muted" style={{ fontSize: '0.675rem', padding: '0.1rem 0.4rem', flexShrink: 0 }}>📍 {asset.location}</span>
                       </label>
@@ -4332,7 +4411,7 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
               </div>
               
               <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textAlign: 'right' }}>
-                แสดง {filteredModalAssets.length} จากทั้งหมด {assets.filter(a => a.status !== 'รอจำหน่าย').length} รายการ
+                แสดง {filteredModalAssets.length} จากทั้งหมด {assets.filter(a => isOrgWideUser || a.department === currentUser?.department).length} รายการ
               </div>
             </div>
 
@@ -4367,10 +4446,10 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
             <SearchableSelect
               label="🔍 เลือกครุภัณฑ์ที่จะส่งซ่อม"
               options={assets
-                .filter(a => a.status !== 'รอจำหน่าย' && (isOrgWideUser || a.department === currentUser?.department))
+                .filter(a => isOrgWideUser || a.department === currentUser?.department)
                 .map(asset => ({
                   value: asset.id,
-                  label: `${asset.id} - ${asset.name}${asset.department ? ` (${asset.department})` : ''}${asset.location ? ` [${asset.location}]` : ''}`
+                  label: `${asset.id} - ${asset.name}${asset.status === 'รอจำหน่าย' ? ' [⚠️ รอจำหน่าย]' : ''}${asset.department ? ` (${asset.department})` : ''}${asset.location ? ` [${asset.location}]` : ''}`
                 }))}
               value={repairAssetId}
               onChange={(val) => setRepairAssetId(val)}
@@ -4872,6 +4951,55 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                   </button>
                                 )}
                               </div>
+
+                              {/* Co-Assets Switcher inside Contract Card */}
+                              {c.assetIds && c.assetIds.length > 1 && (
+                                <div style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '6px', padding: '0.6rem 0.75rem', marginTop: '0.4rem' }}>
+                                  <div style={{ fontWeight: 700, fontSize: '0.78rem', color: 'var(--primary)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                    <span>🔗 สัญญาฉบับนี้ครอบคลุมครุภัณฑ์ร่วมกัน {c.assetIds.length} รายการ:</span>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>(คลิกเพื่อสลับดูสมุดประวัติเครื่องอื่น)</span>
+                                  </div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                    {c.assetIds.map(coId => {
+                                      const coAsset = assets.find(a => a.id === coId);
+                                      const isCurrent = coId === selectedLogbookAsset.id;
+                                      const coPending = schedules.find(s => s.assetId === coId && s.contractId === c.id && s.status === 'pending');
+                                      return (
+                                        <button
+                                          key={coId}
+                                          type="button"
+                                          onClick={() => {
+                                            if (coAsset) setSelectedLogbookAsset(coAsset);
+                                          }}
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.35rem',
+                                            padding: '0.3rem 0.65rem',
+                                            borderRadius: '5px',
+                                            fontSize: '0.75rem',
+                                            cursor: isCurrent ? 'default' : 'pointer',
+                                            background: isCurrent ? 'var(--primary)' : 'var(--bg-primary)',
+                                            color: isCurrent ? '#fff' : 'var(--text-primary)',
+                                            border: isCurrent ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                                            fontWeight: isCurrent ? 700 : 500,
+                                            boxShadow: isCurrent ? '0 2px 6px rgba(59, 130, 246, 0.35)' : 'none'
+                                          }}
+                                        >
+                                          <span>{isCurrent ? '👉 กำลังดู: ' : '🔄 สลับไป: '}</span>
+                                          <code style={{ color: isCurrent ? '#fff' : 'var(--primary)', fontWeight: 700 }}>{coId}</code>
+                                          <span>{coAsset ? (coAsset.name.length > 24 ? `${coAsset.name.slice(0, 24)}...` : coAsset.name) : coId}</span>
+                                          {coPending && (
+                                            <span style={{ fontSize: '0.65rem', background: isCurrent ? 'rgba(255,255,255,0.25)' : 'rgba(245, 158, 11, 0.15)', color: isCurrent ? '#fff' : 'var(--warning)', padding: '0.05rem 0.3rem', borderRadius: '3px', fontWeight: 650 }}>
+                                              นัด: {getThaiDateFormatted(coPending.plannedDate)}
+                                            </span>
+                                          )}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -4887,13 +5015,62 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                   .filter(s => s.assetId === selectedLogbookAsset.id)
                   .sort((a, b) => b.plannedDate.localeCompare(a.plannedDate));
 
+                const currentAssetContracts = contracts.filter(c => (c.assetIds && c.assetIds.includes(selectedLogbookAsset.id)) || schedules.some(s => s.assetId === selectedLogbookAsset.id && s.contractId === c.id));
+                const activeContract = currentAssetContracts.length > 0 ? currentAssetContracts[currentAssetContracts.length - 1] : null;
+                const hasCoAssets = activeContract && activeContract.assetIds && activeContract.assetIds.length > 1;
+
+                const contractSchedules = hasCoAssets
+                  ? schedules
+                      .filter(s => s.contractId === activeContract.id || activeContract.assetIds.includes(s.assetId))
+                      .sort((a, b) => b.plannedDate.localeCompare(a.plannedDate))
+                  : assetSchedules;
+
+                const displayedSchedules = (logbookViewMode === 'contract' && hasCoAssets) ? contractSchedules : assetSchedules;
+
                 return (
                   <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.75rem 0', color: 'var(--primary)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-                      🛠️ ประวัติการเข้าตรวจบำรุงรักษา PM ทั้งหมด ({assetSchedules.length} รอบ)
-                    </h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: 'var(--primary)' }}>
+                        🛠️ ประวัติการเข้าตรวจบำรุงรักษา PM ({displayedSchedules.length} รอบ)
+                      </h4>
 
-                    {assetSchedules.length === 0 ? (
+                      {hasCoAssets && (
+                        <div style={{ display: 'inline-flex', background: 'var(--bg-secondary)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.75rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => setLogbookViewMode('single')}
+                            style={{
+                              padding: '0.25rem 0.6rem',
+                              borderRadius: '4px',
+                              border: 'none',
+                              cursor: 'pointer',
+                              background: logbookViewMode === 'single' ? 'var(--primary)' : 'transparent',
+                              color: logbookViewMode === 'single' ? '#fff' : 'var(--text-secondary)',
+                              fontWeight: logbookViewMode === 'single' ? 700 : 500
+                            }}
+                          >
+                            📌 เฉพาะเครื่องนี้ ({selectedLogbookAsset.id})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLogbookViewMode('contract')}
+                            style={{
+                              padding: '0.25rem 0.6rem',
+                              borderRadius: '4px',
+                              border: 'none',
+                              cursor: 'pointer',
+                              background: logbookViewMode === 'contract' ? 'var(--primary)' : 'transparent',
+                              color: logbookViewMode === 'contract' ? '#fff' : 'var(--text-secondary)',
+                              fontWeight: logbookViewMode === 'contract' ? 700 : 500
+                            }}
+                          >
+                            🌐 รวมทุกเครื่องในสัญญา ({activeContract.contractNumber})
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {displayedSchedules.length === 0 ? (
                       <div style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '0.75rem' }}>
                         ยังไม่มีประวัติรอบการเข้าตรวจบำรุงรักษา PM
                       </div>
@@ -4902,6 +5079,9 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                         <table style={{ width: '100%', fontSize: '0.775rem', borderCollapse: 'collapse', textAlign: 'left' }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                              {logbookViewMode === 'contract' && hasCoAssets && (
+                                <th style={{ padding: '0.4rem' }}>ครุภัณฑ์ (Asset)</th>
+                              )}
                               <th style={{ padding: '0.4rem' }}>วันที่นัด (Planned)</th>
                               <th style={{ padding: '0.4rem' }}>วันที่ทำจริง (Completed)</th>
                               <th style={{ padding: '0.4rem' }}>สถานะ</th>
@@ -4912,8 +5092,20 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                             </tr>
                           </thead>
                           <tbody>
-                            {assetSchedules.map(sched => (
+                            {displayedSchedules.map(sched => (
                               <tr key={sched.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                {logbookViewMode === 'contract' && hasCoAssets && (
+                                  <td style={{ padding: '0.4rem', whiteSpace: 'nowrap' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                      <code style={{ color: sched.assetId === selectedLogbookAsset.id ? 'var(--primary)' : 'var(--text-primary)', fontWeight: 700 }}>
+                                        {sched.assetId}
+                                      </code>
+                                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {sched.assetName || assets.find(a => a.id === sched.assetId)?.name || '-'}
+                                      </span>
+                                    </div>
+                                  </td>
+                                )}
                                 <td style={{ padding: '0.4rem', fontWeight: 650 }}>{getThaiDateFormatted(sched.plannedDate)}</td>
                                 <td style={{ padding: '0.4rem' }}>{sched.completedDate ? getThaiDateFormatted(sched.completedDate) : '-'}</td>
                                 <td style={{ padding: '0.4rem' }}>
@@ -4950,11 +5142,11 @@ ${prevNextPMNotes ? `⚠️ ข้อพึงระวังจากรอบ�
                                     </button>
                                     <button 
                                       onClick={() => handleOpenPMForm(sched)}
-                                      className="btn btn-ghost btn-xs"
+                                      className={`btn ${sched.status === 'pending' ? 'btn-success' : 'btn-ghost'} btn-xs`}
                                       style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem', border: '1px solid var(--border)' }}
-                                      title="แก้ไขบันทึก PM นี้"
+                                      title={sched.status === 'pending' ? 'บันทึกผลการเข้าตรวจ PM นี้' : 'แก้ไขบันทึก PM นี้'}
                                     >
-                                      ✏️ แก้ไข
+                                      {sched.status === 'pending' ? '🔧 บันทึก PM' : '✏️ แก้ไข'}
                                     </button>
                                     {currentUser?.role === 'admin' && (
                                       <button 
