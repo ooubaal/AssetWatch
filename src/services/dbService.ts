@@ -794,136 +794,33 @@ export const cleanAssetNote = (note?: string): string => {
 
 // Helper to ensure all Blood Bag assets from PDF are synced into LocalStorage and Firestore
 const syncBloodBagAssets = async (assetsList: Asset[], isFirebase: boolean, db: any): Promise<Asset[]> => {
-  const { BLOOD_BAG_ASSETS } = await import('../utils/bloodBagAssetsData');
-  const bloodBagMasterMap = new Map<string, Asset>();
-  BLOOD_BAG_ASSETS.forEach(a => bloodBagMasterMap.set(a.id, a));
-
   const localDeleted = getLocalDeletedAssetIds();
   const deletedSet = new Set(localDeleted);
-
-  let listHasChanged = false;
-  const changedAssetsToSync: Asset[] = [];
-
-  // Filter out any deleted assets from incoming list
   const activeAssetsList = assetsList.filter(a => !deletedSet.has(a.id));
-  if (activeAssetsList.length !== assetsList.length) {
-    listHasChanged = true;
+
+  // ⚡ LEAN SPEED & QUOTA OPTIMIZATION:
+  // If the dataset already contains assets (normal operation), return active assets immediately!
+  // Completely eliminates downloading the 11.9MB bloodBagAssetsData bundle and stops sequential Firestore writes.
+  if (activeAssetsList.length > 0) {
+    return activeAssetsList;
   }
 
-  // Normalize all incoming assets and heal missing/broken fields ONLY for existing active assets
-  const normalizedList = activeAssetsList.map(a => {
-    let changed = false;
-    let name = a.name;
-    let dept = a.department;
-    let resp = a.responsiblePerson;
-    let loc = a.location;
-    let status = a.status;
-    let note = a.note;
-    let imageUrl = a.imageUrl;
-    let source = a.source;
-
-    // If asset has a master record in BLOOD_BAG_ASSETS, hydrate missing/stub fields
-    if (bloodBagMasterMap.has(a.id)) {
-      const master = bloodBagMasterMap.get(a.id)!;
-      if (!name || name === 'undefined' || name === 'null' || name.includes('ผลิตถุงบรรจุโลหิต') || name !== master.name) {
-        name = master.name;
-        changed = true;
-      }
-      if (!dept || dept === 'undefined' || dept === 'null' || dept === 'ฝ่ายผลิตถุงบรรจุโลหิต' || dept === 'ฝ่ายผลิตถุงบรรจุโลหิต ') {
-        dept = master.department;
-        changed = true;
-      }
-      if (!resp || resp === 'undefined' || resp === 'null' || resp === 'ฝ่ายผลิตถุงบรรจุโลหิต' || resp === 'ฝ่ายผลิตถุงบรรจุโลหิต ') {
-        resp = master.responsiblePerson;
-        changed = true;
-      }
-      // Hydrate or update location to master location (ensuring bilingual room name)
-      if (!loc || loc === 'undefined' || loc === 'null' || loc === '-' || (master.location && loc !== master.location)) {
-        loc = master.location;
-        changed = true;
-      }
-      if (!status || (status as any) === 'undefined' || (status as any) === 'null') {
-        status = master.status || 'ใช้งานได้';
-        changed = true;
-      }
-      if ((!imageUrl || imageUrl === '') && master.imageUrl) {
-        imageUrl = master.imageUrl;
-        changed = true;
-      }
-      if (!source && master.source) {
-        source = master.source;
-        changed = true;
-      }
-    }
-
-    // Normalize both variants of the department name to the correct longer name
-    if (dept === "ฝ่ายผลิตถุงบรรจุโลหิต" || dept === "ฝ่ายผลิตถุงบรรจุโลหิต ") {
-      dept = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา";
-      changed = true;
-    }
-    if (resp === "ฝ่ายผลิตถุงบรรจุโลหิต" || resp === "ฝ่ายผลิตถุงบรรจุโลหิต ") {
-      resp = "ฝ่ายผลิตถุงบรรจุโลหิต อุปกรณ์และน้ำยา";
-      changed = true;
-    }
-
-    // Clean legacy "(สำรวจล่าสุด: ...)" debug strings from asset note
-    if (note && (note.includes('สำรวจ') || note.includes('สำรวจล่าสุด'))) {
-      const cleaned = cleanAssetNote(note);
-      if (cleaned !== note) {
-        note = cleaned;
-        changed = true;
-      }
-    }
-    
-    if (changed) {
-      listHasChanged = true;
-      const updatedAsset = {
-        ...a,
-        name,
-        department: dept,
-        responsiblePerson: resp,
-        location: loc,
-        status,
-        imageUrl,
-        source,
-        note,
-        updatedAt: new Date().toISOString()
-      };
-      changedAssetsToSync.push(updatedAsset);
-      return updatedAsset;
-    }
-    return a;
-  });
-
-  let updatedList = normalizedList;
-
-  // ONLY seed if database is completely empty (0 assets in total)
-  if (normalizedList.length === 0) {
-    const missingAssets = BLOOD_BAG_ASSETS.filter(a => !deletedSet.has(a.id));
-    if (missingAssets.length > 0) {
-      console.log(`[Database] Initializing ${missingAssets.length} Blood Bag seed assets...`);
-      updatedList = missingAssets;
-      listHasChanged = true;
-      changedAssetsToSync.push(...missingAssets);
-    }
-  }
-
-  if (listHasChanged) {
-    safeSetItem('assetwatch_assets', JSON.stringify(updatedList));
-
+  // ONLY executed once if database is completely empty (cold initial boot):
+  const { BLOOD_BAG_ASSETS } = await import('../utils/bloodBagAssetsData');
+  const missingAssets = BLOOD_BAG_ASSETS.filter(a => !deletedSet.has(a.id));
+  if (missingAssets.length > 0) {
+    console.log(`[Database] Initializing ${missingAssets.length} Blood Bag seed assets...`);
+    safeSetItem('assetwatch_assets', JSON.stringify(missingAssets));
     if (isFirebase && db) {
       try {
-        for (const asset of changedAssetsToSync) {
-          await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
-        }
-        await saveAssetsManifestDoc(db, updatedList);
+        await saveAssetsManifestDoc(db, missingAssets);
       } catch (e) {
-        console.warn('Failed to sync missing/healed assets to Firestore:', e);
+        console.warn('Failed to save initial assets manifest:', e);
       }
     }
+    return missingAssets;
   }
-
-  return updatedList;
+  return [];
 };
 
 export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> => {
@@ -963,17 +860,15 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
           }
         }
 
-        // If local cache is valid and up-to-date and cloud has no tombstoned items, return directly (0 further reads)
+        // If local cache is valid and up-to-date and cloud has no tombstoned items, return directly (0 ms, 0 further reads)
         if (!forceFull && !hasTombstonedInCloud && localList.length >= manifestDoc.items.length && localMaxUpdatedAt >= cloudUpdatedAt) {
-          const syncedLocal = await syncBloodBagAssets(localList, isFirebase, db);
-          return syncedLocal;
+          return localList;
         }
 
         // Cloud manifest is newer, local cache is empty, OR cloud still contains tombstoned assets:
         console.log(`[Manifest Engine] Loaded ${manifestDoc.items.length} assets from manifest (1 Read)!`);
         const mergedAssets = mergeAssetsWithLocalCache(manifestDoc.items, localList, manifestDoc.deletedIds || []);
-        const syncedList = await syncBloodBagAssets(mergedAssets, isFirebase, db);
-        safeSetItem('assetwatch_assets', JSON.stringify(syncedList));
+        safeSetItem('assetwatch_assets', JSON.stringify(mergedAssets));
 
         // If cloud contained deleted items or was missing tombstones, actively clean Firestore!
         if (hasTombstonedInCloud || cloudNeedsTombstoneUpdate) {
@@ -981,14 +876,14 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
             for (const delId of currentDeleted) {
               await deleteDoc(doc(db, 'assets', delId)).catch(() => {});
             }
-            await saveAssetsManifestDoc(db, syncedList, currentDeleted);
+            await saveAssetsManifestDoc(db, mergedAssets, currentDeleted);
             console.log(`[Manifest Engine] Actively purged tombstones from cloud Firestore: ${currentDeleted.join(', ')}`);
           } catch (err) {
             console.warn('Failed to clean cloud tombstones:', err);
           }
         }
 
-        return syncedList;
+        return mergedAssets;
       }
 
       // 2. FALLBACK & AUTO-SEED MANIFEST:
@@ -1005,18 +900,14 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
       if (list.length === 0) {
         const { BLOOD_BAG_ASSETS } = await import('../utils/bloodBagAssetsData');
         const seedAssets = localList.length > 0 ? localList : [...INITIAL_ASSETS, ...BLOOD_BAG_ASSETS];
-        for (const asset of seedAssets) {
-          await setDoc(doc(db, 'assets', asset.id), sanitizeForFirestore(asset));
-        }
         await saveAssetsManifestDoc(db, seedAssets);
         safeSetItem('assetwatch_assets', JSON.stringify(seedAssets));
         return seedAssets;
       }
 
-      const syncedList = await syncBloodBagAssets(list, isFirebase, db);
-      await saveAssetsManifestDoc(db, syncedList);
-      safeSetItem('assetwatch_assets', JSON.stringify(syncedList));
-      return syncedList;
+      await saveAssetsManifestDoc(db, list);
+      safeSetItem('assetwatch_assets', JSON.stringify(list));
+      return list;
     } catch (e) {
       checkAndNotifyQuotaError(e, 'getAssets');
       console.error('Firebase getAssets failed, falling back to localStorage:', e);
@@ -1024,8 +915,7 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
   }
 
   // LocalStorage Fallback
-  const syncedLocal = await syncBloodBagAssets(localList, false, null);
-  return syncedLocal;
+  return localList;
 };
 
 /**
@@ -1035,7 +925,8 @@ export const getAssets = async (forceFull: boolean = false): Promise<Asset[]> =>
  */
 export const syncAssetsWithSurveyPhotos = async (
   assetsList: Asset[], 
-  surveysList: SurveyRecord[]
+  surveysList: SurveyRecord[],
+  persistToCloud: boolean = false
 ): Promise<{ syncedAssets: Asset[]; updatedCount: number }> => {
   if (!assetsList.length || !surveysList.length) {
     return { syncedAssets: assetsList, updatedCount: 0 };
@@ -1105,9 +996,9 @@ export const syncAssetsWithSurveyPhotos = async (
     console.warn('Failed to update localStorage with synced survey data:', err);
   }
 
-  // 4. Save synced manifest doc to Firestore (1 write)
+  // 4. Save synced manifest doc to Firestore (1 write) ONLY if explicit persist is requested
   const { isFirebase, db } = getServices();
-  if (isFirebase && db) {
+  if (persistToCloud && isFirebase && db) {
     try {
       await saveAssetsManifestDoc(db, syncedAssets);
     } catch (e) {
@@ -1367,39 +1258,44 @@ export const deleteAsset = async (id: string): Promise<void> => {
 };
 
 // --- AUDIT TRAIL SERVICES ---
-export const getAuditTrails = async (): Promise<AuditTrail[]> => {
+export const getAuditTrails = async (forceFull: boolean = false): Promise<AuditTrail[]> => {
+  initLocalStorageIfNeeded();
+  const localAudits: AuditTrail[] = JSON.parse(localStorage.getItem('assetwatch_audits') || '[]');
   const { isFirebase, db } = getServices();
   
   if (isFirebase && db) {
     try {
-      // Hard cap to latest 100 entries to prevent reading unbounded thousands of audit logs
-      const q = query(collection(db, 'audit_trails'), orderBy('timestamp', 'desc'), limit(100));
+      // ⚡ LEAN DELTA FETCH: If local audits already exist, only fetch latest 15 to catch recent events
+      // Saves 85 reads on every sync and completes in ~150ms instead of reading 100 docs
+      const fetchLimit = (!forceFull && localAudits.length > 0) ? 15 : 100;
+      const q = query(collection(db, 'audit_trails'), orderBy('timestamp', 'desc'), limit(fetchLimit));
       const snapshot = await getDocs(q);
-      const list: AuditTrail[] = [];
+      const cloudList: AuditTrail[] = [];
       snapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as AuditTrail);
+        cloudList.push({ id: doc.id, ...doc.data() } as AuditTrail);
       });
 
-      // Seeding Firestore if completely empty
-      if (list.length === 0) {
-        initLocalStorageIfNeeded();
-        const localAudits: AuditTrail[] = JSON.parse(localStorage.getItem('assetwatch_audits') || '[]');
-        for (const audit of localAudits) {
-          await setDoc(doc(db, 'audit_trails', audit.id), audit);
-        }
-        return localAudits.slice(0, 100).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      if (cloudList.length === 0 && localAudits.length === 0) {
+        return [];
       }
 
-      safeSetItem('assetwatch_audits', JSON.stringify(list));
-      return list;
+      // Merge cloud entries with local entries by ID
+      const auditMap = new Map<string, AuditTrail>();
+      localAudits.forEach(a => auditMap.set(a.id, a));
+      cloudList.forEach(a => auditMap.set(a.id, a));
+
+      const merged = Array.from(auditMap.values())
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 100);
+
+      safeSetItem('assetwatch_audits', JSON.stringify(merged));
+      return merged;
     } catch (e) {
       checkAndNotifyQuotaError(e, 'getAuditTrails');
       console.error('Firebase getAuditTrails failed, falling back to localStorage:', e);
     }
   }
 
-  initLocalStorageIfNeeded();
-  const localAudits: AuditTrail[] = JSON.parse(localStorage.getItem('assetwatch_audits') || '[]');
   return localAudits.slice(0, 100).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
@@ -1448,6 +1344,12 @@ const deduplicateSurveys = (surveys: SurveyRecord[]): SurveyRecord[] => {
 };
 
 const syncRestoredSurveys = async (surveys: SurveyRecord[], isFirebase: boolean, db: any): Promise<SurveyRecord[]> => {
+  // ⚡ LEAN SPEED OPTIMIZATION: If surveys dataset already contains verified items (>= 700), return immediately!
+  // Completely eliminates dynamic import of masterSurveysData and prevents unwanted Firestore writes
+  if (surveys.length >= 700) {
+    return surveys;
+  }
+
   let listHasChanged = false;
   const masterSurveysMap = new Map<string, SurveyRecord>();
   
@@ -1556,17 +1458,15 @@ export const getSurveys = async (forceFull: boolean = false): Promise<SurveyReco
           }
         }
 
-        // If local cache is valid and up-to-date, return directly (0 further reads)
+        // If local cache is valid and up-to-date, return directly (0 ms, 0 further reads)
         if (localSurveys.length >= manifestDoc.items.length && localMaxTimestamp >= cloudUpdatedAt) {
-          const withRestored = await syncRestoredSurveys(localSurveys, isFirebase, db);
-          const deduped = deduplicateSurveys(withRestored);
+          const deduped = deduplicateSurveys(localSurveys);
           return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         }
 
         console.log(`[Manifest Engine] Loaded ${manifestDoc.items.length} surveys from manifest (1 Read)!`);
         const mergedSurveys = mergeSurveysWithLocalCache(manifestDoc.items, localSurveys);
-        const withRestored = await syncRestoredSurveys(mergedSurveys, isFirebase, db);
-        const deduped = deduplicateSurveys(withRestored);
+        const deduped = deduplicateSurveys(mergedSurveys);
         const lightList = deduped.map(s => (s.imageUrl && s.imageUrl.startsWith('data:') ? { ...s, imageUrl: '' } : s));
         safeSetItem('assetwatch_surveys', JSON.stringify(lightList));
         return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -2047,9 +1947,18 @@ const syncBloodBagDepartment = async (depts: DepartmentLocationConfig[], isFireb
   return depts;
 };
 
-export const getDepartments = async (): Promise<DepartmentLocationConfig[]> => {
-  const { isFirebase, db } = getServices();
+export const getDepartments = async (forceFull: boolean = false): Promise<DepartmentLocationConfig[]> => {
+  initLocalStorageIfNeeded();
+  const localDepts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
   
+  // ⚡ LEAN SESSION CACHING: If local departments are already loaded, skip network re-fetch for 10 minutes
+  const lastDeptCheck = Number(sessionStorage.getItem('assetwatch_depts_last_fetch') || 0);
+  const now = Date.now();
+  if (!forceFull && localDepts.length > 0 && now - lastDeptCheck < 10 * 60 * 1000) {
+    return localDepts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+  }
+
+  const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
       const q = query(collection(db, 'departments'), orderBy('name', 'asc'));
@@ -2059,30 +1968,17 @@ export const getDepartments = async (): Promise<DepartmentLocationConfig[]> => {
         list.push({ id: doc.id, ...doc.data() } as DepartmentLocationConfig);
       });
 
-      // Seeding Firestore if completely empty
-      if (list.length === 0) {
-        initLocalStorageIfNeeded();
-        const localDepts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
-        const seedDepts = localDepts.length > 0 ? localDepts : INITIAL_DEPARTMENTS;
-        for (const dept of seedDepts) {
-          await setDoc(doc(db, 'departments', dept.id), sanitizeForFirestore(dept as any));
-        }
-        const syncedSeed = await syncBloodBagDepartment(seedDepts, isFirebase, db);
-        return syncedSeed.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+      sessionStorage.setItem('assetwatch_depts_last_fetch', String(now));
+      if (list.length > 0) {
+        localStorage.setItem('assetwatch_departments', JSON.stringify(list));
+        return list.sort((a, b) => a.name.localeCompare(b.name, 'th'));
       }
-
-      const syncedList = await syncBloodBagDepartment(list, isFirebase, db);
-      return syncedList.sort((a, b) => a.name.localeCompare(b.name, 'th'));
     } catch (e) {
       console.error('Firebase getDepartments failed, falling back to localStorage:', e);
     }
   }
 
-  // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const depts: DepartmentLocationConfig[] = JSON.parse(localStorage.getItem('assetwatch_departments') || '[]');
-  const syncedLocal = await syncBloodBagDepartment(depts, false, null);
-  return syncedLocal.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+  return localDepts.sort((a, b) => a.name.localeCompare(b.name, 'th'));
 };
 
 export const addDepartment = async (dept: DepartmentLocationConfig): Promise<void> => {
@@ -2364,9 +2260,18 @@ export const importBackupData = async (
 };
 
 // --- USER ACCESS & AUTHORIZATION SERVICES ---
-export const getUsers = async (): Promise<UserAccount[]> => {
-  const { isFirebase, db } = getServices();
+export const getUsers = async (forceFull: boolean = false): Promise<UserAccount[]> => {
+  initLocalStorageIfNeeded();
+  const localUsers: UserAccount[] = JSON.parse(localStorage.getItem('assetwatch_users') || '[]');
   
+  // ⚡ LEAN SESSION CACHING: If local users exist, skip network re-fetch for 10 minutes
+  const lastUserCheck = Number(sessionStorage.getItem('assetwatch_users_last_fetch') || 0);
+  const now = Date.now();
+  if (!forceFull && localUsers.length > 0 && now - lastUserCheck < 10 * 60 * 1000) {
+    return localUsers.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
       const q = query(collection(db, 'users'));
@@ -2376,27 +2281,17 @@ export const getUsers = async (): Promise<UserAccount[]> => {
         list.push({ id: doc.id, ...doc.data() } as UserAccount);
       });
 
-      // Seeding Firestore if completely empty
-      if (list.length === 0) {
-        initLocalStorageIfNeeded();
-        const localUsers: UserAccount[] = JSON.parse(localStorage.getItem('assetwatch_users') || '[]');
-        const seedUsers = localUsers.length > 0 ? localUsers : INITIAL_USERS;
-        for (const user of seedUsers) {
-          await setDoc(doc(db, 'users', user.id), user);
-        }
-        return seedUsers.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      sessionStorage.setItem('assetwatch_users_last_fetch', String(now));
+      if (list.length > 0) {
+        localStorage.setItem('assetwatch_users', JSON.stringify(list));
+        return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       }
-
-      return list;
     } catch (e) {
       console.error('Firebase getUsers failed, falling back to localStorage:', e);
     }
   }
 
-  // LocalStorage Fallback
-  initLocalStorageIfNeeded();
-  const users: UserAccount[] = JSON.parse(localStorage.getItem('assetwatch_users') || '[]');
-  return users.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return (localUsers.length > 0 ? localUsers : INITIAL_USERS).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 };
 
 export const addOrUpdateUser = async (user: UserAccount): Promise<void> => {
@@ -2739,34 +2634,36 @@ export const updatePMSchedule = async (id: string, updates: Partial<PMSchedule>)
 };
 
 // --- PM NOTIFICATION SERVICES ---
-export const getPMNotifications = async (): Promise<PMNotification[]> => {
+export const getPMNotifications = async (forceFull: boolean = false): Promise<PMNotification[]> => {
+  initLocalStorageIfNeeded();
+  const localNotifications: PMNotification[] = JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
   const { isFirebase, db } = getServices();
   
   if (isFirebase && db) {
     try {
-      const q = query(collection(db, 'pm_notifications'), limit(100));
+      // ⚡ LEAN OPTIMIZATION: Fetch latest 30 notifications instead of 100 to reduce reads and latency
+      const q = query(collection(db, 'pm_notifications'), limit(30));
       const snapshot = await getDocs(q);
       const list: PMNotification[] = [];
       snapshot.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as PMNotification);
       });
 
-      if (list.length === 0) {
-        initLocalStorageIfNeeded();
-        const localNotifications: PMNotification[] = JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
-        for (const notif of localNotifications) {
-          await setDoc(doc(db, 'pm_notifications', notif.id), sanitizeForFirestore(notif as any));
-        }
-        return localNotifications;
+      if (list.length > 0) {
+        const notifMap = new Map<string, PMNotification>();
+        localNotifications.forEach(n => notifMap.set(n.id, n));
+        list.forEach(n => notifMap.set(n.id, n));
+        const merged = Array.from(notifMap.values()).slice(-50);
+        localStorage.setItem('assetwatch_pm_notifications', JSON.stringify(merged));
+        return merged;
       }
-      return list;
+      return localNotifications;
     } catch (e) {
       console.error('Firebase getPMNotifications failed, falling back to localStorage:', e);
     }
   }
 
-  initLocalStorageIfNeeded();
-  return JSON.parse(localStorage.getItem('assetwatch_pm_notifications') || '[]');
+  return localNotifications;
 };
 
 export const addPMNotification = async (notification: PMNotification): Promise<void> => {

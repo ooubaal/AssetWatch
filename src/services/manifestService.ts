@@ -384,24 +384,46 @@ export const mergeContractsWithLocalCache = (manifestContracts: PMContract[], lo
   return merged;
 };
 
-// --- FIRESTORE MANIFEST CRUD HELPERS ---
+// --- FIRESTORE MANIFEST CRUD HELPERS WITH IN-FLIGHT DEDUPLICATION ---
+
+// Request deduplication cache: prevents duplicate parallel reads to same manifest within 1.5s
+const inFlightManifestPromises = new Map<string, Promise<any>>();
+
+const fetchManifestDeduped = async <T,>(key: string, fetcher: () => Promise<T>): Promise<T> => {
+  if (inFlightManifestPromises.has(key)) {
+    return inFlightManifestPromises.get(key)!;
+  }
+  const promise = (async () => {
+    try {
+      return await fetcher();
+    } finally {
+      setTimeout(() => {
+        inFlightManifestPromises.delete(key);
+      }, 1500);
+    }
+  })();
+  inFlightManifestPromises.set(key, promise);
+  return promise;
+};
 
 // 1. Assets Manifest
 export const fetchAssetsManifestDoc = async (db: any): Promise<AssetsManifestDoc | null> => {
-  try {
-    const snap = await getDoc(doc(db, 'manifests', 'assets'));
-    if (snap.exists()) {
-      const data = snap.data() as AssetsManifestDoc;
-      if (data.deletedIds && Array.isArray(data.deletedIds)) {
-        recordLocalDeletedAssetIds(data.deletedIds);
+  return fetchManifestDeduped('assets', async () => {
+    try {
+      const snap = await getDoc(doc(db, 'manifests', 'assets'));
+      if (snap.exists()) {
+        const data = snap.data() as AssetsManifestDoc;
+        if (data.deletedIds && Array.isArray(data.deletedIds)) {
+          recordLocalDeletedAssetIds(data.deletedIds);
+        }
+        return data;
       }
-      return data;
+      return null;
+    } catch (err) {
+      console.warn('Failed to fetch manifests/assets doc:', err);
+      return null;
     }
-    return null;
-  } catch (err) {
-    console.warn('Failed to fetch manifests/assets doc:', err);
-    return null;
-  }
+  });
 };
 
 export const saveAssetsManifestDoc = async (
@@ -438,16 +460,18 @@ export const saveAssetsManifestDoc = async (
 
 // 2. Surveys Manifest
 export const fetchSurveysManifestDoc = async (db: any): Promise<SurveysManifestDoc | null> => {
-  try {
-    const snap = await getDoc(doc(db, 'manifests', 'surveys'));
-    if (snap.exists()) {
-      return snap.data() as SurveysManifestDoc;
+  return fetchManifestDeduped('surveys', async () => {
+    try {
+      const snap = await getDoc(doc(db, 'manifests', 'surveys'));
+      if (snap.exists()) {
+        return snap.data() as SurveysManifestDoc;
+      }
+      return null;
+    } catch (err) {
+      console.warn('Failed to fetch manifests/surveys doc:', err);
+      return null;
     }
-    return null;
-  } catch (err) {
-    console.warn('Failed to fetch manifests/surveys doc:', err);
-    return null;
-  }
+  });
 };
 
 export const saveSurveysManifestDoc = async (db: any, surveys: SurveyRecord[]): Promise<void> => {
@@ -505,16 +529,18 @@ export const saveSurveysManifestDoc = async (db: any, surveys: SurveyRecord[]): 
 
 // 3. Repairs Manifest
 export const fetchRepairsManifestDoc = async (db: any): Promise<RepairsManifestDoc | null> => {
-  try {
-    const snap = await getDoc(doc(db, 'manifests', 'repairs'));
-    if (snap.exists()) {
-      return snap.data() as RepairsManifestDoc;
+  return fetchManifestDeduped('repairs', async () => {
+    try {
+      const snap = await getDoc(doc(db, 'manifests', 'repairs'));
+      if (snap.exists()) {
+        return snap.data() as RepairsManifestDoc;
+      }
+      return null;
+    } catch (err) {
+      console.warn('Failed to fetch manifests/repairs doc:', err);
+      return null;
     }
-    return null;
-  } catch (err) {
-    console.warn('Failed to fetch manifests/repairs doc:', err);
-    return null;
-  }
+  });
 };
 
 export const saveRepairsManifestDoc = async (db: any, repairs: RepairCase[]): Promise<void> => {
@@ -535,16 +561,18 @@ export const saveRepairsManifestDoc = async (db: any, repairs: RepairCase[]): Pr
 
 // 4. PM Manifest (Contracts & Schedules)
 export const fetchPMManifestDoc = async (db: any): Promise<PMManifestDoc | null> => {
-  try {
-    const snap = await getDoc(doc(db, 'manifests', 'pm'));
-    if (snap.exists()) {
-      return snap.data() as PMManifestDoc;
+  return fetchManifestDeduped('pm', async () => {
+    try {
+      const snap = await getDoc(doc(db, 'manifests', 'pm'));
+      if (snap.exists()) {
+        return snap.data() as PMManifestDoc;
+      }
+      return null;
+    } catch (err) {
+      console.warn('Failed to fetch manifests/pm doc:', err);
+      return null;
     }
-    return null;
-  } catch (err) {
-    console.warn('Failed to fetch manifests/pm doc:', err);
-    return null;
-  }
+  });
 };
 
 export const savePMManifestDoc = async (db: any, contracts: PMContract[], schedules: PMSchedule[]): Promise<void> => {
@@ -574,16 +602,18 @@ export const savePMManifestDoc = async (db: any, contracts: PMContract[], schedu
 
 // 5. Spare Parts Manifest
 export const fetchSparePartsManifestDoc = async (db: any): Promise<SparePartsManifestDoc | null> => {
-  try {
-    const snap = await getDoc(doc(db, 'manifests', 'spare_parts'));
-    if (snap.exists()) {
-      return snap.data() as SparePartsManifestDoc;
+  return fetchManifestDeduped('spare_parts', async () => {
+    try {
+      const snap = await getDoc(doc(db, 'manifests', 'spare_parts'));
+      if (snap.exists()) {
+        return snap.data() as SparePartsManifestDoc;
+      }
+      return null;
+    } catch (err) {
+      console.warn('Failed to fetch manifests/spare_parts doc:', err);
+      return null;
     }
-    return null;
-  } catch (err) {
-    console.warn('Failed to fetch manifests/spare_parts doc:', err);
-    return null;
-  }
+  });
 };
 
 export const saveSparePartsManifestDoc = async (db: any, parts: SparePart[]): Promise<void> => {

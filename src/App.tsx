@@ -99,27 +99,33 @@ function App() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
-  // App-wide dataset states
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [audits, setAudits] = useState<AuditTrail[]>([]);
-  const [repairs, setRepairs] = useState<RepairCase[]>([]);
-  const [surveys, setSurveys] = useState<SurveyRecord[]>([]);
-  const [rounds, setRounds] = useState<SurveyRound[]>([]);
-  const [activeRound, setActiveRound] = useState<SurveyRound | null>(null);
-  const [departments, setDepartments] = useState<DepartmentLocationConfig[]>([]);
-  const [users, setUsers] = useState<UserAccount[]>(() => {
+  // Helper to load cached state instantly on first render (0 ms Time-To-Interactive)
+  const loadLocalCache = <T,>(key: string, fallback: T): T => {
     try {
-      const saved = localStorage.getItem('assetwatch_users');
-      if (saved) return JSON.parse(saved);
+      const raw = localStorage.getItem(key);
+      if (raw) return JSON.parse(raw);
     } catch {}
-    return INITIAL_USERS;
+    return fallback;
+  };
+
+  // App-wide dataset states (Hydrated immediately from local cache so user never waits with a blank screen)
+  const [assets, setAssets] = useState<Asset[]>(() => loadLocalCache('assetwatch_assets', []));
+  const [audits, setAudits] = useState<AuditTrail[]>(() => loadLocalCache('assetwatch_audits', []));
+  const [repairs, setRepairs] = useState<RepairCase[]>(() => loadLocalCache('assetwatch_repairs', []));
+  const [surveys, setSurveys] = useState<SurveyRecord[]>(() => loadLocalCache('assetwatch_surveys', []));
+  const [rounds, setRounds] = useState<SurveyRound[]>(() => loadLocalCache('assetwatch_rounds', []));
+  const [activeRound, setActiveRound] = useState<SurveyRound | null>(() => {
+    const cachedRounds: SurveyRound[] = loadLocalCache('assetwatch_rounds', []);
+    return cachedRounds.find(r => r.status === 'active') || null;
   });
+  const [departments, setDepartments] = useState<DepartmentLocationConfig[]>(() => loadLocalCache('assetwatch_departments', []));
+  const [users, setUsers] = useState<UserAccount[]>(() => loadLocalCache('assetwatch_users', INITIAL_USERS));
   
   // PM & CM States
-  const [contracts, setContracts] = useState<PMContract[]>([]);
-  const [schedules, setSchedules] = useState<PMSchedule[]>([]);
-  const [pmNotifications, setPmNotifications] = useState<PMNotification[]>([]);
-  const [spareParts, setSpareParts] = useState<SparePart[]>([]);
+  const [contracts, setContracts] = useState<PMContract[]>(() => loadLocalCache('assetwatch_contracts', []));
+  const [schedules, setSchedules] = useState<PMSchedule[]>(() => loadLocalCache('assetwatch_schedules', []));
+  const [pmNotifications, setPmNotifications] = useState<PMNotification[]>(() => loadLocalCache('assetwatch_pm_notifications', []));
+  const [spareParts, setSpareParts] = useState<SparePart[]>(() => loadLocalCache('assetwatch_spare_parts', []));
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
@@ -284,6 +290,8 @@ function App() {
 
     const assetsMap = new Map(assets.map(a => [a.id, a]));
 
+    const newNotifsToAdd: PMNotification[] = [];
+
     // 1. Check PM schedules
     for (const s of scheds) {
       if (s.status === 'pending') {
@@ -309,7 +317,7 @@ function App() {
               assetId: s.assetId,
               department: targetAsset?.department || ''
             };
-            await addPMNotification(newNotif);
+            newNotifsToAdd.push(newNotif);
           }
         }
       }
@@ -339,9 +347,13 @@ function App() {
             linkTo: 'module10_pm',
             department: contractDept
           };
-          await addPMNotification(newNotif);
+          newNotifsToAdd.push(newNotif);
         }
       }
+    }
+
+    if (newNotifsToAdd.length > 0) {
+      await Promise.all(newNotifsToAdd.map(n => addPMNotification(n)));
     }
   };
 
@@ -388,20 +400,20 @@ function App() {
           allSpareParts
         ] = await Promise.all([
           safeFetch(() => getAssets(forceFull), assets.length > 0 ? assets : []),
-          safeFetch(getAuditTrails, audits),
+          safeFetch(() => getAuditTrails(forceFull), audits),
           safeFetch(() => getRepairs(forceFull), repairs),
           safeFetch(() => getSurveys(forceFull), surveys),
           safeFetch(getSurveyRounds, rounds),
-          safeFetch(getDepartments, departments),
-          safeFetch(getUsers, users),
+          safeFetch(() => getDepartments(forceFull), departments),
+          safeFetch(() => getUsers(forceFull), users),
           safeFetch(getPMContracts, contracts),
           safeFetch(getPMSchedules, schedules),
-          safeFetch(getPMNotifications, pmNotifications),
+          safeFetch(() => getPMNotifications(forceFull), pmNotifications),
           safeFetch(() => fetchSpareParts(forceFull), spareParts)
         ]);
 
-        // Auto-sync asset images with survey photos across all items
-        const { syncedAssets } = await syncAssetsWithSurveyPhotos(allAssets, allSurveys);
+        // Auto-sync asset images with survey photos in-memory (0 Firestore writes)
+        const { syncedAssets } = await syncAssetsWithSurveyPhotos(allAssets, allSurveys, false);
 
         setAssets(syncedAssets);
         setAudits(allAudits);
@@ -499,23 +511,30 @@ function App() {
 
   useEffect(() => {
     if (!isSetupWizardNeeded) {
-      setIsInitialSyncing(true);
+      // ⚡ LEAN NON-BLOCKING BOOT: If cache already exists, don't show the intrusive popup modal.
+      // User can immediately use the app with cached data while delta sync finishes in background.
+      const hasCachedAssets = (assets && assets.length > 0) || (localStorage.getItem('assetwatch_assets') !== null);
+      if (!hasCachedAssets) {
+        setIsInitialSyncing(true);
+      } else {
+        setIsInitialSyncing(false);
+      }
       setSyncStatusSuccess(false);
 
       // Auto-dismiss safety timer so user never gets stuck waiting forever
       const syncTimeout = setTimeout(() => {
         setIsInitialSyncing(false);
-      }, 4000);
+      }, 3000);
 
       // On app mount, perform Smart Delta Sync (0 full reads if cache is already present)
-      fetchAllData(true, false)
+      fetchAllData(false, false)
         .then(() => {
           clearTimeout(syncTimeout);
           setSyncStatusSuccess(true);
           setTimeout(() => {
             setIsInitialSyncing(false);
             setSyncStatusSuccess(false);
-          }, 1200);
+          }, 1000);
         })
         .catch(() => {
           clearTimeout(syncTimeout);
