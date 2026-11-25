@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserAccount, DepartmentLocationConfig } from '../utils/mockData';
 import { Users, UserPlus, Ban, Trash2, Edit3, ShieldAlert, UserCheck, Search, Shield, Building, X, CheckCircle, Lock, Eye, EyeOff } from 'lucide-react';
+import { registerUserInAuth } from '../services/authService';
 
 interface Module9AccessControlProps {
   departments: DepartmentLocationConfig[];
@@ -116,6 +117,11 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
         };
         if (password.trim()) {
           updates.password = password;
+          try {
+            await registerUserInAuth(username.trim().toLowerCase(), password.trim());
+          } catch (authErr) {
+            console.warn('Firebase Auth update notice:', authErr);
+          }
         }
         await onUpdateUser(editingUser.id, updates);
       } else {
@@ -128,10 +134,17 @@ export const Module9_AccessControl: React.FC<Module9AccessControlProps> = ({
           return;
         }
 
+        const rawPassword = password.trim() || '123456';
+        try {
+          await registerUserInAuth(username.trim().toLowerCase(), rawPassword);
+        } catch (authErr) {
+          console.warn('Firebase Auth creation notice:', authErr);
+        }
+
         const newUser: UserAccount = {
           id: `user-${Date.now()}`,
           username: username.trim().toLowerCase(),
-          password: password.trim() || '123456',
+          password: rawPassword,
           name: name.trim(),
           role,
           department: role === 'admin' ? '' : department,

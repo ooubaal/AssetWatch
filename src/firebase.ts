@@ -1,6 +1,7 @@
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getAuth, Auth } from 'firebase/auth';
 
 export interface FirebaseConfig {
   apiKey: string;
@@ -14,6 +15,7 @@ export interface FirebaseConfig {
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let storage: FirebaseStorage | null = null;
+let auth: Auth | null = null;
 
 // Get config from localStorage
 export const getStoredFirebaseConfig = (): FirebaseConfig | null => {
@@ -51,6 +53,7 @@ export const clearFirebaseConfig = () => {
   app = null;
   db = null;
   storage = null;
+  auth = null;
 };
 
 // Initialize Firebase dynamically
@@ -65,6 +68,7 @@ export const initializeFirebase = (config: FirebaseConfig): boolean => {
     app = initializeApp(config, 'AssetWatchApp');
     db = getFirestore(app);
     storage = getStorage(app);
+    auth = getAuth(app);
     return true;
   } catch (e) {
     console.error('Firebase initialization failed:', e);
@@ -87,6 +91,7 @@ export const getFirebaseServices = () => {
     isConfigured: !!db,
     db,
     storage,
+    auth,
     app
   };
 };

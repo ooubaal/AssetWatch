@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 scratch/
+
+# Sensitive backups, database dumps & operational data
+Backup/
+*.xlsx
+*.docx
+AssetWatch_Backup_*.json
+

@@ -51,6 +51,7 @@ import {
   clearQuotaExceededState,
   checkAndNotifyQuotaError
 } from './services/dbService';
+import { loginWithAuth, logoutAuth } from './services/authService';
 
 // Module Components (Lazy loaded for lean initial bundle and fast load)
 const Module1_Database = lazy(() => import('./modules/Module1_Database').then(m => ({ default: m.Module1_Database })));
@@ -738,9 +739,9 @@ function App() {
     setSpareParts(prev => prev.filter(p => p.id !== id));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutAuth();
     setCurrentUser(null);
-    localStorage.removeItem('assetwatch_session');
     setCurrentTab('dashboard');
   };
 
@@ -753,7 +754,7 @@ function App() {
       return;
     }
 
-    // Fetch the absolute latest users from Firestore/Database to ensure real-time password sync across devices!
+    // Fetch latest users from Firestore/Database to sync user list
     let latestUsers = users;
     try {
       latestUsers = await getUsers();
@@ -762,28 +763,17 @@ function App() {
       console.error('Failed to sync users before login:', err);
     }
 
-    const foundUser = latestUsers.find(u => u.username.toLowerCase() === loginUsername.trim().toLowerCase());
-    if (!foundUser) {
-      setLoginError('ไม่พบชื่อผู้ใช้งานนี้ในระบบ');
-      return;
+    try {
+      const authenticatedUser = await loginWithAuth(loginUsername, loginPassword, latestUsers);
+      setCurrentUser(authenticatedUser);
+      localStorage.setItem('assetwatch_session', JSON.stringify(authenticatedUser));
+      localStorage.setItem('assetwatch_operator', authenticatedUser.name);
+      setLoginUsername('');
+      setLoginPassword('');
+    } catch (authErr: any) {
+      console.error('Login error:', authErr);
+      setLoginError(authErr.message || 'รหัสผ่านไม่ถูกต้อง หรือเกิดข้อผิดพลาดในการเข้าสู่ระบบ');
     }
-
-    if (foundUser.password !== loginPassword) {
-      setLoginError('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง');
-      return;
-    }
-
-    if (foundUser.isBlocked) {
-      setLoginError('🚫 บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ');
-      return;
-    }
-
-    // Success
-    setCurrentUser(foundUser);
-    localStorage.setItem('assetwatch_session', JSON.stringify(foundUser));
-    localStorage.setItem('assetwatch_operator', foundUser.name);
-    setLoginUsername('');
-    setLoginPassword('');
   };
 
   const handleQuickLogin = (demoUsername: string) => {

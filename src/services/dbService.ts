@@ -2055,6 +2055,12 @@ export const exportBackupData = async (): Promise<string> => {
   const schedules = await getPMSchedules();
   const spareParts = await fetchSpareParts();
 
+  // Security Sanitization: Strip plaintext passwords from exported backup
+  const sanitizedUsers = users.map(u => {
+    const { password, ...safeUser } = u;
+    return safeUser;
+  });
+
   const backupObj = {
     version: '1.2.0',
     exportedAt: new Date().toISOString(),
@@ -2064,7 +2070,7 @@ export const exportBackupData = async (): Promise<string> => {
     surveys,
     rounds,
     departments,
-    users,
+    users: sanitizedUsers,
     contracts,
     schedules,
     spareParts
@@ -2306,12 +2312,13 @@ export const addOrUpdateUser = async (user: UserAccount): Promise<void> => {
   }
   localStorage.setItem('assetwatch_users', JSON.stringify(users));
 
-  // 2. Sync to Firebase Firestore
+  // 2. Sync to Firebase Firestore (without storing plaintext passwords in cloud database)
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {
       const docRef = doc(db, 'users', user.id);
-      await setDoc(docRef, sanitizeForFirestore(user as any));
+      const { password, ...safeUser } = user;
+      await setDoc(docRef, sanitizeForFirestore(safeUser as any));
       return;
     } catch (e) {
       console.error('Firebase addOrUpdateUser failed, saved to localStorage:', e);
