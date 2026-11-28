@@ -41,6 +41,7 @@ import { Asset, SurveyRecord, SurveyRound, UserAccount, DepartmentLocationConfig
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
 import { uploadImage, compressFileOrPdf, isDefaultPlaceholder, isFirestoreQuotaError, fetchAssetImageOnDemand, cleanAssetNote } from '../services/dbService';
+import { KNOWN_PHOTO_ASSET_IDS, getAssetPhotoUrl } from '../utils/assetPhotoRegistry';
 import { InAppCameraModal } from '../components/InAppCameraModal';
 import { DepartmentMapModal } from '../components/DepartmentMapModal';
 
@@ -120,11 +121,12 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
   const [scannedId, setScannedId] = useState<string | null>(() => initialDraft?.assetId || null);
   const [scannedAsset, setScannedAsset] = useState<Asset | null>(null);
 
-  // Check if current scanned asset has an existing image in DB/surveys/asset
+  // Check if current scanned asset has an existing image in DB/surveys/asset/registry
   const hasExistingImage = useMemo(() => {
     if (!scannedAsset) return false;
     if (scannedAsset.imageUrl && !isDefaultPlaceholder(scannedAsset.imageUrl)) return true;
     if ((scannedAsset as any).hasImage) return true;
+    if (KNOWN_PHOTO_ASSET_IDS.has(scannedAsset.id)) return true;
     const withPhoto = surveys.some(
       s => s.assetId === scannedAsset.id && s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl)
     );
@@ -160,6 +162,15 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) {
         setLoadedImage(asset.imageUrl);
         setImageSource('asset');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      // 2.5 Check static bundled asset photo registry (0 ms, 0 cloud reads, offline ready!)
+      const registryUrl = getAssetPhotoUrl(asset.id);
+      if (registryUrl) {
+        setLoadedImage(registryUrl);
+        setImageSource('survey');
         setIsLoadingImage(false);
         return;
       }

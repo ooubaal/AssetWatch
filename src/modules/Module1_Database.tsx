@@ -11,6 +11,7 @@ import { AssetModal } from '../components/AssetModal';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
 import { deleteAsset, isDefaultPlaceholder, cleanAssetNote, fetchAssetImageOnDemand, updateAsset, addAuditTrail, uploadImage } from '../services/dbService';
+import { KNOWN_PHOTO_ASSET_IDS, getAssetPhotoUrl } from '../utils/assetPhotoRegistry';
 
 export type SortField = 'id' | 'name' | 'receivedDate' | 'location' | 'department' | 'status' | 'updatedAt';
 export type SortDirection = 'asc' | 'desc';
@@ -94,11 +95,12 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     return map;
   }, [surveys]);
 
-  // Check if an asset has an actual real photo attached (in asset, survey, or flag)
+  // Check if an asset has an actual real photo attached (in asset, survey, registry, or flag)
   const checkAssetHasImage = (asset: Asset): boolean => {
     if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) return true;
     if (latestSurveyImageMap.has(asset.id)) return true;
     if (asset.hasImage) return true;
+    if (KNOWN_PHOTO_ASSET_IDS.has(asset.id)) return true;
     return false;
   };
 
@@ -122,6 +124,15 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
       if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) {
         setLoadedImage(asset.imageUrl);
         setImageSource('asset');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      // 2.5 Check static bundled asset photo registry (0 ms, 0 cloud reads, offline ready!)
+      const registryUrl = getAssetPhotoUrl(asset.id);
+      if (registryUrl) {
+        setLoadedImage(registryUrl);
+        setImageSource('survey');
         setIsLoadingImage(false);
         return;
       }

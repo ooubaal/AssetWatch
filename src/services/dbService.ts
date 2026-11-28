@@ -963,6 +963,11 @@ export const syncAssetsWithSurveyPhotos = async (
         nextImageUrl = latestSurvey.imageUrl;
         changed = true;
       }
+    } else if (KNOWN_PHOTO_ASSET_IDS.has(asset.id)) {
+      if (isDefaultPlaceholder(asset.imageUrl) || !asset.imageUrl) {
+        nextImageUrl = `./photos/${asset.id}.jpg`;
+        changed = true;
+      }
     }
 
     // B. Sync real-time physical condition / status from latest survey
@@ -1037,6 +1042,8 @@ export const getAsset = async (id: string): Promise<Asset | null> => {
  * If not present or only placeholder, queries Firestore specifically for this asset's photo (1 Read).
  * Caches the result in LocalStorage to eliminate repeated reads.
  */
+import { KNOWN_PHOTO_ASSET_IDS, getAssetPhotoUrl } from '../utils/assetPhotoRegistry';
+
 export const fetchAssetImageOnDemand = async (
   assetId: string
 ): Promise<{ imageUrl: string | null; source: 'survey' | 'asset' | null }> => {
@@ -1061,7 +1068,13 @@ export const fetchAssetImageOnDemand = async (
     console.warn('LocalStorage check error in fetchAssetImageOnDemand:', err);
   }
 
-  // 2. Query Firestore On-Demand (1 Read)
+  // 2. Check Static Asset Photo Registry (bundled 658 verified photos, 0 Firestore reads)
+  const registryPhoto = getAssetPhotoUrl(assetId);
+  if (registryPhoto) {
+    return { imageUrl: registryPhoto, source: 'survey' };
+  }
+
+  // 3. Query Firestore On-Demand (1 Read)
   const { isFirebase, db } = getServices();
   if (isFirebase && db) {
     try {

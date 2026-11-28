@@ -48,6 +48,7 @@ import {
   saveSpareParts 
 } from '../utils/mockData';
 import { updateAsset, addAuditTrail, updateSurvey, fetchAssetImageOnDemand, uploadImage } from '../services/dbService';
+import { KNOWN_PHOTO_ASSET_IDS, getAssetPhotoUrl } from '../utils/assetPhotoRegistry';
 
 interface AssetModalProps {
   asset: Asset;
@@ -801,6 +802,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({
     if ((asset as any).hasImage) return true;
     if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) return true;
     if (assetSurveys.some(s => s.imageUrl && s.imageUrl.trim() && !isDefaultPlaceholder(s.imageUrl))) return true;
+    if (KNOWN_PHOTO_ASSET_IDS.has(asset.id)) return true;
     return false;
   }, [realImageUrl, asset, assetSurveys]);
 
@@ -869,6 +871,15 @@ export const AssetModal: React.FC<AssetModalProps> = ({
       if (targetAsset.imageUrl && !isDefaultPlaceholder(targetAsset.imageUrl)) {
         setLoadedImage(targetAsset.imageUrl);
         setImageSource('asset');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      // 2.5 Check static bundled asset photo registry (0 ms, 0 cloud reads, offline ready!)
+      const registryUrl = getAssetPhotoUrl(targetAsset.id);
+      if (registryUrl) {
+        setLoadedImage(registryUrl);
+        setImageSource('survey');
         setIsLoadingImage(false);
         return;
       }

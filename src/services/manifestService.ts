@@ -115,10 +115,13 @@ export const stripHeavyPayload = (url?: string): { cleanUrl: string; hasHeavyPay
   return { cleanUrl: trimmed, hasHeavyPayload: false };
 };
 
+import { KNOWN_PHOTO_ASSET_IDS, getAssetPhotoUrl } from '../utils/assetPhotoRegistry';
+
 // --- TRANSFORMERS ---
 
 export const toAssetManifestItem = (asset: Asset): AssetManifestItem => {
   const { cleanUrl, hasHeavyPayload } = stripHeavyPayload(asset.imageUrl);
+  const isKnown = KNOWN_PHOTO_ASSET_IDS.has(asset.id);
   return {
     id: asset.id,
     name: asset.name || '',
@@ -129,8 +132,8 @@ export const toAssetManifestItem = (asset: Asset): AssetManifestItem => {
     source: asset.source || '',
     responsiblePerson: asset.responsiblePerson || '',
     note: asset.note || '',
-    imageUrl: cleanUrl,
-    hasImage: hasHeavyPayload || Boolean(cleanUrl),
+    imageUrl: cleanUrl || (isKnown ? `./photos/${asset.id}.jpg` : ''),
+    hasImage: hasHeavyPayload || Boolean(cleanUrl) || isKnown,
     createdAt: asset.createdAt || new Date().toISOString(),
     updatedAt: asset.updatedAt || new Date().toISOString()
   };
@@ -250,6 +253,7 @@ export const mergeAssetsWithLocalCache = (
         finalImageUrl = local.imageUrl;
       }
 
+      const isKnown = KNOWN_PHOTO_ASSET_IDS.has(item.id);
       return {
         id: item.id,
         name: item.name,
@@ -260,8 +264,8 @@ export const mergeAssetsWithLocalCache = (
         source: item.source || '',
         responsiblePerson: item.responsiblePerson || '',
         note: item.note || '',
-        imageUrl: finalImageUrl,
-        hasImage: item.hasImage || Boolean(finalImageUrl) || Boolean(local?.hasImage),
+        imageUrl: finalImageUrl || (isKnown ? `./photos/${item.id}.jpg` : ''),
+        hasImage: item.hasImage || Boolean(finalImageUrl) || Boolean(local?.hasImage) || isKnown,
         createdAt: item.createdAt || '',
         updatedAt: item.updatedAt || ''
       };

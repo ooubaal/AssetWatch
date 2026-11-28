@@ -78,6 +78,8 @@ import { Asset, AuditTrail, SurveyRecord, RepairCase, SurveyRound, DepartmentLoc
 import { X, Camera, AlertCircle, AlertTriangle, Lock, Bell, MapPin, Building, Trash2, RotateCw, CheckCircle2, User as UserIcon } from 'lucide-react';
 import { uploadImage } from './services/dbService';
 
+import { KNOWN_PHOTO_ASSET_IDS, getAssetPhotoUrl } from './utils/assetPhotoRegistry';
+
 function App() {
   const [isSetupWizardNeeded, setIsSetupWizardNeeded] = useState(() => {
     // If Firebase config is stored, we bypass the setup wizard on initial load
@@ -110,7 +112,20 @@ function App() {
   };
 
   // App-wide dataset states (Hydrated immediately from local cache so user never waits with a blank screen)
-  const [assets, setAssets] = useState<Asset[]>(() => loadLocalCache('assetwatch_assets', []));
+  const [assets, setAssets] = useState<Asset[]>(() => {
+    const cached: Asset[] = loadLocalCache('assetwatch_assets', []);
+    return cached.map(a => {
+      const isKnown = KNOWN_PHOTO_ASSET_IDS.has(a.id);
+      if (isKnown && (!a.imageUrl || isDefaultPlaceholder(a.imageUrl))) {
+        return {
+          ...a,
+          imageUrl: `./photos/${a.id}.jpg`,
+          hasImage: true
+        };
+      }
+      return a;
+    });
+  });
   const [audits, setAudits] = useState<AuditTrail[]>(() => loadLocalCache('assetwatch_audits', []));
   const [repairs, setRepairs] = useState<RepairCase[]>(() => loadLocalCache('assetwatch_repairs', []));
   const [surveys, setSurveys] = useState<SurveyRecord[]>(() => loadLocalCache('assetwatch_surveys', []));
