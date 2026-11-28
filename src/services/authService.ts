@@ -3,6 +3,7 @@ import {
   signOut, 
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  signInAnonymously,
   User as FirebaseUser
 } from 'firebase/auth';
 import { initializeApp, deleteApp } from 'firebase/app';
@@ -134,4 +135,60 @@ export const onAuthChange = (callback: (user: FirebaseUser | null) => void) => {
   const { auth } = getFirebaseServices();
   if (!auth) return () => {};
   return onAuthStateChanged(auth, callback);
+};
+
+/**
+ * Ensures Firebase Auth has an active session for Firestore/Storage security rules.
+ * If user session exists but Firebase Auth is not signed in (e.g. page reload or quick login),
+ * restores Firebase Auth session using user credentials or auto-provisions if needed so that
+ * request.auth != null in security rules.
+ */
+export const ensureFirebaseAuth = async (currentUser?: UserAccount | null): Promise<void> => {
+  const { isConfigured, auth } = getFirebaseServices();
+  if (!isConfigured || !auth) return;
+
+  if (auth.currentUser) {
+    return; // Already authenticated
+  }
+
+  // 1. Try to restore from currentUser or localStorage session
+  let user = currentUser;
+  if (!user) {
+    const saved = localStorage.getItem('assetwatch_session');
+    if (saved) {
+      try {
+        user = JSON.parse(saved);
+      } catch (e) {}
+    }
+  }
+
+  if (user && user.username) {
+    const email = usernameToEmail(user.username);
+    const password = user.password || '123456';
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      console.log('[Auth] Restored Firebase Auth session for:', email);
+      return;
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+          console.log('[Auth] Created & signed in user in Firebase Auth:', email);
+          return;
+        } catch (createErr) {
+          console.warn('[Auth] Auto-creation failed:', createErr);
+        }
+      } else {
+        console.warn('[Auth] Sign in attempt with saved session failed:', err.code);
+      }
+    }
+  }
+
+  // 2. Fallback to anonymous sign-in if enabled
+  try {
+    await signInAnonymously(auth);
+    console.log('[Auth] Authenticated anonymously with Firebase Auth for security rules');
+  } catch (e) {
+    console.warn('[Auth] Anonymous authentication attempt failed (enable Anonymous or Email/Password in Firebase Console):', e);
+  }
 };

@@ -585,15 +585,19 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
       const finalNote = cleanAssetNote(surveyNote.trim());
 
       // 1. Add survey log record
-      await onAddSurvey({
-        assetId: scannedId,
-        status: selectedStatus,
-        imageUrl: uploadedUrl || undefined,
-        operator: operator || 'ผู้ตรวจการทั่วไป',
-        timestamp: new Date().toISOString(),
-        roundId: activeRound?.id || 'round-default',
-        note: finalNote || undefined
-      });
+      try {
+        await onAddSurvey({
+          assetId: scannedId,
+          status: selectedStatus,
+          imageUrl: uploadedUrl || undefined,
+          operator: operator || 'ผู้ตรวจการทั่วไป',
+          timestamp: new Date().toISOString(),
+          roundId: activeRound?.id || 'round-default',
+          note: finalNote || undefined
+        });
+      } catch (surveyErr) {
+        console.warn('Survey cloud sync warning (saved locally):', surveyErr);
+      }
 
       // 2. If status, location, note, OR new image is attached, update the asset in the main database
       const hasStatusChanged = scannedAsset && scannedAsset.status !== selectedStatus;
@@ -608,7 +612,11 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
           note: finalNote,
           ...(hasNewImage ? { imageUrl: uploadedUrl } : {})
         };
-        await onUpdateAssetStatus(scannedId, selectedStatus, assetUpdates);
+        try {
+          await onUpdateAssetStatus(scannedId, selectedStatus, assetUpdates);
+        } catch (assetErr) {
+          console.warn('Asset update cloud sync warning (saved locally):', assetErr);
+        }
         
         let details = 'สแกนสำรวจตรวจนับ';
         if (hasNewImage) {
@@ -626,31 +634,43 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
         }
 
         // Log status change audit trail
-        await onLogAudit({
-          assetId: scannedId,
-          assetName: scannedAsset.name,
-          action: 'survey',
-          operator,
-          details
-        });
+        try {
+          await onLogAudit({
+            assetId: scannedId,
+            assetName: scannedAsset.name,
+            action: 'survey',
+            operator,
+            details
+          });
+        } catch (auditErr) {
+          console.warn('Audit trail log warning (saved locally):', auditErr);
+        }
       } else if (scannedAsset) {
         // Log simple verification survey audit trail
-        await onLogAudit({
-          assetId: scannedId,
-          assetName: scannedAsset.name,
-          action: 'survey',
-          operator,
-          details: `สแกนสำรวจตรวจนับแล้ว สภาพยังคง "${selectedStatus}" ตั้งอยู่ที่ "${finalLocation}" ตามปกติ`
-        });
+        try {
+          await onLogAudit({
+            assetId: scannedId,
+            assetName: scannedAsset.name,
+            action: 'survey',
+            operator,
+            details: `สแกนสำรวจตรวจนับแล้ว สภาพยังคง "${selectedStatus}" ตั้งอยู่ที่ "${finalLocation}" ตามปกติ`
+          });
+        } catch (auditErr) {
+          console.warn('Audit trail log warning (saved locally):', auditErr);
+        }
       } else {
         // Unregistered asset checked
-        await onLogAudit({
-          assetId: scannedId,
-          assetName: 'ครุภัณฑ์ไม่ได้ลงทะเบียน',
-          action: 'survey',
-          operator,
-          details: `สแกนพบและตรวจนับรหัสที่ยังไม่เคยมีในคลังระบบ: "${scannedId}"`
-        });
+        try {
+          await onLogAudit({
+            assetId: scannedId,
+            assetName: 'ครุภัณฑ์ไม่ได้ลงทะเบียน',
+            action: 'survey',
+            operator,
+            details: `สแกนพบและตรวจนับรหัสที่ยังไม่เคยมีในคลังระบบ: "${scannedId}"`
+          });
+        } catch (auditErr) {
+          console.warn('Audit trail log warning (saved locally):', auditErr);
+        }
       }
 
       setSurveySuccess(true);
@@ -3238,7 +3258,7 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                 </div>
               </div>
             ) : (
-              <div style={{ minHeight: '220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem', padding: '1.5rem', textAlign: 'center' }}>
+              <div style={{ minHeight: '230px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem', padding: '1.5rem', textAlign: 'center' }}>
                 <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
                   <CameraOff size={28} />
                 </div>
@@ -3246,8 +3266,8 @@ export const Module2_ScanSurvey: React.FC<Module2ScanSurveyProps> = ({
                   <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.25rem 0' }}>
                     ยังไม่มีการแนบรูปภาพสำหรับครุภัณฑ์นี้
                   </h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '360px', margin: 0, lineHeight: 1.45 }}>
-                    ครุภัณฑ์นี้ยังไม่มีภาพถ่ายสภาพจริงในระบบ ท่านสามารถถ่ายภาพได้โดยการแนบภาพในแบบฟอร์มตรวจนับนี้
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 auto 0.5rem auto', lineHeight: 1.45 }}>
+                    💡 <strong>หมายเหตุ:</strong> การสแกนบาร์โค้ดเป็นการอ่านรหัสตรวจนับพัสดุ หากต้องการบันทึกภาพสภาพจริง สามารถกดปุ่ม <strong>"ถ่ายภาพด่วน ⚡"</strong> หรือเลือกไฟล์ในแบบฟอร์มตรวจนับนี้ได้ทันที
                   </p>
                 </div>
               </div>

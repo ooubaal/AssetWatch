@@ -1224,10 +1224,10 @@ export const updateAsset = async (id: string, updates: Partial<Asset>): Promise<
       await setDoc(doc(db, 'assets', id), firestorePayload, { merge: true });
       // Auto-update manifest in background
       saveAssetsManifestDoc(db, assets);
-    } catch (e) {
+    } catch (e: any) {
       checkAndNotifyQuotaError(e, 'updateAsset');
-      console.error('Firebase updateAsset failed:', e);
-      throw e;
+      console.warn('Firebase updateAsset cloud sync failed (saved to localStorage):', e);
+      // Do not throw error so client operations (such as survey submissions and local edits) continue seamlessly
     }
   }
 };

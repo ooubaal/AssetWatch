@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import JsBarcode from 'jsbarcode';
 import { 
@@ -11,28 +11,29 @@ import {
   Info, 
   History, 
   Wrench, 
-  QrCode,
-  Download,
-  AlertCircle,
-  Package,
-  Plus,
-  ArrowDownLeft,
-  ArrowUpRight,
-  Printer,
-  Search,
-  Box,
-  Trash2,
-  Edit3,
-  CheckCircle,
-  AlertTriangle,
-  RefreshCw,
-  ZoomIn,
-  Eye,
-  Camera,
-  CameraOff,
-  ImageOff,
-  Barcode,
-  ExternalLink
+  QrCode, 
+  Download, 
+  AlertCircle, 
+  Package, 
+  Plus, 
+  ArrowDownLeft, 
+  ArrowUpRight, 
+  Printer, 
+  Search, 
+  Box, 
+  Trash2, 
+  Edit3, 
+  CheckCircle, 
+  AlertTriangle, 
+  RefreshCw, 
+  ZoomIn, 
+  Eye, 
+  Camera, 
+  CameraOff, 
+  ImageOff, 
+  Barcode, 
+  ExternalLink,
+  Upload
 } from 'lucide-react';
 import { 
   Asset, 
@@ -42,11 +43,11 @@ import {
   PMSchedule, 
   UserAccount, 
   SparePart, 
-  SparePartTransaction,
-  loadSpareParts,
-  saveSpareParts
+  SparePartTransaction, 
+  loadSpareParts, 
+  saveSpareParts 
 } from '../utils/mockData';
-import { updateAsset, addAuditTrail, updateSurvey, fetchAssetImageOnDemand } from '../services/dbService';
+import { updateAsset, addAuditTrail, updateSurvey, fetchAssetImageOnDemand, uploadImage } from '../services/dbService';
 
 interface AssetModalProps {
   asset: Asset;
@@ -85,6 +86,25 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   const [noteText, setNoteText] = useState(asset.note || '');
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isDeletingImage, setIsDeletingImage] = useState(false);
+
+  const isAllowedToEdit = (targetAsset: Asset): boolean => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true;
+    if (currentUser.role === 'manager') return false; // Manager is Read-Only
+    if (currentUser.role === 'head') {
+      return Boolean(
+        targetAsset.department && 
+        currentUser.department && 
+        targetAsset.department.trim().toLowerCase() === currentUser.department.trim().toLowerCase()
+      );
+    }
+    return Boolean(
+      targetAsset.department && 
+      currentUser.department && 
+      targetAsset.department.trim().toLowerCase() === currentUser.department.trim().toLowerCase() && 
+      (targetAsset.createdBy === currentUser.id || targetAsset.createdBy === currentUser.username || !targetAsset.createdBy)
+    );
+  };
 
   const isAllowedToDelete = (targetAsset: Asset): boolean => {
     if (!currentUser) return false;
@@ -788,6 +808,43 @@ export const AssetModal: React.FC<AssetModalProps> = ({
   const [loadedImage, setLoadedImage] = useState<string | null>(null);
   const [imageSource, setImageSource] = useState<'survey' | 'asset' | null>(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
+  const [isUploadingAssetModalImage, setIsUploadingAssetModalImage] = useState(false);
+  const modalAssetCameraInputRef = useRef<HTMLInputElement>(null);
+  const modalAssetFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleModalAssetImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !viewingImageAsset) return;
+
+    setIsUploadingAssetModalImage(true);
+    try {
+      const uploadedUrl = await uploadImage(file, 'assets');
+      await updateAsset(viewingImageAsset.id, { imageUrl: uploadedUrl });
+      
+      await addAuditTrail({
+        assetId: viewingImageAsset.id,
+        assetName: viewingImageAsset.name,
+        action: 'edit',
+        operator: currentUser?.name || currentUser?.username || 'ผู้ดูแลระบบ',
+        timestamp: new Date().toISOString(),
+        details: `แนบ/อัปเดตรูปภาพสภาพจริงของครุภัณฑ์ ${viewingImageAsset.id}`
+      });
+
+      setLoadedImage(uploadedUrl);
+      setImageSource('asset');
+      viewingImageAsset.imageUrl = uploadedUrl;
+      asset.imageUrl = uploadedUrl;
+      if (onRefreshData) onRefreshData();
+      alert('บันทึกรูปภาพครุภัณฑ์เรียบร้อยแล้ว!');
+    } catch (err: any) {
+      console.error('Failed to upload modal image in AssetModal:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึกรูปภาพ: ' + (err?.message || 'กรุณาลองใหม่อีกครั้ง'));
+    } finally {
+      setIsUploadingAssetModalImage(false);
+      if (modalAssetCameraInputRef.current) modalAssetCameraInputRef.current.value = '';
+      if (modalAssetFileInputRef.current) modalAssetFileInputRef.current.value = '';
+    }
+  };
 
   const handleOpenAssetImageModal = async (targetAsset: Asset) => {
     setViewingImageAsset(targetAsset);
@@ -988,16 +1045,17 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                         gap: '0.4rem',
                         fontWeight: 650,
                         fontSize: '0.825rem',
-                        color: 'var(--primary)',
+                        color: hasExistingImage ? 'var(--primary)' : 'var(--text-secondary)',
                         background: 'var(--bg-primary)',
-                        border: '1px solid var(--border)',
+                        border: hasExistingImage ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border)',
                         borderRadius: 'var(--radius-sm)',
                         padding: '0.45rem 0.75rem',
                         cursor: 'pointer'
                       }}
-                      title="คลิกเพื่อดูรูปภาพของครุภัณฑ์นี้ (โหลด On-demand)"
+                      title={hasExistingImage ? "คลิกเพื่อดูรูปภาพของครุภัณฑ์นี้ (โหลด On-demand)" : "ยังไม่มีภาพถ่าย (คลิกเพื่อดูหรือแนบรูปภาพ)"}
                     >
-                      <Camera size={15} /> ดูรูปภาพครุภัณฑ์
+                      {hasExistingImage ? <Camera size={15} color="#10b981" /> : <CameraOff size={15} />}
+                      {hasExistingImage ? 'ดูรูปภาพครุภัณฑ์' : 'ยังไม่มีรูปภาพ (คลิกเพื่อแนบ)'}
                     </button>
 
                     {asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl) && isAllowedToDeleteImage(asset) && (
@@ -3033,11 +3091,30 @@ export const AssetModal: React.FC<AssetModalProps> = ({
               </button>
             </div>
 
+            {/* Hidden File Inputs for Direct Camera / File Upload */}
+            <input 
+              ref={modalAssetCameraInputRef}
+              type="file" 
+              accept="image/*" 
+              capture="environment"
+              style={{ display: 'none' }}
+              onChange={handleModalAssetImageUpload}
+            />
+            <input 
+              ref={modalAssetFileInputRef}
+              type="file" 
+              accept="image/*" 
+              style={{ display: 'none' }}
+              onChange={handleModalAssetImageUpload}
+            />
+
             {/* Modal Content */}
-            {isLoadingImage ? (
+            {isLoadingImage || isUploadingAssetModalImage ? (
               <div style={{ minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-muted)' }}>
                 <div style={{ width: '36px', height: '36px', border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 550 }}>กำลังโหลดรูปภาพครุภัณฑ์แบบ On-demand จากคลาวด์...</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 550 }}>
+                  {isUploadingAssetModalImage ? 'กำลังประมวลผลและอัปโหลดรูปภาพครุภัณฑ์...' : 'กำลังตรวจสอบและโหลดรูปภาพครุภัณฑ์แบบ On-demand จากคลาวด์...'}
+                </span>
               </div>
             ) : loadedImage ? (
               <div>
@@ -3061,30 +3138,93 @@ export const AssetModal: React.FC<AssetModalProps> = ({
                   <span style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                     {imageSource === 'survey' ? '📷 รูปถ่ายจากการตรวจนับสภาพจริงล่าสุด' : '📦 รูปภาพประจำรายการครุภัณฑ์'}
                   </span>
-                  <a 
-                    href={loadedImage} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="btn btn-secondary btn-xs"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                  >
-                    <ExternalLink size={13} /> เปิดภาพขนาดเต็ม
-                  </a>
+                  <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {isAllowedToEdit(viewingImageAsset) && (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-xs"
+                          onClick={() => modalAssetCameraInputRef.current?.click()}
+                          title="เปิดกล้องถ่ายภาพใหม่แทนที่รูปเดิม"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Camera size={13} color="#10b981" /> ถ่ายใหม่
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-xs"
+                          onClick={() => modalAssetFileInputRef.current?.click()}
+                          title="เลือกรูปภาพใหม่จากเครื่อง"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Upload size={13} color="#3b82f6" /> เปลี่ยนรูป
+                        </button>
+                      </>
+                    )}
+                    <a 
+                      href={loadedImage} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="btn btn-secondary btn-xs"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <ExternalLink size={13} /> เปิดภาพขนาดเต็ม
+                    </a>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div style={{ minHeight: '240px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem', padding: '1.5rem', textAlign: 'center' }}>
+              <div style={{ minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '1.5rem', textAlign: 'center' }}>
                 <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
                   <CameraOff size={32} />
                 </div>
                 <div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.25rem 0' }}>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.4rem 0' }}>
                     ยังไม่มีการแนบรูปภาพสำหรับครุภัณฑ์นี้
                   </h4>
-                  <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', maxWidth: '380px', margin: 0, lineHeight: 1.45 }}>
-                    ครุภัณฑ์นี้ยังไม่มีภาพถ่ายสภาพจริงในระบบ ท่านสามารถถ่ายภาพได้โดยการสแกนตรวจนับ (โมดูล 2) หรือกดแก้ไขครุภัณฑ์
+                  
+                  {/* Explanatory callout for user clarity */}
+                  <div style={{ 
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)', 
+                    border: '1px solid rgba(59, 130, 246, 0.25)', 
+                    borderRadius: '8px', 
+                    padding: '0.75rem 1rem', 
+                    maxWidth: '480px', 
+                    margin: '0.35rem auto 0.75rem auto',
+                    textAlign: 'left'
+                  }}>
+                    <p style={{ fontSize: '0.825rem', color: 'var(--text-primary)', margin: 0, lineHeight: 1.5 }}>
+                      💡 <strong>ทำความเข้าใจระบบ:</strong> การสแกนบาร์โค้ดใน <strong>โมดูล 2 (สแกนตรวจนับ)</strong> เป็นการอ่านรหัสตรวจนับพัสดุ (ไม่ได้บันทึกภาพถ่ายตัวเครื่องโดยอัตโนมัติ เว้นแต่จะกดปุ่มถ่ายภาพสภาพจริงขณะตรวจนับ)
+                    </p>
+                  </div>
+                  
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', maxWidth: '420px', margin: 0, lineHeight: 1.45 }}>
+                    ท่านสามารถถ่ายภาพสภาพจริงหรือเลือกไฟล์ภาพเพื่อแนบเข้าระบบได้ทันทีผ่านปุ่มด้านล่างนี้
                   </p>
                 </div>
+
+                {isAllowedToEdit(viewingImageAsset) && (
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.25rem' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-primary btn-sm"
+                      onClick={() => modalAssetCameraInputRef.current?.click()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 650 }}
+                      title="เปิดกล้องถ่ายภาพสภาพจริงของครุภัณฑ์นี้"
+                    >
+                      <Camera size={15} /> 📸 ถ่ายภาพด่วน (กล้อง)
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => modalAssetFileInputRef.current?.click()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                      title="เลือกรูปภาพจากเครื่อง"
+                    >
+                      <Upload size={14} /> 📁 เลือกรูปภาพ
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -51,7 +51,7 @@ import {
   clearQuotaExceededState,
   checkAndNotifyQuotaError
 } from './services/dbService';
-import { loginWithAuth, logoutAuth } from './services/authService';
+import { loginWithAuth, logoutAuth, ensureFirebaseAuth } from './services/authService';
 
 // Module Components (Lazy loaded for lean initial bundle and fast load)
 const Module1_Database = lazy(() => import('./modules/Module1_Database').then(m => ({ default: m.Module1_Database })));
@@ -511,6 +511,10 @@ function App() {
   };
 
   useEffect(() => {
+    ensureFirebaseAuth(currentUser);
+  }, [currentUser]);
+
+  useEffect(() => {
     if (!isSetupWizardNeeded) {
       // ⚡ LEAN NON-BLOCKING BOOT: If cache already exists, don't show the intrusive popup modal.
       // User can immediately use the app with cached data while delta sync finishes in background.
@@ -776,7 +780,7 @@ function App() {
     }
   };
 
-  const handleQuickLogin = (demoUsername: string) => {
+  const handleQuickLogin = async (demoUsername: string) => {
     setLoginError(null);
     const foundUser = users.find(u => u.username === demoUsername);
     if (foundUser) {
@@ -790,6 +794,7 @@ function App() {
       localStorage.setItem('assetwatch_operator', foundUser.name);
       setLoginUsername('');
       setLoginPassword('');
+      await ensureFirebaseAuth(foundUser);
     }
   };
 

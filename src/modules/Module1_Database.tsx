@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Search, Filter, Eye, Edit3, Grid, List, ShieldAlert, Printer, X, FileSpreadsheet, 
   QrCode, Camera, CameraOff, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ArrowUpDown, ArrowUp, ArrowDown, SlidersHorizontal, RotateCcw, CheckCircle2,
-  AlertTriangle, Wrench, Calendar, MapPin, Building2, Layers, Sparkles, Trash2
+  AlertTriangle, Wrench, Calendar, MapPin, Building2, Layers, Sparkles, Trash2, Upload, Loader2, Image as ImageIcon
 } from 'lucide-react';
 import { Asset, AuditTrail, SurveyRecord, RepairCase, UserAccount, PMSchedule, SparePart } from '../utils/mockData';
 import { AssetModal } from '../components/AssetModal';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { SearchableSelect } from '../components/SearchableSelect';
-import { deleteAsset, isDefaultPlaceholder, cleanAssetNote, fetchAssetImageOnDemand } from '../services/dbService';
+import { deleteAsset, isDefaultPlaceholder, cleanAssetNote, fetchAssetImageOnDemand, updateAsset, addAuditTrail, uploadImage } from '../services/dbService';
 
 export type SortField = 'id' | 'name' | 'receivedDate' | 'location' | 'department' | 'status' | 'updatedAt';
 export type SortDirection = 'asc' | 'desc';
@@ -57,6 +57,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [surveyFilter, setSurveyFilter] = useState<'' | 'surveyed' | 'unsurveyed'>('');
   const [repairFilter, setRepairFilter] = useState<'' | 'in_repair' | 'has_history'>('');
+  const [imageFilter, setImageFilter] = useState<'' | 'has_image' | 'no_image'>('');
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
 
@@ -76,6 +77,10 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   const [loadedImage, setLoadedImage] = useState<string | null>(null);
   const [imageSource, setImageSource] = useState<'survey' | 'asset' | null>(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
+  const [isUploadingModalImage, setIsUploadingModalImage] = useState(false);
+  const [isDeletingModalImage, setIsDeletingModalImage] = useState(false);
+  const modalCameraInputRef = useRef<HTMLInputElement>(null);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
 
   // Map of latest survey photos per asset for instant live display
   const latestSurveyImageMap = useMemo(() => {
@@ -88,6 +93,14 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     }
     return map;
   }, [surveys]);
+
+  // Check if an asset has an actual real photo attached (in asset, survey, or flag)
+  const checkAssetHasImage = (asset: Asset): boolean => {
+    if (asset.imageUrl && !isDefaultPlaceholder(asset.imageUrl)) return true;
+    if (latestSurveyImageMap.has(asset.id)) return true;
+    if (asset.hasImage) return true;
+    return false;
+  };
 
   const handleOpenImageModal = async (asset: Asset) => {
     setViewingImageAsset(asset);
@@ -129,6 +142,70 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
       setIsLoadingImage(false);
     }
   };
+
+  // Direct In-Modal Image Upload Handler
+  const handleModalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !viewingImageAsset) return;
+
+    setIsUploadingModalImage(true);
+    try {
+      const uploadedUrl = await uploadImage(file, 'assets');
+      await updateAsset(viewingImageAsset.id, { imageUrl: uploadedUrl });
+      
+      await addAuditTrail({
+        assetId: viewingImageAsset.id,
+        assetName: viewingImageAsset.name,
+        action: 'edit',
+        operator: currentUser?.name || currentUser?.username || 'ผู้ดูแลระบบ',
+        timestamp: new Date().toISOString(),
+        details: `แนบ/อัปเดตรูปภาพสภาพจริงของครุภัณฑ์ ${viewingImageAsset.id}`
+      });
+
+      setLoadedImage(uploadedUrl);
+      setImageSource('asset');
+      if (onRefreshData) onRefreshData();
+      alert('บันทึกรูปภาพครุภัณฑ์เรียบร้อยแล้ว!');
+    } catch (err: any) {
+      console.error('Failed to upload modal image:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึกรูปภาพ: ' + (err?.message || 'กรุณาลองใหม่อีกครั้ง'));
+    } finally {
+      setIsUploadingModalImage(false);
+      if (modalCameraInputRef.current) modalCameraInputRef.current.value = '';
+      if (modalFileInputRef.current) modalFileInputRef.current.value = '';
+    }
+  };
+
+  // Direct In-Modal Image Delete Handler
+  const handleModalDeleteImage = async () => {
+    if (!viewingImageAsset) return;
+    if (!window.confirm(`⚠️ ยืนยันการลบรูปภาพของครุภัณฑ์รหัส "${viewingImageAsset.id}"?\n\nการดำเนินการนี้จะลบรูปภาพออกจากฐานข้อมูลทันที`)) {
+      return;
+    }
+
+    setIsDeletingModalImage(true);
+    try {
+      await updateAsset(viewingImageAsset.id, { imageUrl: '' });
+      await addAuditTrail({
+        assetId: viewingImageAsset.id,
+        assetName: viewingImageAsset.name,
+        action: 'edit',
+        operator: currentUser?.name || currentUser?.username || 'ผู้ดูแลระบบ',
+        timestamp: new Date().toISOString(),
+        details: `ลบรูปภาพครุภัณฑ์ ${viewingImageAsset.id}`
+      });
+
+      setLoadedImage(null);
+      setImageSource(null);
+      if (onRefreshData) onRefreshData();
+      alert('ลบรูปภาพครุภัณฑ์เรียบร้อยแล้ว');
+    } catch (err: any) {
+      console.error('Failed to delete image:', err);
+      alert('เกิดข้อผิดพลาดในการลบรูปภาพ: ' + (err?.message || 'กรุณาลองใหม่อีกครั้ง'));
+    } finally {
+      setIsDeletingModalImage(false);
+    }
+  };
   
   // State for Report Print Modal & Scanner Modal
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -148,7 +225,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
   // Reset to page 1 whenever filters or sorting change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, deptFilter, locationFilter, surveyFilter, repairFilter, dateStart, dateEnd, sortBy, sortOrder, pageSize]);
+  }, [searchTerm, statusFilter, deptFilter, locationFilter, surveyFilter, repairFilter, imageFilter, dateStart, dateEnd, sortBy, sortOrder, pageSize]);
 
   // Lookup Sets for quick O(1) survey and repair checking
   const surveyedAssetIds = useMemo(() => {
@@ -199,9 +276,11 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     const surveyed = scopedAssetsPool.filter(a => surveyedAssetIds.has(a.id) || Boolean(a.note && a.note.includes('สำรวจ'))).length;
     const inRepair = scopedAssetsPool.filter(a => activeRepairAssetIds.has(a.id) || a.status === 'ชำรุด').length;
     const surveyPct = total > 0 ? Math.round((surveyed / total) * 100) : 0;
+    const hasPhoto = scopedAssetsPool.filter(a => checkAssetHasImage(a)).length;
+    const noPhoto = total - hasPhoto;
 
-    return { total, ready, broken, dispose, relabel, transfer, other, surveyed, inRepair, surveyPct };
-  }, [scopedAssetsPool, surveyedAssetIds, activeRepairAssetIds]);
+    return { total, ready, broken, dispose, relabel, transfer, other, surveyed, inRepair, surveyPct, hasPhoto, noPhoto };
+  }, [scopedAssetsPool, surveyedAssetIds, activeRepairAssetIds, latestSurveyImageMap]);
 
   // Filter computation (safely guarded against null/undefined)
   const filteredAssets = useMemo(() => {
@@ -250,6 +329,14 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         matchesRepair = repairAssetIds.has(asset.id);
       }
 
+      // Image filter
+      let matchesImage = true;
+      if (imageFilter === 'has_image') {
+        matchesImage = checkAssetHasImage(asset);
+      } else if (imageFilter === 'no_image') {
+        matchesImage = !checkAssetHasImage(asset);
+      }
+
       // Date range filter
       let matchesDate = true;
       if (dateStart && asset.receivedDate) {
@@ -259,9 +346,9 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
         matchesDate = matchesDate && (asset.receivedDate <= dateEnd);
       }
 
-      return matchesSearch && matchesStatus && matchesDept && matchesLocation && matchesSurvey && matchesRepair && matchesDate;
+      return matchesSearch && matchesStatus && matchesDept && matchesLocation && matchesSurvey && matchesRepair && matchesImage && matchesDate;
     });
-  }, [assets, searchTerm, statusFilter, deptFilter, locationFilter, surveyFilter, repairFilter, dateStart, dateEnd, isOrgWide, userDept, surveyedAssetIds, repairAssetIds, activeRepairAssetIds]);
+  }, [assets, searchTerm, statusFilter, deptFilter, locationFilter, surveyFilter, repairFilter, imageFilter, dateStart, dateEnd, isOrgWide, userDept, surveyedAssetIds, repairAssetIds, activeRepairAssetIds, latestSurveyImageMap]);
 
   // Natural Sorting Computation (Supports Thai & Numbers accurately)
   const sortedAssets = useMemo(() => {
@@ -320,7 +407,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
 
   // Active filters check & reset helper
   const hasActiveFilters = Boolean(
-    searchTerm || statusFilter || (isOrgWide && deptFilter) || locationFilter || surveyFilter || repairFilter || dateStart || dateEnd
+    searchTerm || statusFilter || (isOrgWide && deptFilter) || locationFilter || surveyFilter || repairFilter || imageFilter || dateStart || dateEnd
   );
 
   const activeFilterCount = [
@@ -330,6 +417,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     Boolean(locationFilter),
     Boolean(surveyFilter),
     Boolean(repairFilter),
+    Boolean(imageFilter),
     Boolean(dateStart || dateEnd)
   ].filter(Boolean).length;
 
@@ -340,6 +428,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
     setLocationFilter('');
     setSurveyFilter('');
     setRepairFilter('');
+    setImageFilter('');
     setDateStart('');
     setDateEnd('');
   };
@@ -720,6 +809,54 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           🛠️ อยู่ระหว่างซ่อม: <span>{analyticsStats.inRepair}</span>
         </button>
 
+        {/* Has Image Chip */}
+        <button
+          type="button"
+          className={`analytics-chip ${imageFilter === 'has_image' ? 'active' : ''}`}
+          onClick={() => setImageFilter(prev => prev === 'has_image' ? '' : 'has_image')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.3rem 0.65rem',
+            borderRadius: '20px',
+            fontSize: '0.775rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            background: imageFilter === 'has_image' ? '#059669' : 'rgba(16, 185, 129, 0.12)',
+            color: imageFilter === 'has_image' ? '#fff' : '#059669',
+            transition: 'all 0.15s ease'
+          }}
+          title="กรองเฉพาะครุภัณฑ์ที่มีภาพถ่ายในระบบแล้ว"
+        >
+          📷 มีรูปภาพ: <span>{analyticsStats.hasPhoto}</span>
+        </button>
+
+        {/* No Image Chip */}
+        <button
+          type="button"
+          className={`analytics-chip ${imageFilter === 'no_image' ? 'active' : ''}`}
+          onClick={() => setImageFilter(prev => prev === 'no_image' ? '' : 'no_image')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.3rem 0.65rem',
+            borderRadius: '20px',
+            fontSize: '0.775rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: '1px solid rgba(156, 163, 175, 0.4)',
+            background: imageFilter === 'no_image' ? '#4b5563' : 'rgba(156, 163, 175, 0.12)',
+            color: imageFilter === 'no_image' ? '#fff' : 'var(--text-secondary)',
+            transition: 'all 0.15s ease'
+          }}
+          title="กรองเฉพาะครุภัณฑ์ที่ยังไม่มีการแนบรูปภาพ"
+        >
+          <CameraOff size={13} /> ยังไม่มีรูป: <span>{analyticsStats.noPhoto}</span>
+        </button>
+
         {/* Clear Filters button if any active */}
         {hasActiveFilters && (
           <button
@@ -865,7 +1002,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
           >
             <SlidersHorizontal size={14} />
             <span>ตัวกรองละเอียด</span>
-            {(surveyFilter || repairFilter || dateStart || dateEnd) && (
+            {(surveyFilter || repairFilter || imageFilter || dateStart || dateEnd) && (
               <span style={{ 
                 width: '8px', 
                 height: '8px', 
@@ -938,7 +1075,7 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             {/* Survey Status Filter */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700 }}>🔍 สถานะการสำรวจตรวจนับ</label>
@@ -951,6 +1088,21 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                 <option value="">ทุกสถานะการสำรวจ (ทั้งหมด)</option>
                 <option value="surveyed">🟢 เคยสำรวจตรวจนับแล้ว</option>
                 <option value="unsurveyed">⚪ ยังไม่เคยสำรวจตรวจนับ</option>
+              </select>
+            </div>
+
+            {/* Photo / Image Status Filter */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700 }}>📷 สถานะรูปภาพครุภัณฑ์</label>
+              <select
+                className="form-select"
+                value={imageFilter}
+                onChange={(e) => setImageFilter(e.target.value as any)}
+                style={{ fontSize: '0.85rem' }}
+              >
+                <option value="">ทั้งหมด ({scopedAssetsPool.length})</option>
+                <option value="has_image">📸 มีรูปภาพแล้ว ({analyticsStats.hasPhoto} ชิ้น)</option>
+                <option value="no_image">⚪ ยังไม่มีรูปภาพ ({analyticsStats.noPhoto} ชิ้น)</option>
               </select>
             </div>
 
@@ -1078,17 +1230,34 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                 </div>
               </div>
               <div className="asset-card-actions">
-                <button 
-                  type="button"
-                  className="btn btn-secondary btn-xs" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenImageModal(asset);
-                  }}
-                  title="ดูรูปภาพครุภัณฑ์ (โหลด On-demand)"
-                >
-                  <Camera size={12} /> รูปภาพ
-                </button>
+                {(() => {
+                  const hasPhoto = checkAssetHasImage(asset);
+                  return (
+                    <button 
+                      type="button"
+                      className="btn btn-secondary btn-xs" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenImageModal(asset);
+                      }}
+                      style={hasPhoto ? { borderColor: 'rgba(16, 185, 129, 0.45)', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' } : { opacity: 0.75, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                      title={hasPhoto ? "ดูรูปภาพครุภัณฑ์ (มีภาพถ่ายในระบบแล้ว)" : "ยังไม่มีภาพถ่าย (คลิกเพื่อดูหรือแนบรูปภาพ)"}
+                    >
+                      {hasPhoto ? (
+                        <>
+                          <Camera size={12} color="#10b981" /> 
+                          <span>รูปภาพ</span>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
+                        </>
+                      ) : (
+                        <>
+                          <CameraOff size={12} style={{ opacity: 0.6 }} /> 
+                          <span style={{ color: 'var(--text-secondary)' }}>ไม่มีรูป</span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
                 <button 
                   type="button"
                   className="btn btn-secondary btn-xs flex-1" 
@@ -1202,14 +1371,20 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                   </td>
                   <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
-                      <button 
-                        type="button"
-                        className="btn btn-secondary btn-xs" 
-                        onClick={() => handleOpenImageModal(asset)} 
-                        title="ดูรูปภาพครุภัณฑ์ (โหลด On-demand)"
-                      >
-                        <Camera size={12} />
-                      </button>
+                      {(() => {
+                        const hasPhoto = checkAssetHasImage(asset);
+                        return (
+                          <button 
+                            type="button"
+                            className="btn btn-secondary btn-xs" 
+                            onClick={() => handleOpenImageModal(asset)} 
+                            style={hasPhoto ? { borderColor: 'rgba(16, 185, 129, 0.45)' } : { opacity: 0.65 }}
+                            title={hasPhoto ? "ดูรูปภาพครุภัณฑ์ (มีภาพถ่ายในระบบแล้ว)" : "ยังไม่มีภาพถ่าย (คลิกเพื่อแนบหรือถ่ายรูป)"}
+                          >
+                            {hasPhoto ? <Camera size={12} color="#10b981" /> : <CameraOff size={12} />}
+                          </button>
+                        );
+                      })()}
                       <button className="btn btn-secondary btn-xs" onClick={() => setSelectedAsset(asset)} title="ดูรายละเอียด">
                         <Eye size={12} />
                       </button>
@@ -1414,11 +1589,30 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
               </button>
             </div>
 
+            {/* Hidden File Inputs for Direct In-Modal Camera / File Upload */}
+            <input 
+              ref={modalCameraInputRef}
+              type="file" 
+              accept="image/*" 
+              capture="environment"
+              style={{ display: 'none' }}
+              onChange={handleModalImageUpload}
+            />
+            <input 
+              ref={modalFileInputRef}
+              type="file" 
+              accept="image/*" 
+              style={{ display: 'none' }}
+              onChange={handleModalImageUpload}
+            />
+
             {/* Modal Content */}
-            {isLoadingImage ? (
+            {isLoadingImage || isUploadingModalImage || isDeletingModalImage ? (
               <div style={{ minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-muted)' }}>
                 <div style={{ width: '36px', height: '36px', border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 550 }}>กำลังโหลดรูปภาพครุภัณฑ์แบบ On-demand จากคลาวด์...</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 550 }}>
+                  {isUploadingModalImage ? 'กำลังประมวลผลและอัปโหลดรูปภาพครุภัณฑ์...' : isDeletingModalImage ? 'กำลังลบรูปภาพ...' : 'กำลังตรวจสอบและโหลดรูปภาพครุภัณฑ์แบบ On-demand จากคลาวด์...'}
+                </span>
               </div>
             ) : loadedImage ? (
               <div>
@@ -1442,43 +1636,114 @@ export const Module1_Database: React.FC<Module1DatabaseProps> = ({
                   <span style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                     {imageSource === 'survey' ? '📷 รูปถ่ายจากการตรวจนับสภาพจริงล่าสุด' : '📦 รูปภาพประจำรายการครุภัณฑ์'}
                   </span>
-                  <a 
-                    href={loadedImage} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="btn btn-secondary btn-xs"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                  >
-                    <ExternalLink size={13} /> เปิดภาพขนาดเต็ม
-                  </a>
+                  <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {isAllowedToEdit(viewingImageAsset) && (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-xs"
+                          onClick={() => modalCameraInputRef.current?.click()}
+                          title="เปิดกล้องถ่ายภาพใหม่แทนที่รูปเดิม"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Camera size={13} color="#10b981" /> ถ่ายใหม่
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-xs"
+                          onClick={() => modalFileInputRef.current?.click()}
+                          title="เลือกรูปภาพใหม่จากคลังภาพในเครื่อง"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Upload size={13} color="#3b82f6" /> เปลี่ยนรูป
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-xs"
+                          onClick={handleModalDeleteImage}
+                          title="ลบรูปภาพนี้ออกจากครุภัณฑ์"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Trash2 size={13} /> ลบรูป
+                        </button>
+                      </>
+                    )}
+                    <a 
+                      href={loadedImage} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="btn btn-secondary btn-xs"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <ExternalLink size={13} /> ดูภาพเต็ม
+                    </a>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div style={{ minHeight: '240px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem', padding: '1.5rem', textAlign: 'center' }}>
+              <div style={{ minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '1.5rem', textAlign: 'center' }}>
                 <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
                   <CameraOff size={32} />
                 </div>
                 <div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.25rem 0' }}>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.4rem 0' }}>
                     ยังไม่มีการแนบรูปภาพสำหรับครุภัณฑ์นี้
                   </h4>
-                  <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', maxWidth: '380px', margin: 0, lineHeight: 1.45 }}>
-                    ครุภัณฑ์นี้ยังไม่มีภาพถ่ายสภาพจริงในระบบ ท่านสามารถถ่ายภาพได้โดยการสแกนตรวจนับ (โมดูล 2) หรือกดแก้ไขครุภัณฑ์
+                  
+                  {/* Explanatory callout for user clarity */}
+                  <div style={{ 
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)', 
+                    border: '1px solid rgba(59, 130, 246, 0.25)', 
+                    borderRadius: '8px', 
+                    padding: '0.75rem 1rem', 
+                    maxWidth: '480px', 
+                    margin: '0.35rem auto 0.75rem auto',
+                    textAlign: 'left'
+                  }}>
+                    <p style={{ fontSize: '0.825rem', color: 'var(--text-primary)', margin: 0, lineHeight: 1.5 }}>
+                      💡 <strong>ทำความเข้าใจระบบ:</strong> การสแกนบาร์โค้ดใน <strong>โมดูล 2 (สแกนตรวจนับ)</strong> เป็นการอ่านรหัสตรวจนับพัสดุ (ไม่ได้บันทึกภาพถ่ายตัวเครื่องโดยอัตโนมัติ เว้นแต่จะกดปุ่มถ่ายภาพสภาพจริงขณะตรวจนับ)
+                    </p>
+                  </div>
+                  
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', maxWidth: '420px', margin: 0, lineHeight: 1.45 }}>
+                    ท่านสามารถถ่ายภาพสภาพจริงหรือเลือกไฟล์ภาพเพื่อแนบเข้าระบบได้ทันทีผ่านปุ่มด้านล่างนี้
                   </p>
                 </div>
+
                 {isAllowedToEdit(viewingImageAsset) && (
-                  <button 
-                    type="button" 
-                    className="btn btn-primary btn-sm"
-                    onClick={() => {
-                      const targetAsset = viewingImageAsset;
-                      setViewingImageAsset(null);
-                      onAssetEdit(targetAsset);
-                    }}
-                    style={{ marginTop: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                  >
-                    <Edit3 size={14} /> แก้ไขเพื่อเพิ่มรูปภาพ
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.25rem' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-primary btn-sm"
+                      onClick={() => modalCameraInputRef.current?.click()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 650 }}
+                      title="เปิดกล้องถ่ายภาพสภาพจริงของครุภัณฑ์นี้"
+                    >
+                      <Camera size={15} /> 📸 ถ่ายภาพด่วน (กล้อง)
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => modalFileInputRef.current?.click()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                      title="เลือกรูปภาพจากเครื่อง"
+                    >
+                      <Upload size={14} /> 📁 เลือกรูปภาพ
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        const targetAsset = viewingImageAsset;
+                        setViewingImageAsset(null);
+                        onAssetEdit(targetAsset);
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      title="เปิดแบบฟอร์มแก้ไขข้อมูลครุภัณฑ์ทั้งหมด"
+                    >
+                      <Edit3 size={14} /> แก้ไขข้อมูลทั้งหมด
+                    </button>
+                  </div>
                 )}
               </div>
             )}
