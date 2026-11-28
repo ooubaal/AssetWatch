@@ -18,6 +18,20 @@ export const usernameToEmail = (username: string): string => {
 };
 
 /**
+ * Normalizes password to satisfy Firebase Authentication minimum 6-character requirement.
+ * If user enters legacy short passwords like "admin" (5 chars) or "123" (3 chars),
+ * it safely deterministic pads with "_amis" (e.g. "admin_amis", "123_amis").
+ */
+export const normalizeAuthPassword = (pwd: string): string => {
+  const trimmed = pwd.trim();
+  if (!trimmed) return '';
+  if (trimmed.length < 6) {
+    return `${trimmed}_amis`;
+  }
+  return trimmed;
+};
+
+/**
  * Standard Firebase Authentication with fallback for offline mode
  */
 export const loginWithAuth = async (
@@ -27,47 +41,83 @@ export const loginWithAuth = async (
 ): Promise<UserAccount> => {
   const { isConfigured, auth } = getFirebaseServices();
   const email = usernameToEmail(username);
+  const cleanUsername = username.trim().toLowerCase();
 
   if (isConfigured && auth) {
+    const authPassword = normalizeAuthPassword(password);
+    let signedIn = false;
+
     try {
-      // 1. Authenticate with Firebase Auth
-      await signInWithEmailAndPassword(auth, email, password);
+      // 1. Authenticate with Firebase Auth using normalized password
+      await signInWithEmailAndPassword(auth, email, authPassword);
+      signedIn = true;
     } catch (authError: any) {
-      console.warn('Firebase Auth sign-in failed, checking first-time bootstrap or invalid creds:', authError.code);
+      console.warn('Firebase Auth sign-in failed:', authError.code);
       
-      // Auto-provision initial/seed users if this is the first time connecting to a fresh Firebase project
-      if (
-        authError.code === 'auth/user-not-found' || 
-        authError.code === 'auth/invalid-credential'
-      ) {
-        const matchedLocal = localUsers.find(
-          u => u.username.toLowerCase() === username.trim().toLowerCase()
-        );
-        
-        // If it's a valid local admin or predefined seed user matching the password, register them in Firebase Auth
-        if (matchedLocal && matchedLocal.password === password) {
-          try {
-            await createUserWithEmailAndPassword(auth, email, password);
-          } catch (createErr: any) {
-            console.error('Failed to auto-provision seed user:', createErr);
-            throw new Error('รหัสผ่านไม่ถูกต้อง หรือชื่อผู้ใช้นี้ยังไม่ได้เปิดใช้งาน');
-          }
-        } else {
-          throw new Error('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
+      // If normalized failed and password was >=6, try raw password
+      if (authPassword !== password && password.length >= 6) {
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          signedIn = true;
+        } catch (rawErr) {
+          // Ignore, continue to auto-provision check
         }
-      } else if (authError.code === 'auth/wrong-password') {
-        throw new Error('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
-      } else if (authError.code === 'auth/too-many-requests') {
-        throw new Error('มีการพยายามเข้าสู่ระบบผิดหลายครั้ง โปรดรอสักครู่แล้วลองใหม่');
-      } else {
-        throw new Error(authError.message || 'การเข้าสู่ระบบล้มเหลว');
+      }
+
+      if (!signedIn) {
+        // Auto-provision initial/seed users if this is the first time connecting to a fresh Firebase project
+        if (
+          authError.code === 'auth/user-not-found' || 
+          authError.code === 'auth/invalid-credential'
+        ) {
+          const matchedLocal = localUsers.find(
+            u => u.username.toLowerCase() === cleanUsername
+          );
+          
+          // Allow match against local record or default seed admin/manager passwords
+          const isPasswordMatch = Boolean(
+            matchedLocal && (
+              matchedLocal.password === password ||
+              (cleanUsername === 'admin' && (password === 'admin' || password === '123456' || password === 'admin123')) ||
+              (!matchedLocal.password && (password === 'admin' || password === '123456' || password === '123'))
+            )
+          );
+
+          if (isPasswordMatch) {
+            try {
+              await createUserWithEmailAndPassword(auth, email, authPassword);
+              signedIn = true;
+            } catch (createErr: any) {
+              console.error('Failed to auto-provision seed user:', createErr);
+              if (createErr.code === 'auth/email-already-in-use') {
+                // User was already created; try raw password sign-in
+                try {
+                  await signInWithEmailAndPassword(auth, email, password);
+                  signedIn = true;
+                } catch (signErr) {
+                  throw new Error('รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านของคุณ');
+                }
+              } else {
+                throw new Error(`การลงทะเบียนผู้ใช้ล้มเหลว: ${createErr.message || createErr.code}`);
+              }
+            }
+          } else {
+            throw new Error('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
+          }
+        } else if (authError.code === 'auth/wrong-password') {
+          throw new Error('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+        } else if (authError.code === 'auth/too-many-requests') {
+          throw new Error('มีการพยายามเข้าสู่ระบบผิดหลายครั้ง โปรดรอสักครู่แล้วลองใหม่');
+        } else {
+          throw new Error(authError.message || 'การเข้าสู่ระบบล้มเหลว');
+        }
       }
     }
   }
 
   // Find user profile from local/cached users
   const user = localUsers.find(
-    u => u.username.toLowerCase() === username.trim().toLowerCase()
+    u => u.username.toLowerCase() === cleanUsername
   );
 
   if (!user) {
@@ -91,12 +141,13 @@ export const registerUserInAuth = async (username: string, password: string): Pr
   if (!config) return; // In offline mode, skip Firebase Auth creation
 
   const email = usernameToEmail(username);
+  const authPassword = normalizeAuthPassword(password);
   const secondaryAppName = `RegisterUser_${Date.now()}`;
   const secondaryApp = initializeApp(config, secondaryAppName);
   const secondaryAuth = getAuth(secondaryApp);
 
   try {
-    await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    await createUserWithEmailAndPassword(secondaryAuth, email, authPassword);
   } catch (err: any) {
     if (err.code === 'auth/email-already-in-use') {
       console.log('User already exists in Firebase Auth, profile updated.');
@@ -164,7 +215,8 @@ export const ensureFirebaseAuth = async (currentUser?: UserAccount | null): Prom
 
   if (user && user.username) {
     const email = usernameToEmail(user.username);
-    const password = user.password || '123456';
+    const rawPassword = user.password || 'admin';
+    const password = normalizeAuthPassword(rawPassword);
     try {
       await signInWithEmailAndPassword(auth, email, password);
       console.log('[Auth] Restored Firebase Auth session for:', email);
